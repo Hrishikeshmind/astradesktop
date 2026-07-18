@@ -60,8 +60,9 @@
   value: 6
   condition: "defined(MOZILLA_OFFICIAL)"
 
+# Astra local multi-profile switcher (SelectableProfileService).
 - name: browser.profiles.enabled
-  value: false
+  value: true
 
 - name: browser.tabs.groups.enabled
   value: true

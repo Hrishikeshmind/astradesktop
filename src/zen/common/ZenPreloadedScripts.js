@@ -16,6 +16,12 @@
   // App Hub: stable bootstrap only at startup. Advanced manager lazy-loads on
   // first open so catalog/profile IO does not compete with first navigation.
   ChromeUtils.importESModule("chrome://browser/content/zen-components/AstraAppHubBootstrap.mjs", { global: "current" });
+  // Migration Center: bootstrap only — center module lazy-loads on first open.
+  try {
+    ChromeUtils.importESModule("chrome://browser/content/zen-components/AstraMigrationBootstrap.mjs", { global: "current" });
+  } catch (error) {
+    console.warn("[AstraMigration] bootstrap failed to initialize; browser remains usable", error);
+  }
   // Suraksha: bootstrap only — manager/adapters lazy-load on first open.
   try {
     ChromeUtils.importESModule("chrome://browser/content/zen-components/AstraSurakshaBootstrap.mjs", { global: "current" });

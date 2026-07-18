@@ -170,6 +170,44 @@
 <panel
   type="arrow"
   orient="vertical"
+  id="PanelUI-astra-migration"
+  class="astra-migration-panel"
+  position="bottomright topright"
+  side="bottom"
+  noautofocus="true"
+  role="dialog"
+  aria-labelledby="astra-migration-title">
+  <vbox id="PanelUI-astra-migration-container">
+    <vbox id="astra-migration-header">
+      <label id="astra-migration-title" data-l10n-id="astra-migration-title"/>
+      <description id="astra-migration-subtitle" data-l10n-id="astra-migration-subtitle"/>
+    </vbox>
+    <vbox id="astra-migration-scroll" flex="1">
+      <vbox id="astra-migration-dynamic"/>
+    </vbox>
+    <hbox id="astra-migration-footer">
+      <toolbarbutton
+        id="astra-migration-continue-without"
+        class="subviewbutton"
+        data-l10n-id="astra-migration-continue-without"
+        oncommand="window.gAstraMigration?.close?.();"/>
+      <toolbarbutton
+        id="astra-migration-cancel"
+        class="subviewbutton"
+        data-l10n-id="astra-migration-cancel"
+        oncommand="window.gAstraMigration?.close?.();"/>
+      <toolbarbutton
+        id="astra-migration-continue"
+        class="subviewbutton footer-button primary"
+        data-l10n-id="astra-migration-continue"
+        oncommand="void window.gAstraMigrationBootstrap?.confirmImport?.();"/>
+    </hbox>
+  </vbox>
+</panel>
+
+<panel
+  type="arrow"
+  orient="vertical"
   id="PanelUI-zen-app-launcher"
   class="astra-app-hub-panel"
   position="bottomright topright"

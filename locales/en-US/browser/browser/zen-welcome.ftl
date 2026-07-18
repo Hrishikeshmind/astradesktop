@@ -49,10 +49,10 @@ zen-theme-system = System
 zen-welcome-search-title = Your Default Search Engine
 zen-welcome-search-sub = Choose your search engine. You can always change it later.
 
-zen-welcome-import-title = Bring your stuff over
+zen-welcome-import-title = Bring your browser with you
 zen-welcome-import-sub = Import bookmarks, history, and passwords from your old browser
-zen-import-chrome = Import your data
-zen-import-chrome-sub = From Chrome, Firefox, Brave, Edge, and more
+zen-import-chrome = Import browser data
+zen-import-chrome-sub = From Chrome, Firefox, Brave, Edge, and more when available
 zen-import-default = Set Astra as default browser
 zen-import-default-sub = Open all links in Astra
 

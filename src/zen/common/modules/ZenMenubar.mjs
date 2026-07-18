@@ -151,6 +151,28 @@ export class nsZenMenuBar {
     } catch {
       // App Menu entry is optional; toolbar command remains available.
     }
+
+    // Astra Migration Center — additive App Menu entry.
+    try {
+      const surakshaBtn = PanelMultiView.getViewNode(
+        document,
+        "appMenu-astra-suraksha-button"
+      );
+      const anchor =
+        surakshaBtn ||
+        PanelMultiView.getViewNode(document, "appMenu-extensions-themes-button");
+      if (anchor && !document.getElementById("appMenu-astra-migration-button")) {
+        const migrationItem = window.MozXULElement.parseXULToFragment(
+          `<toolbarbutton id="appMenu-astra-migration-button"
+                    class="subviewbutton subviewbutton-iconic"
+                    data-l10n-id="astra-migration-appmenu"
+                    command="cmd_astraOpenMigrationCenter"/>`
+        ).querySelector("toolbarbutton");
+        anchor.before(migrationItem);
+      }
+    } catch {
+      // Optional App Menu entry.
+    }
   }
 
   #hideWindowRestoreMenus() {

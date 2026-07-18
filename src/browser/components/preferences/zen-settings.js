@@ -667,8 +667,41 @@ var gZenLooksAndFeel = {
       }
     });
     this.applySidebarLayout();
+    this._initAstraMigrationEntry();
     gZenPrivacyPresets.init();
     gZenRecommendedExtensions.init();
+  },
+
+  _initAstraMigrationEntry() {
+    const button = document.getElementById("astraMigrationImportButton");
+    if (!button || button._astraMigrationBound) {
+      return;
+    }
+    button._astraMigrationBound = true;
+    button.addEventListener("command", () => {
+      try {
+        const browserWin = Services.wm.getMostRecentWindow("navigator:browser");
+        if (browserWin?.gAstraMigration?.open) {
+          void browserWin.gAstraMigration.open({
+            entrypoint: "preferences",
+            anchor: browserWin.document.getElementById("PanelUI-menu-button"),
+          });
+          return;
+        }
+      } catch {
+        // fall through to native wizard
+      }
+      try {
+        const { MigrationUtils } = ChromeUtils.importESModule(
+          "resource:///modules/MigrationUtils.sys.mjs"
+        );
+        void MigrationUtils.showMigrationWizard(window, {
+          entrypoint: MigrationUtils.MIGRATION_ENTRYPOINTS?.PREFERENCES,
+        });
+      } catch (error) {
+        console.warn("[AstraMigration] preferences entry failed", error);
+      }
+    });
   },
 
   observe() {

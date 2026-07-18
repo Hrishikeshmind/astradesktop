@@ -604,6 +604,17 @@ document.addEventListener(
             }
             break;
           }
+          case "cmd_astraOpenMigrationCenter": {
+            const migration = window.gAstraMigration;
+            if (migration?.toggle) {
+              void migration.toggle({ event, entrypoint: "command" });
+            } else if (migration?.open) {
+              void migration.open({ event, entrypoint: "command" });
+            } else if (migration?.openNativeWizard) {
+              void migration.openNativeWizard({ entrypoint: "command" });
+            }
+            break;
+          }
           case "cmd_zenOpenIndiaGov":
             gZenIndiaGov.open(event);
             break;

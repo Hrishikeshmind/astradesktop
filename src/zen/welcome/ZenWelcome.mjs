@@ -954,9 +954,28 @@
             l10n: "zen-generic-next",
             onclick: async () => {
               if (importToggle?.isOn()) {
-                MigrationUtils.showMigrationWizard(window, {
-                  isStartupMigration: true,
-                });
+                try {
+                  if (window.gAstraMigration?.openNativeWizard) {
+                    await window.gAstraMigration.openNativeWizard({
+                      isStartupMigration: true,
+                      entrypoint: "welcome",
+                    });
+                  } else {
+                    MigrationUtils.showMigrationWizard(window, {
+                      isStartupMigration: true,
+                    });
+                  }
+                } catch (ex) {
+                  try {
+                    MigrationUtils.showMigrationWizard(window, {
+                      isStartupMigration: true,
+                    });
+                  } catch (inner) {
+                    console.warn(
+                      "[AstraMigration] welcome import failed; continuing"
+                    );
+                  }
+                }
               }
               if (defaultToggle?.isOn()) {
                 if (AppConstants.HAVE_SHELL_SERVICE) {
