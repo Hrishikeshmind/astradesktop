@@ -144,14 +144,12 @@ const welcome = read("src/zen/welcome/ZenWelcome.mjs");
 const zenSettings = read("src/browser/components/preferences/zen-settings.js");
 const assets = read("src/browser/base/content/zen-assets.inc.xhtml");
 const localesInc = read("src/browser/base/content/zen-locales.inc.xhtml");
+const welcomeFtl = read("locales/en-US/browser/browser/zen-welcome.ftl");
 
 if (
   center.includes("MigrationUtils") &&
   center.includes("showMigrationWizard") &&
   center.includes("getMigrator") &&
-  center.includes("availableMigratorKeys") &&
-  center.includes("getSourceProfiles") &&
-  center.includes("getMigrateData") &&
   !/Login Data|Cookies\.|Local State|OSCrypt|DPAPI|key4\.db/i.test(center) &&
   !/profiles\.ini/i.test(center) &&
   !/copy.*profile.*folder|nsIFile.*clone/i.test(center)
@@ -161,10 +159,59 @@ if (
   fail("Migration Center unsafe or incomplete");
 }
 
+// Astra must NOT maintain a second source/browser/profile/resource enumeration
+// model — that is the native wizard's job and a parallel model can go stale and
+// mis-pass a raw profile-id string to MigratorBase.getMigrateData.
+if (
+  !/export\s+async\s+function\s+listAvailableMigrators/.test(center) &&
+  !/export\s+async\s+function\s+listSourceProfiles/.test(center) &&
+  !/export\s+async\s+function\s+listAvailableResources/.test(center) &&
+  !/getMigrateData\s*\(/.test(center) &&
+  !/getSourceProfiles\s*\(/.test(center)
+) {
+  ok("no duplicated source/profile/resource enumeration model");
+} else {
+  fail("duplicated source/profile/resource model must be removed");
+}
+
+// SelectableProfileService must be reached through the canonical module URL,
+// never assumed as a window or global object.
+if (
+  center.includes(
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs"
+  ) &&
+  /defineESModuleGetters\([\s\S]*?SelectableProfileService/.test(center) &&
+  /lazy\.SelectableProfileService/.test(center) &&
+  !/win\?\.SelectableProfileService|globalThis\.SelectableProfileService/.test(
+    center
+  )
+) {
+  ok("SelectableProfileService imported via module URL, not a global");
+} else {
+  fail("SelectableProfileService must be a lazy module import, not a global");
+}
+
+// Native create-and-launch (Option A): create without auto-launch, then launch
+// a separate instance opening about:newprofile. No old-process import claim.
+if (
+  /createNewProfile\(\s*false\s*\)/.test(center) &&
+  /launchInstance\(\s*profile\s*,\s*\[\s*"about:newprofile"\s*\]\s*\)/.test(
+    center
+  ) &&
+  /importDeferred:\s*true/.test(center) &&
+  /profileCreated:\s*true/.test(center) &&
+  !/importStarted|importComplete|import(ing)?\s+started|alreadyImport/i.test(
+    center
+  )
+) {
+  ok("native create-and-launch sequence; import deferred, no old-process claim");
+} else {
+  fail("profile create/launch sequence or truthful state incomplete");
+}
+
 if (
   center.includes("filterNormalMigrators") &&
   center.includes("startupOnlyMigrator") &&
-  /allowStartupOnly/.test(center) &&
   /reason:\s*"startup-only"/.test(center)
 ) {
   ok("startup-only migrators excluded from normal UI");
@@ -289,6 +336,33 @@ if (
   ok("UI markup, Fluent, welcome, preferences wired");
 } else {
   fail("UI/entry wiring incomplete");
+}
+
+// The in-session welcome must NOT request startup migration. Passing
+// isStartupMigration:true forces a blocking startup/refresh modal and
+// misrepresents a non-existent nsIProfileStartup context.
+if (!/isStartupMigration:\s*true/.test(welcome)) {
+  ok("welcome does not request isStartupMigration:true");
+} else {
+  fail("welcome must not set isStartupMigration:true (normal in-session)");
+}
+if (/isStartupMigration:\s*false/.test(welcome)) {
+  ok("welcome uses normal in-session migration (isStartupMigration:false)");
+} else {
+  fail("welcome should explicitly use isStartupMigration:false");
+}
+
+// Onboarding import copy must be browser-neutral (no hardcoded source browser).
+if (
+  !/zen-import-chrome\b/.test(welcome) &&
+  /zen-import-browser\b/.test(welcome) &&
+  !/zen-import-chrome\b/.test(welcomeFtl) &&
+  /zen-import-browser\s*=/.test(welcomeFtl) &&
+  /zen-import-browser-sub\s*=/.test(welcomeFtl)
+) {
+  ok("onboarding import copy is browser-neutral");
+} else {
+  fail("onboarding import copy must be browser-neutral");
 }
 
 {

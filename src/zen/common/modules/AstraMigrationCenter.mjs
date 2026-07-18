@@ -15,6 +15,10 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
+  // SelectableProfileService is a module singleton, NOT a browser-window global.
+  // It must be reached through the canonical Firefox module URL.
+  SelectableProfileService:
+    "resource:///modules/profiles/SelectableProfileService.sys.mjs",
 });
 
 const PANEL_ID = "PanelUI-astra-migration";
@@ -131,11 +135,13 @@ export function profilesFeatureEnabled() {
   }
 }
 
-export function selectableProfilesServiceEnabled(win = null) {
+/**
+ * Whether the native SelectableProfileService reports itself enabled.
+ * Read through the canonical module singleton — never a window/global.
+ */
+export function selectableProfilesServiceEnabled() {
   try {
-    const svc =
-      win?.SelectableProfileService || globalThis.SelectableProfileService;
-    return !!svc?.isEnabled;
+    return !!lazy.SelectableProfileService?.isEnabled;
   } catch {
     return false;
   }
@@ -144,7 +150,7 @@ export function selectableProfilesServiceEnabled(win = null) {
 export function canCreateSelectableProfile(win = null) {
   return canOfferSelectableProfiles({
     prefEnabled: profilesFeatureEnabled(),
-    serviceEnabled: selectableProfilesServiceEnabled(win),
+    serviceEnabled: selectableProfilesServiceEnabled(),
     isPrivate: !!(
       win &&
       typeof PrivateBrowsingUtils !== "undefined" &&
@@ -154,103 +160,16 @@ export function canCreateSelectableProfile(win = null) {
 }
 
 /**
- * Enumerate migrators that currently report importable data.
- * @param {{ allowStartupOnly?: boolean }} [options]
+ * NOTE: Astra intentionally maintains NO second source/browser/profile/resource
+ * enumeration model. The native Migration Wizard is the single canonical owner
+ * of source-browser discovery, source-profile selection, and resource discovery
+ * (`availableMigratorKeys` / `getMigrator` / `getSourceProfiles` /
+ * `getMigrateData`). Duplicating that here risks a stale parallel model and can
+ * mis-pass a raw profile-id string where `MigratorBase.getMigrateData` expects
+ * the source-profile object returned by `getSourceProfiles`. `filterNormalMigrators`
+ * and `resourceTypesFromBitfield` above are kept only as pure, side-effect-free
+ * decoders exercised by tests.
  */
-export async function listAvailableMigrators(options = {}) {
-  const mu = lazy.MigrationUtils;
-  if (!mu?.availableMigratorKeys) {
-    return [];
-  }
-  const allowStartupOnly = !!options.allowStartupOnly;
-  const keys = [...mu.availableMigratorKeys].filter(
-    k => k && k !== "internal-testing"
-  );
-  const defaultKey = mu.getMigratorKeyForDefaultBrowser?.() || null;
-  const results = [];
-  for (const key of keys) {
-    try {
-      // getMigrator returns null when source data/permissions unavailable.
-      const migrator = await mu.getMigrator(key);
-      if (!migrator) {
-        continue;
-      }
-      results.push({
-        key,
-        displayNameL10nID: migrator.constructor?.displayNameL10nID || "",
-        brandImage: migrator.constructor?.brandImage || "",
-        isDefault: key === defaultKey,
-        startupOnly: !!migrator.startupOnlyMigrator,
-        showsManualPasswordImport: !!migrator.showsManualPasswordImport,
-      });
-    } catch {
-      safeLog("migrator-enumerate-failed", {
-        migratorKey: key,
-        errorCategory: "enumerate",
-      });
-    }
-  }
-  const filtered = allowStartupOnly
-    ? results.filter(m => m.key !== "internal-testing")
-    : filterNormalMigrators(results);
-  filtered.sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
-  return filtered;
-}
-
-export async function listSourceProfiles(migratorKey) {
-  const mu = lazy.MigrationUtils;
-  if (!mu || typeof migratorKey !== "string") {
-    return [];
-  }
-  try {
-    const migrator = await mu.getMigrator(migratorKey);
-    if (!migrator || migrator.startupOnlyMigrator) {
-      return [];
-    }
-    const profiles = await migrator.getSourceProfiles();
-    if (!profiles?.length) {
-      return [{ id: "", name: "default" }];
-    }
-    return profiles.map(p => ({
-      id: typeof p.id === "string" ? p.id : String(p.id ?? ""),
-      name: typeof p.name === "string" ? p.name : "Profile",
-    }));
-  } catch {
-    safeLog("source-profiles-failed", {
-      migratorKey,
-      errorCategory: "source-profiles",
-    });
-    return [];
-  }
-}
-
-export async function listAvailableResources(migratorKey, sourceProfileId = "") {
-  const mu = lazy.MigrationUtils;
-  if (!mu || typeof migratorKey !== "string") {
-    return { resources: [], showsManualPasswordImport: false };
-  }
-  try {
-    const migrator = await mu.getMigrator(migratorKey);
-    if (!migrator || migrator.startupOnlyMigrator) {
-      return { resources: [], showsManualPasswordImport: false };
-    }
-    const bits = await migrator.getMigrateData(sourceProfileId || "");
-    const resources = resourceTypesFromBitfield(
-      bits || 0,
-      mu.resourceTypes || {}
-    );
-    return {
-      resources,
-      showsManualPasswordImport: !!migrator.showsManualPasswordImport,
-    };
-  } catch {
-    safeLog("resources-failed", {
-      migratorKey,
-      errorCategory: "resources",
-    });
-    return { resources: [], showsManualPasswordImport: false };
-  }
-}
 
 /**
  * Open the native Migration Wizard. Canonical execution owner.
@@ -319,33 +238,55 @@ export async function openNativeMigrationWizard(win, options = {}) {
 }
 
 /**
- * Option A: create/launch a new selectable profile via native service.
- * Does not start import in the current process.
+ * Option A: create a new selectable profile via the native service, then launch
+ * a SEPARATE instance that opens about:newprofile. Import is deferred to that
+ * new instance — nothing is imported in the current process.
+ *
+ * Uses the exact canonical native sequence:
+ *   const profile = await SelectableProfileService.createNewProfile(false);
+ *   SelectableProfileService.launchInstance(profile, ["about:newprofile"]);
+ *
+ * createNewProfile(false) creates without auto-launch (it internally calls
+ * maybeSetupDataStore), so we launch explicitly and can report truthful state.
  */
 export async function createDestinationProfile(win = null) {
   if (!canCreateSelectableProfile(win)) {
     return { ok: false, reason: "profiles-unavailable" };
   }
+  const svc = lazy.SelectableProfileService;
+  if (!svc || !svc.isEnabled || typeof svc.createNewProfile !== "function") {
+    return { ok: false, reason: "profiles-unavailable" };
+  }
+  let profile = null;
   try {
-    const svc =
-      win?.SelectableProfileService || globalThis.SelectableProfileService;
-    if (typeof svc.createNewProfile === "function") {
-      await svc.createNewProfile();
-      return { ok: true, launchedNative: true };
-    }
+    // launchProfile=false: create only. Service handles currentProfile === null
+    // (bootstraps the datastore and adopts the running toolkit profile).
+    profile = await svc.createNewProfile(false);
   } catch {
     safeLog("create-profile-failed", { errorCategory: "create-profile" });
+    return { ok: false, reason: "create-failed" };
   }
+  if (!profile) {
+    return { ok: false, reason: "create-failed" };
+  }
+  let targetLaunched = false;
   try {
-    const open = win?.openTrustedLinkIn || globalThis.openTrustedLinkIn;
-    if (typeof open === "function") {
-      open("about:newprofile", "tab");
-      return { ok: true, via: "about:newprofile" };
+    if (typeof svc.launchInstance === "function") {
+      svc.launchInstance(profile, ["about:newprofile"]);
+      targetLaunched = true;
     }
   } catch {
-    // ignore
+    safeLog("launch-instance-failed", { errorCategory: "launch-profile" });
   }
-  return { ok: false, reason: "create-failed" };
+  // Truthful: profile created, target launched (best-effort), import deferred to
+  // the new instance. Never assert that data transfer began or finished in this
+  // process — the new instance owns that flow.
+  return {
+    ok: true,
+    profileCreated: true,
+    targetLaunched,
+    importDeferred: true,
+  };
 }
 
 export function openManageProfiles(win = null) {
@@ -586,7 +527,7 @@ export class AstraMigrationPanelController {
         }
         this.#state.statusL10n = "astra-migration-new-profile-handoff";
         this.#render();
-        // Do not claim import started in this process.
+        // Do not claim any data transfer began in this process.
         return { ok: true, deferredToNewProfile: true };
       }
       this.close();

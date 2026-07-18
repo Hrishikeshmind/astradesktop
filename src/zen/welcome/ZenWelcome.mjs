@@ -954,21 +954,31 @@
             l10n: "zen-generic-next",
             onclick: async () => {
               if (importToggle?.isOn()) {
+                // The welcome screen runs inside an already-started browser, NOT
+                // under an nsIProfileStartup context, so this is normal
+                // in-session migration. We must never request startup migration
+                // from here: that forces a blocking startup/refresh modal and
+                // misrepresents the profile-startup state. The native wizard owns
+                // source/profile/resource selection; the Firefox startup-only
+                // migrator stays excluded because MigrationUtils.isStartupMigration
+                // remains false in this context.
                 try {
                   if (window.gAstraMigration?.openNativeWizard) {
                     await window.gAstraMigration.openNativeWizard({
-                      isStartupMigration: true,
+                      isStartupMigration: false,
                       entrypoint: "welcome",
                     });
                   } else {
                     MigrationUtils.showMigrationWizard(window, {
-                      isStartupMigration: true,
+                      isStartupMigration: false,
+                      entrypoint: "welcome",
                     });
                   }
                 } catch (ex) {
                   try {
                     MigrationUtils.showMigrationWizard(window, {
-                      isStartupMigration: true,
+                      isStartupMigration: false,
+                      entrypoint: "welcome",
                     });
                   } catch (inner) {
                     console.warn(
@@ -1002,8 +1012,8 @@
           const toggleList = document.createElement("div");
           toggleList.className = "zen-welcome-toggle-list";
           importToggle = buildToggle(
-            "zen-import-chrome",
-            "zen-import-chrome-sub",
+            "zen-import-browser",
+            "zen-import-browser-sub",
             false
           );
           defaultToggle = buildToggle(
