@@ -400,6 +400,23 @@ class AstraAppHubManager {
     return { event: eventOrOptions || null, source: "compat" };
   }
 
+  /**
+   * Public, sanitized advanced diagnostics for runtime verification. Reflects
+   * how far initialization progressed and the last catalog failure stage.
+   */
+  get advancedDiagnostics() {
+    return {
+      shellBuilt: this.#shellBuilt,
+      catalogLoaded: !!this.#catalog,
+      rendered: this.#rendered,
+      initialized: this.#initialized,
+      stage: this.#catalogDiag?.stage || (this.#rendered ? "ready" : null),
+      exceptionName: this.#catalogDiag?.exceptionName || null,
+      schemaReason: this.#catalogDiag?.schemaReason || null,
+      retryExhausted: this.#catalogRetryExhausted,
+    };
+  }
+
   get panel() {
     return document.getElementById("PanelUI-zen-app-launcher");
   }

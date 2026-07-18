@@ -46,6 +46,34 @@ export const ZenCustomizableUI = new (class {
     this.#modifyToolbarButtons(window);
   }
 
+  // Canonical persisted form is "<number>px". Reject empty, NaN, negative,
+  // zero, and any malformed / non-pixel unit so a bad saved value falls back
+  // to the upstream default instead of rendering an oversized sidebar.
+  #isValidSidebarWidth(value) {
+    if (typeof value !== "string") {
+      return false;
+    }
+    const trimmed = value.trim();
+    if (!/^\d+(?:\.\d+)?px$/.test(trimmed)) {
+      return false;
+    }
+    const px = parseFloat(trimmed);
+    return Number.isFinite(px) && px > 0;
+  }
+
+  // Clear ONLY the bad width entry through the canonical persistence owner
+  // (XULStore) so the upstream default can apply. Never wipe other sidebar or
+  // window state.
+  #clearPersistedSidebarWidth(window) {
+    try {
+      const uri = window.document.documentURI;
+      Services.xulStore.removeValue(uri, "navigator-toolbox", "width");
+      Services.xulStore.removeValue(uri, "navigator-toolbox", "style");
+    } catch (error) {
+      console.warn("[Astra] failed to clear invalid sidebar width", error);
+    }
+  }
+
   #addSidebarButtons(window) {
     const kDefaultSidebarWidth =
       AppConstants.platform === "macosx" ? "230px" : "186px";
@@ -92,12 +120,13 @@ export const ZenCustomizableUI = new (class {
               tooltiptext="Bharat Apps 🇮🇳"
               flex="1" />
           </toolbaritem>
-          <toolbaritem id="astra-suraksha-button" removable="true" data-l10n-id="astra-suraksha-button">
+          <toolbaritem id="astra-suraksha-button" removable="true">
             <toolbarbutton
               id="astra-suraksha-toolbarbutton"
               class="toolbarbutton-1"
               command="cmd_astraOpenSurakshaCenter"
               data-l10n-id="astra-suraksha-button"
+              tooltiptext="Astra Suraksha"
               flex="1" />
           </toolbaritem>
           <html:div id="zen-sidebar-top-buttons-separator" skipintoolbarset="true" overflows="false"></html:div>
@@ -114,8 +143,19 @@ export const ZenCustomizableUI = new (class {
       attributes: true, //configure it to listen to attribute changes
     });
 
-    // remove all styles except for the width, since we are xulstoring the complet style list
-    const width = toolbox.style.width || kDefaultSidebarWidth;
+    // remove all styles except for the width, since we are xulstoring the complet style list.
+    // Guard against invalid persisted widths (empty / NaN / negative / zero /
+    // malformed non-px). A zero/empty width while expanded is NOT a valid saved
+    // width; left as-is the CSS cannot shrink below content and the sidebar
+    // renders content-driven and excessively wide. The native splitter remains
+    // the sole resize owner; valid user widths are preserved untouched.
+    const persistedWidth = toolbox.style.width;
+    const width = this.#isValidSidebarWidth(persistedWidth)
+      ? persistedWidth
+      : kDefaultSidebarWidth;
+    if (width !== persistedWidth) {
+      this.#clearPersistedSidebarWidth(window);
+    }
     toolbox.removeAttribute("style");
     toolbox.style.width = width;
     toolbox.setAttribute("width", width);

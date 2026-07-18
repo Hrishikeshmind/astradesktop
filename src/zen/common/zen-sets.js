@@ -383,7 +383,7 @@ document.addEventListener(
     });
 
     window.gZenStartup?.promiseInitialized?.then(() => {
-      void gZenEnergySaver.init().catch(console.warn);
+      void gZenEnergySaver.init(window).catch(console.warn);
       // init() is idempotent: first call registers observers; later calls reapply only.
       window.gAstraTransparency?.init?.();
       window.gAstraTransparency?.onStartupReady?.();

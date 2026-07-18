@@ -272,6 +272,29 @@ if (
   fail("ZenSpaceManager Astra hooks incomplete");
 }
 
+// CRITICAL: Astra Space helper modules export individual names only. Using
+// defineESModuleGetters(lazy, { AstraSpaceIntegrity: "…Integrity.mjs" }) throws
+// on first access because there is no export named AstraSpaceIntegrity.
+// Namespace import via importESModule is required.
+if (
+  /defineLazyGetter\(\s*lazy,\s*"AstraSpaceIntegrity"[\s\S]*?importESModule\(\s*"resource:\/\/\/modules\/zen\/AstraSpaceIntegrity\.mjs"/.test(
+    mgr
+  ) &&
+  /defineLazyGetter\(\s*lazy,\s*"AstraSpaceRouting"[\s\S]*?importESModule\(\s*"resource:\/\/\/modules\/zen\/AstraSpaceRouting\.mjs"/.test(
+    mgr
+  ) &&
+  /defineLazyGetter\(\s*lazy,\s*"AstraSpaceAppBridge"[\s\S]*?importESModule\(\s*"resource:\/\/\/modules\/zen\/AstraSpaceAppBridge\.mjs"/.test(
+    mgr
+  ) &&
+  !/defineESModuleGetters\(\s*lazy,\s*\{[\s\S]*AstraSpaceIntegrity\s*:/.test(mgr)
+) {
+  ok("Astra Space helpers loaded via importESModule namespace (not broken named getters)");
+} else {
+  fail(
+    "Astra Space helpers still use defineESModuleGetters for non-exported names"
+  );
+}
+
 if (
   routing.includes("switchSpaceSafely") &&
   routing.includes("_astraSwitchGeneration") &&

@@ -262,9 +262,9 @@ class ZenStartup {
       if (!Services.prefs.getBoolPref("astra.ramsaver.enabled", true)) {
         return;
       }
-      const idleService = Cc["@mozilla.org/user-idle-service;1"].getService(
-        Ci.nsIUserIdleService
-      );
+      const idleService = Cc[
+        "@mozilla.org/widget/useridleservice;1"
+      ].getService(Ci.nsIUserIdleService);
       idleService.addIdleObserver(this.#ramSaverIdleObserver, 180);
       setInterval(() => this.#checkRamSaverThreshold(), 5 * 60 * 1000);
     } catch (e) {

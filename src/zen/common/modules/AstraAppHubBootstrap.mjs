@@ -71,7 +71,6 @@ class AstraAppHubBootstrap {
   #lastOpenAttempt = null;
   #loggedReady = false;
   #managerImportPromise = null;
-  #managerImportFailed = false;
 
   constructor() {
     window.gAstraAppHubBootstrap = this;
@@ -103,6 +102,13 @@ class AstraAppHubBootstrap {
       },
       get lastErrorStage() {
         return self.#lastErrorStage;
+      },
+      get managerStage() {
+        try {
+          return window.gAstraAppHubManager?.advancedDiagnostics ?? null;
+        } catch {
+          return null;
+        }
       },
       get panelFound() {
         return !!document.getElementById(PANEL_ID);
@@ -274,6 +280,50 @@ class AstraAppHubBootstrap {
     fallback.addEventListener("load", this.#boundFallbackIconEvent, true);
     fallback.addEventListener("error", this.#boundFallbackIconEvent, true);
     fallback.dataset.astraIconHandlersBound = "1";
+    // The packaged icons live in the DOM from window parse, so their load/error
+    // events fire long before this handler binds on first open. Late capture
+    // listeners never see already-fired events, which would leave every stack
+    // stuck on its monogram. Reconcile the current state of each icon now, and
+    // let the listeners above cover any request still in flight.
+    this.#reconcileFallbackIconState(fallback);
+  }
+
+  /**
+   * Reflect each fallback icon's current load state onto its stack so CSS can
+   * reveal successfully loaded logos even though the load event already fired.
+   */
+  #reconcileFallbackIconState(fallback) {
+    let images;
+    try {
+      images = fallback.querySelectorAll(".zen-app-launcher-item-icon");
+    } catch {
+      return;
+    }
+    for (const image of images) {
+      try {
+        if (!image.complete) {
+          continue;
+        }
+        const stack = image.closest?.(".zen-app-launcher-item-icon-stack");
+        if (!stack) {
+          continue;
+        }
+        if (image.naturalWidth > 0) {
+          stack.setAttribute("data-icon-loaded", "true");
+          stack.removeAttribute("data-icon-error");
+        } else {
+          stack.setAttribute("data-icon-error", "true");
+          stack.removeAttribute("data-icon-loaded");
+          try {
+            image.removeAttribute("src");
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // ignore individual icon reconciliation errors
+      }
+    }
   }
 
   #destroyListeners() {
@@ -384,9 +434,16 @@ class AstraAppHubBootstrap {
   /**
    * Lazy-import advanced manager on first open. Startup only loads bootstrap.
    * Catalog/profile IO must not compete with first navigation / session restore.
+   *
+   * Failures are NOT permanently process-cached here: a rejected attempt clears
+   * the in-flight promise so a later open (or the Retry button) can try again.
+   * The Gecko module registry still avoids re-evaluating a module that threw.
+   * Each stage is recorded separately so the exact failing point is visible:
+   * manager-import (module eval) → manager-create (instance) → manager-init
+   * (state-load / shell / rebuild happen inside init and gate advanced-ready).
    */
   async #ensureManagerImported() {
-    if (this.#manager || this.#managerImportFailed) {
+    if (this.#manager && this.#advancedReady) {
       return;
     }
     if (this.#managerImportPromise) {
@@ -394,18 +451,33 @@ class AstraAppHubBootstrap {
       return;
     }
     this.#managerImportPromise = (async () => {
-      try {
-        ChromeUtils.importESModule(
-          "chrome://browser/content/zen-components/AstraAppHubManager.mjs",
-          { global: "current" }
-        );
-        if (window.gAstraAppHubManager?.init) {
-          // Await init so first open prefers advanced UI when catalog is ready.
-          await window.gAstraAppHubManager.init();
+      if (!window.gAstraAppHubManager) {
+        try {
+          ChromeUtils.importESModule(
+            "chrome://browser/content/zen-components/AstraAppHubManager.mjs",
+            { global: "current" }
+          );
+        } catch (error) {
+          this.markManagerFailed(error, "manager-import");
+          return;
         }
-      } catch (error) {
-        this.#managerImportFailed = true;
-        this.markManagerFailed(error, "import");
+      }
+      const manager = window.gAstraAppHubManager;
+      if (!manager) {
+        this.markManagerFailed(
+          new Error("manager instance missing after import"),
+          "manager-create"
+        );
+        return;
+      }
+      if (typeof manager.init === "function") {
+        try {
+          // init() performs state-load, shell build, and advanced rebuild; it
+          // sets advanced-ready only after #rebuildList succeeds.
+          await manager.init();
+        } catch (error) {
+          this.markManagerFailed(error, "manager-init");
+        }
       }
     })();
     try {
@@ -424,7 +496,7 @@ class AstraAppHubBootstrap {
     this.#ensureListeners();
     this.#applyMode();
 
-    if (!this.#managerImportFailed && !this.#advancedReady) {
+    if (!this.#advancedReady) {
       await this.#ensureManagerImported();
     }
 

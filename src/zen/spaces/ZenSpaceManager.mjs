@@ -14,12 +14,24 @@ import { nsZenMultiWindowFeature } from "chrome://browser/content/zen-components
 
 const lazy = {};
 
+// ZenSessionStore is a named export matching the getter key.
 ChromeUtils.defineESModuleGetters(lazy, {
   ZenSessionStore: "resource:///modules/zen/ZenSessionManager.sys.mjs",
-  AstraSpaceIntegrity: "resource:///modules/zen/AstraSpaceIntegrity.mjs",
-  AstraSpaceRouting: "resource:///modules/zen/AstraSpaceRouting.mjs",
-  AstraSpaceAppBridge: "resource:///modules/zen/AstraSpaceAppBridge.mjs",
 });
+
+// Astra Space helpers export individual named functions/constants only — they
+// do NOT export a matching `AstraSpace*` binding. defineESModuleGetters would
+// throw on first access ("export not found"), aborting integrity / switch /
+// delete. importESModule returns the full module namespace instead.
+ChromeUtils.defineLazyGetter(lazy, "AstraSpaceIntegrity", () =>
+  ChromeUtils.importESModule("resource:///modules/zen/AstraSpaceIntegrity.mjs")
+);
+ChromeUtils.defineLazyGetter(lazy, "AstraSpaceRouting", () =>
+  ChromeUtils.importESModule("resource:///modules/zen/AstraSpaceRouting.mjs")
+);
+ChromeUtils.defineLazyGetter(lazy, "AstraSpaceAppBridge", () =>
+  ChromeUtils.importESModule("resource:///modules/zen/AstraSpaceAppBridge.mjs")
+);
 
 ChromeUtils.defineLazyGetter(lazy, "browserBackgroundElement", () => {
   return document.getElementById("zen-browser-background");
@@ -1274,7 +1286,14 @@ class nsZenWorkspaces {
         );
       }
     } catch (error) {
-      console.warn("[AstraSpaces] integrity pass failed; Spaces remain usable");
+      // Surface the real failure so the integrity error is diagnosable instead
+      // of being masked by a generic message. Root cause of the prior silent
+      // abort was defineESModuleGetters looking for a non-existent named
+      // export (fixed above via importESModule namespace getters).
+      console.warn(
+        "[AstraSpaces] integrity pass failed; Spaces remain usable",
+        error
+      );
       try {
         this.#clearAnyZombieTabs();
       } catch {

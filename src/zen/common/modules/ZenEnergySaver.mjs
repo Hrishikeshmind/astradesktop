@@ -13,13 +13,30 @@ export class ZenEnergySaver {
   #trackedWindows = new WeakSet();
   #windowCount = 0;
 
-  async init() {
-    this.#trackWindow(window);
+  // Shared module: it runs in the system global, so there is no ambient
+  // `window`/`document`/`navigator`. Callers pass their window; anything that
+  // needs a window outside init resolves the most-recent browser window.
+  #primaryWindow() {
+    try {
+      return Services.wm.getMostRecentBrowserWindow();
+    } catch {
+      return null;
+    }
+  }
+
+  async init(win) {
+    if (!win) {
+      win = this.#primaryWindow();
+    }
+    if (!win) {
+      return;
+    }
+    this.#trackWindow(win);
 
     // New window while already active: apply attribute locally immediately.
     if (this.#isEnergySaverActive) {
       try {
-        document.documentElement.setAttribute("astra-energy-saver", "true");
+        win.document.documentElement.setAttribute("astra-energy-saver", "true");
       } catch {
         // ignore
       }
@@ -41,11 +58,12 @@ export class ZenEnergySaver {
       return;
     }
     try {
-      if (!navigator.getBattery) {
+      const nav = win.navigator;
+      if (!nav?.getBattery) {
         this.#reason = mode === "on" ? "manual" : "unavailable";
         return;
       }
-      this.#battery = await navigator.getBattery();
+      this.#battery = await nav.getBattery();
       this.#battery.addEventListener("levelchange", () => this.#onBatteryChange());
       this.#battery.addEventListener("chargingchange", () =>
         this.#onBatteryChange()
@@ -129,7 +147,10 @@ export class ZenEnergySaver {
       }
     } catch {
       try {
-        fn(window);
+        const fallback = this.#primaryWindow();
+        if (fallback) {
+          fn(fallback);
+        }
       } catch {
         // ignore
       }
@@ -214,7 +235,9 @@ export class ZenEnergySaver {
         reason === "manual"
           ? "astra-energy-saver-enabled-manual"
           : "astra-energy-saver-enabled";
-      window.gZenUIManager?.showToast(toastId, { timeout: 4000 });
+      this.#primaryWindow()?.gZenUIManager?.showToast(toastId, {
+        timeout: 4000,
+      });
       if (typeof level === "number") {
         console.log(`[AstraEnergySaver]: Enabled at ${level}%`);
       } else {
@@ -233,7 +256,9 @@ export class ZenEnergySaver {
         this.#readMode() === "auto"
           ? "astra-energy-saver-disabled"
           : "astra-energy-saver-disabled-manual";
-      window.gZenUIManager?.showToast(toastId, { timeout: 3000 });
+      this.#primaryWindow()?.gZenUIManager?.showToast(toastId, {
+        timeout: 3000,
+      });
       console.log("[AstraEnergySaver]: Disabled");
     }
   }

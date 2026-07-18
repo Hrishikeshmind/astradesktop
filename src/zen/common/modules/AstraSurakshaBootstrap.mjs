@@ -36,6 +36,9 @@ class AstraSurakshaBootstrap {
   #boundUnload = null;
   #boundPrefObserver = null;
   #enabled = true;
+  #pendingManagerOptions = null;
+  #postconditionScheduled = false;
+  #openRetried = false;
 
   constructor() {
     window.gAstraSurakshaBootstrap = this;
@@ -271,9 +274,14 @@ class AstraSurakshaBootstrap {
     }
     this.#boundPopupShown = () => {
       this.#popupTransition = false;
+      this.#openRetried = false;
+      // Request the lazy manager exactly once, only after the shell is proven
+      // open. #requestManager is self-deduping (no duplicate imports).
+      this.#kickManagerAfterShellOpen(this.#pendingManagerOptions);
     };
     this.#boundPopupHidden = () => {
       this.#popupTransition = false;
+      this.#openRetried = false;
     };
     this.#boundFallbackCommand = event => {
       try {
@@ -423,13 +431,22 @@ class AstraSurakshaBootstrap {
     }
     const options = this.#normalizeArgs(eventOrOptions);
     this.#lastOpenAttempt = Date.now();
+    this.#openRetried = false;
+    this.#pendingManagerOptions = options;
     this.#ensureListeners();
     this.#applyMode();
 
-    // Open shell immediately — never await adapters/manager.
+    // Open shell immediately — never await adapters/manager. The lazy manager
+    // is requested from the popupshown handler once the shell is proven open.
     this.#openShell(options);
+  }
 
-    // Kick off lazy manager import without blocking the popup.
+  /**
+   * Request the lazy manager exactly once after the shell is confirmed open.
+   * The manager import helper is self-deduping, so repeated popupshown events
+   * are safe.
+   */
+  #kickManagerAfterShellOpen(options) {
     void this.#requestManager().then(() => {
       if (this.#destroyed || !this.#manager) {
         return;
@@ -492,6 +509,52 @@ class AstraSurakshaBootstrap {
         console.error(`${LOG_PREFIX} openPopup failed`, retryError);
       }
     }
+    // Bounded postcondition: if the panel is still closed after one event-loop
+    // turn (no popupshown), clear the stuck transition and retry exactly once
+    // with a proven browser-chrome (navbar) anchor. No polling, no spam.
+    this.#scheduleOpenPostcondition();
+  }
+
+  #scheduleOpenPostcondition() {
+    if (this.#postconditionScheduled) {
+      return;
+    }
+    this.#postconditionScheduled = true;
+    window.setTimeout(() => {
+      this.#postconditionScheduled = false;
+      if (this.#destroyed || window.closed) {
+        return;
+      }
+      // popupshown already cleared the transition and reset the retry flag.
+      if (this.isOpen || this.#isHiding) {
+        return;
+      }
+      this.#popupTransition = false;
+      if (this.#openRetried) {
+        return;
+      }
+      this.#openRetried = true;
+      const panel = this.panel;
+      if (!panel) {
+        return;
+      }
+      const fallbackAnchor =
+        document.getElementById("nav-bar") ||
+        document.getElementById("PanelUI-menu-button") ||
+        document.getElementById("astra-suraksha-button");
+      if (!this.#isUsableAnchor(fallbackAnchor)) {
+        this.#lastErrorStage = "anchor-unresolved";
+        return;
+      }
+      this.#popupTransition = true;
+      try {
+        panel.openPopup(fallbackAnchor, "after_start", 0, 0, false, false);
+      } catch (error) {
+        this.#popupTransition = false;
+        this.#lastErrorStage = "openPopup-retry";
+        console.error(`${LOG_PREFIX} openPopup retry failed`, error);
+      }
+    }, 0);
   }
 
   close(options = {}) {

@@ -386,6 +386,25 @@ if (
   ok("advanced+fallback use HTML img load/error (not XUL image)");
 } else fail("icon load/error handling missing or still uses XUL image");
 
+// Static fallback icons live in the DOM from window parse, so their load/error
+// events fire before listeners bind on first open. The bootstrap must reconcile
+// each already-complete icon's state (img.complete / naturalWidth) when binding,
+// otherwise CSS keeps every tile on its monogram and no packaged logo ever shows.
+if (
+  bootstrap.includes("#reconcileFallbackIconState") &&
+  /#bindFallbackIconHandlers[\s\S]*#reconcileFallbackIconState/.test(bootstrap) &&
+  /\.complete/.test(bootstrap) &&
+  /naturalWidth/.test(bootstrap) &&
+  /#reconcileFallbackIconState[\s\S]*data-icon-loaded/.test(bootstrap) &&
+  /#reconcileFallbackIconState[\s\S]*data-icon-error/.test(bootstrap)
+) {
+  ok("fallback reconciles already-loaded icons on bind (no monogram-only lock)");
+} else {
+  fail(
+    "bootstrap does not reconcile already-complete fallback icons; static logos will not render"
+  );
+}
+
 if (
   hubMgr.includes("resolvePlacesFaviconURL") &&
   hubMgr.includes("#enrichCustomAppIcon") &&
@@ -481,6 +500,35 @@ if (
 ) {
   ok("bootstrap performs no startup icon/catalog/Places work");
 } else fail("bootstrap references icon/catalog/Places at module scope");
+
+// First-open manager request must expose the exact failing stage and must NOT
+// permanently process-cache a rejection behind a stale flag; a later open or a
+// Retry can re-attempt. The manager exposes a sanitized advanced diagnostic.
+if (
+  bootstrap.includes('"manager-import"') &&
+  bootstrap.includes('"manager-create"') &&
+  bootstrap.includes('"manager-init"') &&
+  !bootstrap.includes("#managerImportFailed") &&
+  bootstrap.includes("managerStage") &&
+  hubMgr.includes("get advancedDiagnostics()")
+) {
+  ok("App Hub manager: staged diagnostics, retryable rejection, manager-ready flag exposed");
+} else {
+  fail(
+    "App Hub manager staging / non-cached rejection / advancedDiagnostics incomplete"
+  );
+}
+// advanced-ready must still be gated after rebuild and the import must use the
+// proven chrome URL with the current-window global.
+if (
+  /ChromeUtils\.importESModule\(\s*"chrome:\/\/browser\/content\/zen-components\/AstraAppHubManager\.mjs",\s*\{\s*global:\s*"current"\s*\}/.test(
+    bootstrap
+  )
+) {
+  ok("App Hub manager import uses proven chrome URL + current-window global");
+} else {
+  fail("App Hub manager import URL/global option incorrect");
+}
 
 if (
   !jar.includes("ICON_SOURCES.md") &&
@@ -691,6 +739,37 @@ if (
 ) {
   ok("Suraksha has primary scroll container");
 } else fail("Suraksha scroll container missing");
+
+// —— SIDEBAR WIDTH ——
+const cui = read("src/zen/common/sys/ZenCustomizableUI.sys.mjs");
+if (
+  cui.includes("#isValidSidebarWidth") &&
+  cui.includes("#clearPersistedSidebarWidth") &&
+  cui.includes("px > 0") &&
+  cui.includes("px$/") &&
+  /Services\.xulStore\.removeValue\(\s*uri,\s*"navigator-toolbox",\s*"width"\s*\)/.test(
+    cui
+  ) &&
+  /Services\.xulStore\.removeValue\(\s*uri,\s*"navigator-toolbox",\s*"style"\s*\)/.test(
+    cui
+  ) &&
+  cui.includes('AppConstants.platform === "macosx" ? "230px" : "186px"')
+) {
+  ok("sidebar: invalid persisted width cleared via XULStore; upstream default preserved");
+} else {
+  fail("sidebar invalid-width handling / upstream default / canonical-clear incomplete");
+}
+// Native splitter remains the sole resize owner — no second custom drag system.
+if (
+  cui.includes('createXULElement("splitter")') &&
+  cui.includes('"zen-sidebar-splitter"') &&
+  cui.includes('splitter.setAttribute("resizebefore", "sibling")') &&
+  !/addEventListener\("mousemove"/.test(cui)
+) {
+  ok("sidebar: native splitter is sole resize owner (no second drag system)");
+} else {
+  fail("sidebar splitter ownership missing or a second drag system was added");
+}
 
 // —— GENERAL / XUL ——
 const markupFiles = [

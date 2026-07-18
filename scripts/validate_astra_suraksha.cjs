@@ -299,6 +299,88 @@ const kbs = read("src/zen/kbs/ZenKeyboardShortcuts.mjs");
 if (!kbs.includes("cmd_astraOpenSurakshaCenter")) ok("no Suraksha keyboard shortcut added");
 else fail("unexpected Suraksha shortcut");
 
+// --- Entrypoint integrity (runtime-verified regressions) ---
+
+// CRITICAL: astra-suraksha-button must be an attributes-only Fluent message.
+// A bare value overwrites the toolbaritem wrapper's textContent and destroys
+// the inner clickable toolbarbutton (button becomes a dead ~47x16 text node).
+if (/^astra-suraksha-button\s*=\s*$/m.test(ftl)) {
+  ok("suraksha button Fluent message is attributes-only (no destructive value)");
+} else {
+  fail(
+    "astra-suraksha-button has a bare value; it will wipe the toolbaritem's inner toolbarbutton"
+  );
+}
+
+// The toolbaritem wrapper must NOT carry data-l10n-id (only the inner button),
+// and there must be exactly one real inner toolbarbutton carrying the command.
+const surakshaItemMatch = cui.match(
+  /<toolbaritem id="astra-suraksha-button"[^>]*>/
+);
+if (surakshaItemMatch && !/data-l10n-id/.test(surakshaItemMatch[0])) {
+  ok("suraksha toolbaritem wrapper has no destructive data-l10n-id");
+} else {
+  fail("suraksha toolbaritem wrapper still localized (would destroy inner button)");
+}
+if (
+  /<toolbarbutton\s+id="astra-suraksha-toolbarbutton"[\s\S]*?command="cmd_astraOpenSurakshaCenter"/.test(
+    cui
+  )
+) {
+  ok("suraksha has one real toolbarbutton carrying the command");
+} else {
+  fail("suraksha inner toolbarbutton/command wiring missing");
+}
+
+// zen-sets.js forwards the real command event into the facade.
+if (
+  /case "cmd_astraOpenSurakshaCenter"[\s\S]*?window\.gAstraSuraksha[\s\S]*?toggle\(\{\s*event/.test(
+    sets
+  )
+) {
+  ok("suraksha command handler forwards real event into gAstraSuraksha.toggle");
+} else {
+  fail("suraksha command handler does not forward the real event");
+}
+
+// Bootstrap: static shell opens before manager; manager requested once after
+// popupshown; bounded postcondition retry via a navbar anchor; transition
+// cleared on shown/hidden.
+// Static shell opens first; the lazy manager is requested from the popupshown
+// handler (via #kickManagerAfterShellOpen), never before openPopup.
+const openBody = boot.slice(
+  boot.indexOf("async open("),
+  boot.indexOf("#kickManagerAfterShellOpen(options)")
+);
+if (
+  boot.includes("#kickManagerAfterShellOpen") &&
+  /#boundPopupShown[\s\S]*?#kickManagerAfterShellOpen/.test(boot) &&
+  openBody.includes("#openShell(") &&
+  !openBody.includes("#requestManager")
+) {
+  ok("suraksha requests manager after popupshown (shell-first, once)");
+} else {
+  fail("suraksha manager request not gated behind popupshown");
+}
+if (
+  boot.includes("#scheduleOpenPostcondition") &&
+  boot.includes("openPopup-retry") &&
+  /nav-bar/.test(boot) &&
+  boot.includes("#openRetried")
+) {
+  ok("suraksha bounded one-shot open postcondition with navbar anchor");
+} else {
+  fail("suraksha open postcondition/retry missing");
+}
+if (
+  /#boundPopupShown[\s\S]*?#popupTransition = false/.test(boot) &&
+  /#boundPopupHidden[\s\S]*?#popupTransition = false/.test(boot)
+) {
+  ok("suraksha clears popupTransition on shown/hidden");
+} else {
+  fail("suraksha popupTransition cleanup incomplete");
+}
+
 if (errors.length) {
   console.error(`\n${errors.length} validation error(s)`);
   process.exit(1);
