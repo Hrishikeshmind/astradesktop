@@ -453,7 +453,6 @@
 }
 
 #astra-suraksha-button .toolbarbutton-icon,
-#astra-suraksha-button > toolbarbutton > .toolbarbutton-icon,
 #appMenu-astra-suraksha-button .toolbarbutton-icon {
   list-style-image: url("chrome://browser/skin/zen-icons/tracking-protection.svg");
 }
@@ -535,7 +534,7 @@
 .astra-suraksha-footer-btn:focus-visible,
 .astra-suraksha-more-details:focus-visible,
 #astra-suraksha-refresh:focus-visible,
-#astra-suraksha-button > toolbarbutton:focus-visible {
+#astra-suraksha-button:focus-visible {
   outline: 2px solid SelectedItem;
   outline-offset: 2px;
 }

@@ -181,7 +181,7 @@ if (/isOpen[\s\S]{0,120}refresh|if\s*\(\s*!this\.isOpen/.test(suraksha)) {
   ok("Suraksha refresh gated on panel open");
 } else fail("Suraksha refresh gating unclear");
 
-// App Hub: bootstrap only at startup; manager lazy on first open
+// App Hub: bootstrap only at startup; manager lazy / idle-prewarmed
 if (
   preload.includes("AstraAppHubBootstrap.mjs") &&
   !preload.includes("AstraAppHubManager.mjs") &&
@@ -192,11 +192,14 @@ if (
 } else fail("preload must be bootstrap-only (no eager managers)");
 
 if (
-  appHubBootstrap.includes("#ensureManagerImported") &&
-  appHubBootstrap.includes("AstraAppHubManager.mjs")
+  (appHubBootstrap.includes("#ensureInit") ||
+    appHubBootstrap.includes("#ensureManagerImported")) &&
+  appHubBootstrap.includes("AstraAppHubManager.mjs") &&
+  (appHubBootstrap.includes("idleDispatchToMainThread") ||
+    appHubBootstrap.includes("requestIdleCallback"))
 ) {
-  ok("App Hub manager lazy-imported from bootstrap");
-} else fail("App Hub missing lazy manager import");
+  ok("App Hub manager lazy/idle-prewarmed from bootstrap");
+} else fail("App Hub missing lazy/idle manager import");
 
 if (sets.includes("cmd_zenOpenAppLauncher") && sets.includes("gZenAppLauncher")) {
   ok("App Hub command intact");

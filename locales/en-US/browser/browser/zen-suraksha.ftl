@@ -8,14 +8,15 @@ astra-suraksha-title = Astra Suraksha
     .value = Astra Suraksha
     .label = Astra Suraksha
 
-# Attributes-only (no bare value): a value here would overwrite the toolbaritem
-# wrapper's textContent and destroy the inner clickable toolbarbutton.
+# Attributes-only Fluent for the real toolbarbutton (public widget id).
 astra-suraksha-button =
     .label = Suraksha
     .tooltiptext = Astra Suraksha
+    .aria-label = Astra Suraksha
 
 astra-suraksha-appmenu = Astra Suraksha
     .label = Astra Suraksha
+    .aria-label = Astra Suraksha
 
 astra-suraksha-subtitle = Protection overview for this site
     .value = Protection overview for this site

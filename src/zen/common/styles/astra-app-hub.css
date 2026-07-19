@@ -407,15 +407,25 @@
   appearance: none;
 }
 
+/* Star is visible on pointer hover, when any child of the tile has keyboard
+   focus (focus-within), when the star itself is focused, and always when the
+   app is already a favorite. */
 .astra-app-hub-item:hover .astra-app-hub-fav-btn,
 .astra-app-hub-item:focus-within .astra-app-hub-fav-btn,
+.astra-app-hub-fav-btn:hover,
+.astra-app-hub-fav-btn:focus,
+.astra-app-hub-fav-btn:focus-visible,
 .astra-app-hub-fav-btn[aria-pressed="true"] {
   opacity: 1;
 }
 
+.astra-app-hub-fav-btn:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
 .astra-app-hub-fav-btn:focus-visible {
-  opacity: 1;
   outline: 2px solid var(--focus-outline-color, Highlight);
+  outline-offset: 1px;
 }
 
 .astra-app-hub-footer {
@@ -638,170 +648,13 @@
   opacity: 0.8;
 }
 
-/* —— Fallback mode (known-good static markup) —— */
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #astra-app-hub-header,
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #astra-app-hub-search-row,
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #astra-app-hub-search-status,
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #PanelUI-zen-app-launcher-list,
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #astra-app-hub-footer,
-#PanelUI-zen-app-launcher[app-hub-mode="fallback"] #astra-app-hub-editor {
-  display: none !important;
-}
-
-#PanelUI-zen-app-launcher[app-hub-mode="advanced"] #PanelUI-zen-app-launcher-fallback {
-  display: none !important;
-}
-
-#PanelUI-zen-app-launcher-fallback {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  max-height: var(--astra-app-hub-max-height, min(72vh, 720px));
-}
-
-#PanelUI-zen-app-launcher-fallback-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  max-height: 70vh;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  scrollbar-width: thin;
-  min-height: 0;
-}
-
-#PanelUI-zen-app-launcher-title {
-  font-size: 14px;
-  font-weight: 600;
-  padding: 0 0 6px 0;
-  border-bottom: 1px solid var(--panel-separator-color, color-mix(in srgb, currentColor 18%, transparent));
-  margin-bottom: 4px;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-section-title {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-color-deemphasized, inherit);
-  opacity: 0.85;
-  padding: 2px 0 4px 0;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  display: block;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-grid {
-  display: grid !important;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: 10px !important;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 6px 2px !important;
-  border-radius: 8px !important;
-  cursor: pointer !important;
-  min-height: 0 !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-  border: none !important;
-  background: transparent !important;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item:hover {
-  background: var(--button-hover-bgcolor, color-mix(in srgb, currentColor 10%, transparent)) !important;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-icon {
-  width: 48px !important;
-  height: 48px !important;
-  display: block !important;
-  /* visibility/opacity controlled by data-icon-loaded on the stack */
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-icon-stack {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
-  margin-bottom: 4px !important;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-monogram {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
-  margin: 0 !important;
-  border-radius: 12px !important;
-  font-size: 0.85rem !important;
-  font-weight: 700 !important;
-  color: CanvasText !important;
-  background: color-mix(in srgb, currentColor 18%, Canvas) !important;
-  overflow: hidden !important;
-  text-overflow: clip !important;
-  white-space: nowrap !important;
-  box-sizing: border-box !important;
-  padding-inline: 2px !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-  -moz-user-focus: ignore;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="mail"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-0) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="meetings"] .zen-app-launcher-item-monogram,
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="productivity"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-1) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="storage"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-2) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="shopping"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-3) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="entertainment"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-4) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="education"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-5) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="government"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-6) !important;
-}
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="news"] .zen-app-launcher-item-monogram,
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item[data-accent="business"] .zen-app-launcher-item-monogram {
-  background: var(--astra-app-hub-accent-7) !important;
-}
-
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-label,
-#PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-name {
-  font-size: 10px !important;
-  text-align: center !important;
-  max-width: 72px !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  white-space: nowrap !important;
-  margin: 0 !important;
-  opacity: 1 !important;
-}
+/* App Hub V3 is a single shell — no static fallback subtree. The former
+   fallback-block and app-hub-mode fallback/advanced rules have been removed so
+   styling never depends on a removed block. */
 
 @media (max-width: 360px) {
-  #PanelUI-zen-app-launcher-fallback .zen-app-launcher-grid,
+  .astra-app-hub-grid,
   .zen-app-launcher-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-
-  #PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-monogram,
-  #PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-icon,
-  #PanelUI-zen-app-launcher-fallback .zen-app-launcher-item-icon-stack {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
   }
 }

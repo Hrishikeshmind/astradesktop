@@ -3,13 +3,25 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /**
- * Stable per-window App Hub entry point.
- * Always creates window.gZenAppLauncher. Advanced manager attaches later.
- * If the advanced manager is unavailable, opens the known-good static fallback.
+ * Stable per-window App Hub entry point — App Hub V3 (one shell / one controller).
+ *
+ * Startup only evaluates this bootstrap. It owns the stable public facade
+ * (window.gZenAppLauncher) that is never replaced, schedules an idle prewarm of
+ * the advanced manager after delayed startup, and opens the SINGLE packaged
+ * shell. There is no static fallback catalog and no fallback/advanced mode swap:
+ * open() shows the one shell immediately and the manager fills it in place.
+ *
+ * A fatal init failure (manager module cannot be imported/instantiated) leaves a
+ * small Retry banner in the same shell; already-rendered tiles, if any, remain
+ * usable.
  */
 
 const PANEL_ID = "PanelUI-zen-app-launcher";
-const FALLBACK_ID = "PanelUI-zen-app-launcher-fallback";
+const CONTAINER_ID = "PanelUI-zen-app-launcher-container";
+const MANAGER_MODULE_URL =
+  "chrome://browser/content/zen-components/AstraAppHubManager.mjs";
+const PERF_PREF = "astra.diagnostics.performance";
+const MAX_INIT_ATTEMPTS = 4;
 const LOG_PREFIX = "[AstraAppHub]";
 
 function isHttpsUrl(url) {
@@ -58,19 +70,24 @@ function openTrustedHttps(url) {
 
 class AstraAppHubBootstrap {
   #manager = null;
-  #advancedReady = false;
-  #fallbackActive = true;
+  /** True only once the single shell + catalog have rendered. */
+  #ready = false;
   #popupTransition = false;
-  #boundFallbackCommand = null;
-  #boundFallbackIconEvent = null;
   #boundPopupShown = null;
   #boundPopupHidden = null;
+  #boundCommand = null;
   #boundUnload = null;
   #listenersBound = false;
   #lastErrorStage = null;
   #lastOpenAttempt = null;
   #loggedReady = false;
-  #managerImportPromise = null;
+  /** Single init flight per window; cleared in finally so retry is possible. */
+  #initFlight = null;
+  #initAttempts = 0;
+  #prewarmScheduled = false;
+  #idleDispatched = false;
+  #initStart = 0;
+  #initDuration = null;
 
   constructor() {
     window.gAstraAppHubBootstrap = this;
@@ -84,24 +101,62 @@ class AstraAppHubBootstrap {
     };
     window.gAstraAppHubDiagnostics = this.#createDiagnostics();
     console.log(`${LOG_PREFIX} bootstrap loaded`);
-    this.#applyMode();
     this.#ensureListeners();
+    this.#schedulePrewarm();
   }
 
   #createDiagnostics() {
     const self = this;
+    // Sanitized only: never expose URLs, search text, profile paths, history,
+    // or tab titles. Booleans / counts / durations / stage names only.
     return {
       get bootstrapReady() {
         return true;
       },
-      get managerReady() {
-        return self.#advancedReady && !!self.#manager;
+      get ready() {
+        return self.#ready;
       },
-      get fallbackActive() {
-        return self.#fallbackActive;
+      get rendered() {
+        try {
+          return !!window.gAstraAppHubManager?.advancedDiagnostics?.rendered;
+        } catch {
+          return false;
+        }
+      },
+      get stage() {
+        try {
+          return (
+            window.gAstraAppHubManager?.advancedDiagnostics?.stage ||
+            self.#lastErrorStage ||
+            null
+          );
+        } catch {
+          return self.#lastErrorStage;
+        }
       },
       get lastErrorStage() {
         return self.#lastErrorStage;
+      },
+      get initDuration() {
+        return self.#initDuration;
+      },
+      get iconSuccessCount() {
+        try {
+          return document.querySelectorAll(
+            `#${CONTAINER_ID} .astra-app-hub-item-icon-stack[data-icon-loaded="true"]`
+          ).length;
+        } catch {
+          return 0;
+        }
+      },
+      get iconFailureCount() {
+        try {
+          return document.querySelectorAll(
+            `#${CONTAINER_ID} .astra-app-hub-item-icon-stack[data-icon-error="true"]`
+          ).length;
+        } catch {
+          return 0;
+        }
       },
       get managerStage() {
         try {
@@ -123,8 +178,8 @@ class AstraAppHubBootstrap {
     return document.getElementById(PANEL_ID);
   }
 
-  get fallback() {
-    return document.getElementById(FALLBACK_ID);
+  get container() {
+    return document.getElementById(CONTAINER_ID);
   }
 
   get isOpen() {
@@ -140,6 +195,16 @@ class AstraAppHubBootstrap {
     return this.panel?.state === "hiding";
   }
 
+  #perfEnabled() {
+    try {
+      return Services.prefs.getBoolPref(PERF_PREF, false);
+    } catch {
+      return false;
+    }
+  }
+
+  // —— Manager coordination (called by the manager) ——
+
   /**
    * Advanced manager registers here. Does not replace gZenAppLauncher.
    */
@@ -151,211 +216,193 @@ class AstraAppHubBootstrap {
     this.#lastErrorStage = null;
   }
 
+  /**
+   * "Ready" means the single shell + catalog have rendered — NOT a dual-mode
+   * handoff. The bootstrap never hides/shows a second catalog.
+   */
   setAdvancedReady(ready) {
-    this.#advancedReady = !!ready && !!this.#manager;
-    this.#fallbackActive = !this.#advancedReady;
-    this.#applyMode();
-    if (this.#advancedReady && !this.#loggedReady) {
-      this.#loggedReady = true;
-      console.log(`${LOG_PREFIX} advanced manager ready`);
+    this.#ready = !!ready && !!this.#manager;
+    if (this.#ready) {
+      this.#lastErrorStage = null;
+      if (!this.#loggedReady) {
+        this.#loggedReady = true;
+        console.log(`${LOG_PREFIX} App Hub ready`);
+      }
     }
   }
 
+  /**
+   * Record a fatal init/render stage. The manager keeps any known-good tiles it
+   * already rendered; the shell stays open. Never nulls the manager so Retry can
+   * reuse it.
+   */
   markManagerFailed(error, stage = "manager") {
-    this.#manager = null;
-    this.#advancedReady = false;
-    this.#fallbackActive = true;
+    this.#ready = false;
     this.#lastErrorStage = stage;
     this.#loggedReady = false;
-    this.#applyMode();
-    console.error(
-      `${LOG_PREFIX} advanced manager failed; fallback active`,
-      error || stage
-    );
+    console.error(`${LOG_PREFIX} App Hub init failed`, error || stage);
   }
 
-  #applyMode() {
-    const panel = this.panel;
-    if (!panel) {
-      return;
-    }
-    const mode = this.#advancedReady ? "advanced" : "fallback";
-    panel.setAttribute("app-hub-mode", mode);
-    const fallback = this.fallback;
-    if (fallback) {
-      fallback.hidden = mode === "advanced";
-    }
+  #markFailed(error, stage) {
+    this.#ready = false;
+    this.#lastErrorStage = stage;
+    console.error(`${LOG_PREFIX} init failed at ${stage}`, error || stage);
   }
 
-  #ensureListeners() {
-    const panel = this.panel;
-    if (!panel || this.#listenersBound) {
+  // —— Idle prewarm ——
+
+  #schedulePrewarm() {
+    if (this.#prewarmScheduled) {
       return;
     }
-    this.#boundPopupShown = () => {
-      this.#popupTransition = false;
-      this.#bindFallbackIconHandlers();
-    };
-    this.#boundPopupHidden = () => {
-      this.#popupTransition = false;
-    };
-    this.#boundUnload = () => {
-      this.#destroyListeners();
-    };
-    this.#boundFallbackCommand = event => {
-      try {
-        const target = event.target;
-        if (!target || typeof target.closest !== "function") {
-          return;
-        }
-        const fallback = this.fallback;
-        if (!fallback || fallback.hidden) {
-          return;
-        }
-        const item = target.closest("[data-url]");
-        if (!item || !fallback.contains(item)) {
-          return;
-        }
-        const url = item.getAttribute("data-url");
-        if (url) {
-          this.openApp(url);
-        }
-      } catch (error) {
-        console.error(`${LOG_PREFIX} fallback command failed`, error);
+    this.#prewarmScheduled = true;
+    let started = false;
+    const startIdle = () => {
+      if (started) {
+        return;
       }
+      started = true;
+      this.#dispatchIdlePrewarm();
     };
-    this.#boundFallbackIconEvent = event => {
-      try {
-        const image = event.target;
-        if (
-          !image ||
-          typeof image.closest !== "function" ||
-          !image.classList?.contains("zen-app-launcher-item-icon")
-        ) {
-          return;
-        }
-        const fallback = this.fallback;
-        if (!fallback || !fallback.contains(image)) {
-          return;
-        }
-        const stack = image.closest(".zen-app-launcher-item-icon-stack");
-        if (!stack) {
-          return;
-        }
-        if (event.type === "load") {
-          stack.setAttribute("data-icon-loaded", "true");
-          stack.removeAttribute("data-icon-error");
-        } else if (event.type === "error") {
-          stack.setAttribute("data-icon-error", "true");
-          stack.removeAttribute("data-icon-loaded");
-          try {
-            image.removeAttribute("src");
-          } catch {
-            // ignore
-          }
-        }
-      } catch {
-        // ignore icon handler errors
-      }
-    };
-    panel.addEventListener("popupshown", this.#boundPopupShown);
-    panel.addEventListener("popuphidden", this.#boundPopupHidden);
-    panel.addEventListener("command", this.#boundFallbackCommand);
-    window.addEventListener("unload", this.#boundUnload, { once: true });
-    this.#listenersBound = true;
-  }
 
-  /**
-   * One delegated load/error handler for static fallback icons.
-   * Bound on first panel open only; uses HTML img (XUL image has no load/error).
-   */
-  #bindFallbackIconHandlers() {
-    const fallback = this.fallback;
-    if (!fallback || fallback.dataset.astraIconHandlersBound === "1") {
-      return;
-    }
-    if (!this.#boundFallbackIconEvent) {
-      return;
-    }
-    fallback.addEventListener("load", this.#boundFallbackIconEvent, true);
-    fallback.addEventListener("error", this.#boundFallbackIconEvent, true);
-    fallback.dataset.astraIconHandlersBound = "1";
-    // The packaged icons live in the DOM from window parse, so their load/error
-    // events fire long before this handler binds on first open. Late capture
-    // listeners never see already-fired events, which would leave every stack
-    // stuck on its monogram. Reconcile the current state of each icon now, and
-    // let the listeners above cover any request still in flight.
-    this.#reconcileFallbackIconState(fallback);
-  }
-
-  /**
-   * Reflect each fallback icon's current load state onto its stack so CSS can
-   * reveal successfully loaded logos even though the load event already fired.
-   */
-  #reconcileFallbackIconState(fallback) {
-    let images;
     try {
-      images = fallback.querySelectorAll(".zen-app-launcher-item-icon");
-    } catch {
-      return;
-    }
-    for (const image of images) {
-      try {
-        if (!image.complete) {
-          continue;
-        }
-        const stack = image.closest?.(".zen-app-launcher-item-icon-stack");
-        if (!stack) {
-          continue;
-        }
-        if (image.naturalWidth > 0) {
-          stack.setAttribute("data-icon-loaded", "true");
-          stack.removeAttribute("data-icon-error");
-        } else {
-          stack.setAttribute("data-icon-error", "true");
-          stack.removeAttribute("data-icon-loaded");
-          try {
-            image.removeAttribute("src");
-          } catch {
-            // ignore
-          }
-        }
-      } catch {
-        // ignore individual icon reconciliation errors
+      // Already past delayed startup — prewarm on the next idle slice.
+      if (window.gBrowserInit?.delayedStartupFinished) {
+        startIdle();
+        return;
       }
+    } catch {
+      // fall through to observer
+    }
+
+    try {
+      const observe = subject => {
+        try {
+          if (subject === window) {
+            Services.obs.removeObserver(
+              observe,
+              "browser-delayed-startup-finished"
+            );
+            startIdle();
+          }
+        } catch {
+          // ignore
+        }
+      };
+      Services.obs.addObserver(observe, "browser-delayed-startup-finished");
+      // Safety net if the notification already fired or is missed.
+      window.setTimeout(startIdle, 5000);
+    } catch {
+      startIdle();
     }
   }
 
-  #destroyListeners() {
-    const panel = this.panel;
-    if (panel && this.#listenersBound) {
-      if (this.#boundPopupShown) {
-        panel.removeEventListener("popupshown", this.#boundPopupShown);
-      }
-      if (this.#boundPopupHidden) {
-        panel.removeEventListener("popuphidden", this.#boundPopupHidden);
-      }
-      if (this.#boundFallbackCommand) {
-        panel.removeEventListener("command", this.#boundFallbackCommand);
-      }
+  /**
+   * Schedule the actual prewarm on the main-thread idle queue. Uses
+   * Services.tm.idleDispatchToMainThread when available, else requestIdleCallback,
+   * else a short timer. Never blocks first navigation / session restore.
+   */
+  #dispatchIdlePrewarm() {
+    if (this.#idleDispatched) {
+      return;
     }
-    const fallback = this.fallback;
-    if (fallback && this.#boundFallbackIconEvent) {
-      fallback.removeEventListener("load", this.#boundFallbackIconEvent, true);
-      fallback.removeEventListener("error", this.#boundFallbackIconEvent, true);
-      try {
-        delete fallback.dataset.astraIconHandlersBound;
-      } catch {
-        // ignore
+    this.#idleDispatched = true;
+    const run = () => {
+      void this.#ensureInit("prewarm");
+    };
+    try {
+      if (Services.tm?.idleDispatchToMainThread) {
+        Services.tm.idleDispatchToMainThread(run);
+        return;
       }
+    } catch {
+      // fall through
     }
-    this.#listenersBound = false;
-    this.#boundPopupShown = null;
-    this.#boundPopupHidden = null;
-    this.#boundFallbackCommand = null;
-    this.#boundFallbackIconEvent = null;
-    this.#boundUnload = null;
+    try {
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(run, { timeout: 4000 });
+        return;
+      }
+    } catch {
+      // fall through
+    }
+    try {
+      window.setTimeout(run, 1200);
+    } catch {
+      run();
+    }
   }
+
+  // —— Init (single flight, bounded, idempotent) ——
+
+  /**
+   * Import the manager (module eval is synchronous) and drive manager.init().
+   * init() loads state, catalog, and builds/renders the single shell; it reports
+   * readiness back through setAdvancedReady / markManagerFailed.
+   */
+  async #ensureInit(reason = "open") {
+    if (this.#ready && this.#manager) {
+      return true;
+    }
+    if (this.#initFlight) {
+      return this.#initFlight;
+    }
+    if (!this.#manager && this.#initAttempts >= MAX_INIT_ATTEMPTS) {
+      // Bounded: stop hammering a module that cannot be imported.
+      return false;
+    }
+    this.#initAttempts++;
+    this.#initFlight = this.#runInit(reason);
+    try {
+      return await this.#initFlight;
+    } finally {
+      this.#initFlight = null;
+    }
+  }
+
+  async #runInit(reason) {
+    const start = Date.now();
+    this.#initStart = start;
+    if (!window.gAstraAppHubManager) {
+      try {
+        // Synchronous module eval — window.gAstraAppHubManager is set on return.
+        ChromeUtils.importESModule(MANAGER_MODULE_URL, { global: "current" });
+      } catch (error) {
+        this.#markFailed(error, "manager-import");
+        return false;
+      }
+    }
+    const manager = window.gAstraAppHubManager;
+    if (!manager) {
+      this.#markFailed(
+        new Error("manager instance missing after import"),
+        "manager-create"
+      );
+      return false;
+    }
+    this.#manager = manager;
+    this.#lastErrorStage = null;
+    if (typeof manager.init === "function") {
+      try {
+        // init() has its own single-flight (#initPromise) so the constructor's
+        // auto-init and this call share one flight — no double init.
+        await manager.init();
+      } catch (error) {
+        this.#markFailed(error, "manager-init");
+        return false;
+      }
+    }
+    this.#initDuration = Date.now() - start;
+    if (this.#perfEnabled()) {
+      // Timing only — no URLs, queries, or profile data.
+      console.log(
+        `${LOG_PREFIX} App Hub init ${this.#initDuration}ms [${reason}]`
+      );
+    }
+    return this.#ready;
+  }
+
+  // —— Public facade ——
 
   #normalizeArgs(eventOrOptions) {
     if (
@@ -392,9 +439,15 @@ class AstraAppHubBootstrap {
 
   #resolveAnchor(event) {
     const doc = document;
-    const eventAnchor = event?.sourceEvent?.target || event?.target;
+    const src = event?.sourceEvent || event;
+    const direct = src?.currentTarget || src?.target || event?.target;
+    const closestBtn =
+      typeof direct?.closest === "function"
+        ? direct.closest("toolbarbutton")
+        : null;
     const candidates = [
-      this.#isUsableAnchor(eventAnchor) ? eventAnchor : null,
+      this.#isUsableAnchor(closestBtn) ? closestBtn : null,
+      this.#isUsableAnchor(direct) ? direct : null,
       doc.getElementById("zen-app-launcher-button"),
       doc.getElementById("zen-sidebar-top-buttons-separator"),
       doc.getElementById("zen-sidebar-top-buttons"),
@@ -416,7 +469,6 @@ class AstraAppHubBootstrap {
       return win.gAstraAppHubBootstrap.toggle(eventOrOptions, win);
     }
     this.#ensureListeners();
-    this.#applyMode();
     if (this.#popupTransition || this.#isHiding) {
       if (this.#popupTransition && !this.isOpen && !this.#isHiding) {
         this.#popupTransition = false;
@@ -432,61 +484,10 @@ class AstraAppHubBootstrap {
   }
 
   /**
-   * Lazy-import advanced manager on first open. Startup only loads bootstrap.
-   * Catalog/profile IO must not compete with first navigation / session restore.
-   *
-   * Failures are NOT permanently process-cached here: a rejected attempt clears
-   * the in-flight promise so a later open (or the Retry button) can try again.
-   * The Gecko module registry still avoids re-evaluating a module that threw.
-   * Each stage is recorded separately so the exact failing point is visible:
-   * manager-import (module eval) → manager-create (instance) → manager-init
-   * (state-load / shell / rebuild happen inside init and gate advanced-ready).
+   * Open the ONE shell immediately. If prewarm is still running the manager
+   * completes init in this same open shell — never a mode swap. If the manager
+   * module cannot be imported at all, open the empty shell with a Retry banner.
    */
-  async #ensureManagerImported() {
-    if (this.#manager && this.#advancedReady) {
-      return;
-    }
-    if (this.#managerImportPromise) {
-      await this.#managerImportPromise;
-      return;
-    }
-    this.#managerImportPromise = (async () => {
-      if (!window.gAstraAppHubManager) {
-        try {
-          ChromeUtils.importESModule(
-            "chrome://browser/content/zen-components/AstraAppHubManager.mjs",
-            { global: "current" }
-          );
-        } catch (error) {
-          this.markManagerFailed(error, "manager-import");
-          return;
-        }
-      }
-      const manager = window.gAstraAppHubManager;
-      if (!manager) {
-        this.markManagerFailed(
-          new Error("manager instance missing after import"),
-          "manager-create"
-        );
-        return;
-      }
-      if (typeof manager.init === "function") {
-        try {
-          // init() performs state-load, shell build, and advanced rebuild; it
-          // sets advanced-ready only after #rebuildList succeeds.
-          await manager.init();
-        } catch (error) {
-          this.markManagerFailed(error, "manager-init");
-        }
-      }
-    })();
-    try {
-      await this.#managerImportPromise;
-    } finally {
-      this.#managerImportPromise = null;
-    }
-  }
-
   async open(eventOrOptions, win = window) {
     if (win && win !== window && win.gAstraAppHubBootstrap) {
       return win.gAstraAppHubBootstrap.open(eventOrOptions, win);
@@ -494,36 +495,43 @@ class AstraAppHubBootstrap {
     const options = this.#normalizeArgs(eventOrOptions);
     this.#lastOpenAttempt = Date.now();
     this.#ensureListeners();
-    this.#applyMode();
 
-    if (!this.#advancedReady) {
-      await this.#ensureManagerImported();
+    // Kick the single init flight. importESModule is synchronous, so on success
+    // this.#manager is populated before the next line runs.
+    if (!this.#manager) {
+      void this.#ensureInit("open");
     }
 
-    if (this.#advancedReady && this.#manager) {
+    const manager = this.#manager;
+    if (manager && typeof manager.open === "function") {
       try {
-        const opened = await this.#manager.open(options);
+        // The manager opens the SAME shell (unhides container + openPopup) and
+        // renders now / after its own init resolves.
+        const opened = await manager.open(options);
         if (opened !== false) {
           return;
         }
       } catch (error) {
-        this.markManagerFailed(error, "open");
+        this.#markFailed(error, "open");
       }
     }
 
-    this.#openFallback(options);
+    // Fatal: manager module unavailable. Open the empty shell + Retry banner.
+    this.#openShellFatal(options);
   }
 
-  #openFallback(options = {}) {
+  #openShellFatal(options = {}) {
     const panel = this.panel;
     if (!panel) {
       this.#lastErrorStage = "panel-missing";
       console.error(`${LOG_PREFIX} panel missing`);
       return;
     }
-    this.#fallbackActive = true;
-    this.#advancedReady = false;
-    this.#applyMode();
+    const container = this.container;
+    if (container) {
+      container.hidden = false;
+    }
+    this.#ensureFatalBanner();
 
     if (this.isOpen || this.#popupTransition || this.#isHiding) {
       if (this.#popupTransition && !this.isOpen && !this.#isHiding) {
@@ -541,15 +549,15 @@ class AstraAppHubBootstrap {
       this.#popupTransition = false;
       this.#lastErrorStage = "openPopup";
       console.error(`${LOG_PREFIX} openPopup failed`, error);
-      // Last resort: screen position if available in this build.
       try {
         if (typeof panel.openPopupAtScreen === "function") {
-          const x = options.event?.screenX ?? options.event?.sourceEvent?.screenX;
-          const y = options.event?.screenY ?? options.event?.sourceEvent?.screenY;
+          const x =
+            options.event?.screenX ?? options.event?.sourceEvent?.screenX;
+          const y =
+            options.event?.screenY ?? options.event?.sourceEvent?.screenY;
           if (Number.isFinite(x) && Number.isFinite(y)) {
             this.#popupTransition = true;
             panel.openPopupAtScreen(x, y, false);
-            return;
           }
         }
       } catch (retryError) {
@@ -559,13 +567,74 @@ class AstraAppHubBootstrap {
     }
   }
 
+  #ensureFatalBanner() {
+    const container = this.container;
+    if (!container) {
+      return;
+    }
+    let banner = document.getElementById("astra-app-hub-bootstrap-banner");
+    if (!banner) {
+      banner = document.createXULElement("hbox");
+      banner.id = "astra-app-hub-bootstrap-banner";
+      banner.classList.add("astra-app-hub-fallback-banner");
+      banner.setAttribute("role", "status");
+      banner.setAttribute("align", "center");
+
+      const msg = document.createXULElement("label");
+      msg.classList.add("astra-app-hub-fallback-banner-msg");
+      msg.setAttribute("flex", "1");
+      msg.setAttribute("value", "App Hub could not finish loading.");
+      if (document.l10n) {
+        try {
+          document.l10n.setAttributes(msg, "astra-app-hub-load-failed");
+        } catch {
+          // keep static text
+        }
+      }
+
+      const retry = document.createXULElement("toolbarbutton");
+      retry.id = "astra-app-hub-bootstrap-retry";
+      retry.classList.add("astra-app-hub-retry-btn");
+      retry.setAttribute("data-action", "bootstrap-retry");
+      retry.setAttribute("label", "Retry");
+      if (document.l10n) {
+        try {
+          document.l10n.setAttributes(retry, "astra-app-hub-retry");
+        } catch {
+          // keep static label
+        }
+      }
+
+      banner.appendChild(msg);
+      banner.appendChild(retry);
+      container.insertBefore(banner, container.firstChild);
+    }
+    banner.hidden = false;
+  }
+
+  #retryFromBanner() {
+    const banner = document.getElementById("astra-app-hub-bootstrap-banner");
+    void this.#ensureInit("retry").then(okReady => {
+      try {
+        if (this.#manager && this.isOpen && typeof this.#manager.open === "function") {
+          void this.#manager.open({ event: null, source: "retry" });
+        }
+      } catch {
+        // ignore
+      }
+      if (okReady && banner) {
+        banner.hidden = true;
+      }
+    });
+  }
+
   close(options = {}) {
-    if (this.#advancedReady && this.#manager?.close) {
+    if (this.#manager?.close) {
       try {
         this.#manager.close(options);
         return;
       } catch (error) {
-        console.error(`${LOG_PREFIX} advanced close failed`, error);
+        console.error(`${LOG_PREFIX} manager close failed`, error);
       }
     }
     const panel = this.panel;
@@ -584,11 +653,11 @@ class AstraAppHubBootstrap {
   }
 
   openApp(appOrUrl, options = {}) {
-    if (this.#advancedReady && this.#manager?.openApp) {
+    if (this.#manager?.openApp) {
       try {
         return this.#manager.openApp(appOrUrl, options);
       } catch (error) {
-        this.markManagerFailed(error, "openApp");
+        this.#markFailed(error, "openApp");
       }
     }
     const url = typeof appOrUrl === "string" ? appOrUrl : appOrUrl?.url;
@@ -603,6 +672,61 @@ class AstraAppHubBootstrap {
         // ignore
       }
     }
+  }
+
+  // —— Listeners ——
+
+  #ensureListeners() {
+    const panel = this.panel;
+    if (!panel || this.#listenersBound) {
+      return;
+    }
+    this.#boundPopupShown = () => {
+      this.#popupTransition = false;
+    };
+    this.#boundPopupHidden = () => {
+      this.#popupTransition = false;
+    };
+    this.#boundCommand = event => {
+      try {
+        const target = event.target;
+        if (
+          target?.getAttribute?.("data-action") === "bootstrap-retry"
+        ) {
+          this.#retryFromBanner();
+        }
+      } catch {
+        // ignore
+      }
+    };
+    this.#boundUnload = () => {
+      this.#destroyListeners();
+    };
+    panel.addEventListener("popupshown", this.#boundPopupShown);
+    panel.addEventListener("popuphidden", this.#boundPopupHidden);
+    panel.addEventListener("command", this.#boundCommand);
+    window.addEventListener("unload", this.#boundUnload, { once: true });
+    this.#listenersBound = true;
+  }
+
+  #destroyListeners() {
+    const panel = this.panel;
+    if (panel && this.#listenersBound) {
+      if (this.#boundPopupShown) {
+        panel.removeEventListener("popupshown", this.#boundPopupShown);
+      }
+      if (this.#boundPopupHidden) {
+        panel.removeEventListener("popuphidden", this.#boundPopupHidden);
+      }
+      if (this.#boundCommand) {
+        panel.removeEventListener("command", this.#boundCommand);
+      }
+    }
+    this.#listenersBound = false;
+    this.#boundPopupShown = null;
+    this.#boundPopupHidden = null;
+    this.#boundCommand = null;
+    this.#boundUnload = null;
   }
 }
 

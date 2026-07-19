@@ -91,10 +91,29 @@ if (
   ok("toolbar widgets for App Hub + Suraksha");
 } else fail("toolbar widget wiring incomplete");
 
+// Upstream Zen intent: sidebar-top defaults to compact-mode only.
+const topDefaults = cui.match(
+  /registerArea\(\s*"zen-sidebar-top-buttons"[\s\S]*?defaultPlacements:\s*\[([\s\S]*?)\]/
+);
+if (
+  topDefaults &&
+  topDefaults[1].includes("zen-toggle-compact-mode") &&
+  !topDefaults[1].includes("zen-app-launcher-button") &&
+  !topDefaults[1].includes("astra-suraksha-button")
+) {
+  ok("sidebar-top defaultPlacements match upstream Zen (compact-mode only)");
+} else {
+  fail("sidebar-top still default-places App Hub/Suraksha");
+}
+
 const popups = read("src/browser/base/content/zen-panels/popups.inc");
-if (popups.includes('id="PanelUI-zen-app-launcher"') && popups.includes("PanelUI-zen-app-launcher-fallback")) {
-  ok("App Hub panel + fallback present");
-} else fail("App Hub panel/fallback missing");
+// App Hub V3 is a single shell — the static fallback catalog block is gone.
+if (
+  popups.includes('id="PanelUI-zen-app-launcher"') &&
+  !popups.includes("PanelUI-zen-app-launcher-fallback")
+) {
+  ok("App Hub panel present (single shell, no static fallback)");
+} else fail("App Hub panel missing or still has static fallback block");
 if (
   popups.includes('id="PanelUI-astra-suraksha"') &&
   popups.includes("PanelUI-astra-suraksha-fallback")
@@ -171,12 +190,28 @@ if (bootSrc.includes("BrowserCommands?.pageInfo") || bootSrc.includes("BrowserCo
 
 const uim = read("src/zen/common/modules/ZenUIManager.mjs");
 if (
-  uim.includes("astra.ui.migration.suraksha-button-added") &&
-  uim.includes('astra.suraksha.enabled') &&
-  uim.includes("Defer until Suraksha is enabled")
+  uim.includes("astra.ui.sidebar-cleanup.version") &&
+  uim.includes("_migrateAstraSidebarCleanupIfNeeded") &&
+  uim.includes('CustomizableUI.removeWidgetFromArea') &&
+  uim.includes("zen-app-launcher-button") &&
+  uim.includes("astra-suraksha-button") &&
+  uim.includes('removeValue(uri, "navigator-toolbox", "width")') &&
+  uim.includes('"230px" : "186px"')
 ) {
-  ok("migration defers when Suraksha disabled");
-} else fail("migration disabled-defer logic missing");
+  ok("versioned sidebar cleanup removes Astra widgets + resets width once");
+} else fail("sidebar cleanup migration incomplete");
+if (
+  uim.includes('setBoolPref(\n        "astra.ui.migration.suraksha-button-added"') ||
+  uim.includes('setBoolPref(\r\n        "astra.ui.migration.suraksha-button-added"') ||
+  /setBoolPref\(\s*"astra\.ui\.migration\.suraksha-button-added"\s*,\s*true\s*\)/.test(
+    uim
+  )
+) {
+  ok("legacy additive Suraksha placement migration retired");
+} else fail("legacy Suraksha additive migration still active");
+if (/addWidgetToArea\(\s*"astra-suraksha-button"/.test(uim)) {
+  fail("Suraksha still forcibly added to sidebar-top");
+} else ok("Suraksha is not forcibly added to sidebar-top");
 
 // Fluent IDs referenced in markup/JS exist in FTL
 const ftl = read("locales/en-US/browser/browser/zen-suraksha.ftl");
@@ -301,36 +336,47 @@ else fail("unexpected Suraksha shortcut");
 
 // --- Entrypoint integrity (runtime-verified regressions) ---
 
-// CRITICAL: astra-suraksha-button must be an attributes-only Fluent message.
-// A bare value overwrites the toolbaritem wrapper's textContent and destroys
-// the inner clickable toolbarbutton (button becomes a dead ~47x16 text node).
-if (/^astra-suraksha-button\s*=\s*$/m.test(ftl)) {
-  ok("suraksha button Fluent message is attributes-only (no destructive value)");
+// Attributes-only Fluent on the real toolbarbutton (public widget id).
+if (
+  /^astra-suraksha-button\s*=\s*$/m.test(ftl) &&
+  /\.label\s*=/.test(ftl.slice(ftl.indexOf("astra-suraksha-button"))) &&
+  /\.tooltiptext\s*=/.test(ftl.slice(ftl.indexOf("astra-suraksha-button")))
+) {
+  ok("suraksha button Fluent message is attributes-only");
 } else {
-  fail(
-    "astra-suraksha-button has a bare value; it will wipe the toolbaritem's inner toolbarbutton"
-  );
+  fail("astra-suraksha-button Fluent must be attributes-only (label/tooltip)");
 }
 
-// The toolbaritem wrapper must NOT carry data-l10n-id (only the inner button),
-// and there must be exactly one real inner toolbarbutton carrying the command.
-const surakshaItemMatch = cui.match(
-  /<toolbaritem id="astra-suraksha-button"[^>]*>/
-);
-if (surakshaItemMatch && !/data-l10n-id/.test(surakshaItemMatch[0])) {
-  ok("suraksha toolbaritem wrapper has no destructive data-l10n-id");
-} else {
-  fail("suraksha toolbaritem wrapper still localized (would destroy inner button)");
-}
+// Exactly one real toolbarbutton owns the public widget id (no nested wrapper).
+if (/<toolbaritem\s+id="astra-suraksha-button"/.test(cui)) {
+  fail("suraksha still uses nested public toolbaritem wrapper");
+} else ok("suraksha has no nested public toolbaritem");
 if (
-  /<toolbarbutton\s+id="astra-suraksha-toolbarbutton"[\s\S]*?command="cmd_astraOpenSurakshaCenter"/.test(
+  /<toolbarbutton\s+id="astra-suraksha-button"[\s\S]*?command="cmd_astraOpenSurakshaCenter"/.test(
     cui
-  )
+  ) &&
+  !cui.includes('id="astra-suraksha-toolbarbutton"')
 ) {
-  ok("suraksha has one real toolbarbutton carrying the command");
+  ok("suraksha public widget id belongs to the real toolbarbutton");
 } else {
-  fail("suraksha inner toolbarbutton/command wiring missing");
+  fail("suraksha direct toolbarbutton/command wiring missing");
 }
+
+// App Menu is the primary built-in entry.
+const menubar = read("src/zen/common/modules/ZenMenubar.mjs");
+if (
+  menubar.includes('id="appMenu-astra-suraksha-button"') &&
+  menubar.includes("cmd_astraOpenSurakshaCenter")
+) {
+  ok("App Menu Suraksha entry present");
+} else fail("App Menu Suraksha entry missing");
+if (
+  boot.includes("#toolbarButtonFromEvent") &&
+  boot.includes("PanelUI-menu-button") &&
+  boot.includes("APPMENU_ID")
+) {
+  ok("Suraksha anchors toolbar vs App Menu correctly");
+} else fail("Suraksha anchor resolution incomplete");
 
 // zen-sets.js forwards the real command event into the facade.
 if (
@@ -345,9 +391,7 @@ if (
 
 // Bootstrap: static shell opens before manager; manager requested once after
 // popupshown; bounded postcondition retry via a navbar anchor; transition
-// cleared on shown/hidden.
-// Static shell opens first; the lazy manager is requested from the popupshown
-// handler (via #kickManagerAfterShellOpen), never before openPopup.
+// cleared on shown/hidden/unload.
 const openBody = boot.slice(
   boot.indexOf("async open("),
   boot.indexOf("#kickManagerAfterShellOpen(options)")
@@ -374,9 +418,10 @@ if (
 }
 if (
   /#boundPopupShown[\s\S]*?#popupTransition = false/.test(boot) &&
-  /#boundPopupHidden[\s\S]*?#popupTransition = false/.test(boot)
+  /#boundPopupHidden[\s\S]*?#popupTransition = false/.test(boot) &&
+  /destroy\(\)[\s\S]*?#popupTransition = false/.test(boot)
 ) {
-  ok("suraksha clears popupTransition on shown/hidden");
+  ok("suraksha clears popupTransition on shown/hidden/unload");
 } else {
   fail("suraksha popupTransition cleanup incomplete");
 }

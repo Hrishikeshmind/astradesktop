@@ -557,11 +557,10 @@ class AstraAppHubManager {
   }
 
   /**
-   * ADVANCED READY only when catalog imported + validated, shell exists,
-   * advanced render succeeds, and the manager/window is still alive.
-   * Otherwise keep fallback visible/usable with a compact retry banner.
-   * Rebuild advanced content before mode handoff so fallback is never swapped
-   * for an empty advanced panel.
+   * READY only when catalog imported + validated, shell exists, render succeeds,
+   * and the manager/window is still alive. This is NOT a dual-mode handoff: there
+   * is one shell, so we render into it, unhide the single container, and only
+   * surface a Retry banner on a real fatal catalog/render failure.
    */
   #applyCatalogReadyState() {
     if (this.#destroyed || window.closed) {
@@ -597,6 +596,16 @@ class AstraAppHubManager {
         }
       }
     }
+    // Single shell: always unhide the one container (empty-safe; the banner
+    // covers the fatal case).
+    try {
+      const container = this.container;
+      if (container) {
+        container.hidden = false;
+      }
+    } catch {
+      // ignore
+    }
     try {
       window.gAstraAppHubBootstrap?.setAdvancedReady?.(ready);
     } catch {
@@ -605,38 +614,29 @@ class AstraAppHubManager {
     if (ready) {
       this.#handoffFocusFromHiddenFallback();
     }
-    this.#showFallbackFailureBanner(!ready);
+    // Banner only on a real fatal failure — never a normal "basic apps" notice.
+    const fatal =
+      !ready && (!!this.#catalogError || this.#catalogDiag?.stage === "render");
+    this.#showFallbackFailureBanner(fatal);
   }
 
   /**
-   * If focus was inside the fallback subtree that is about to hide, move it
-   * to advanced search (or the panel) once. No polling.
+   * Retained as a safe no-op: the removed static fallback subtree no longer
+   * exists, so there is no hidden subtree to move focus out of. Kept so external
+   * callers/tests referencing this name do not break.
    */
   #handoffFocusFromHiddenFallback() {
-    try {
-      const fallback = document.getElementById(
-        "PanelUI-zen-app-launcher-fallback"
-      );
-      const active = document.activeElement;
-      if (!fallback || !active || !fallback.contains(active)) {
-        return;
-      }
-      const search = this.searchInput;
-      if (search && search.isConnected && !search.hidden) {
-        search.focus();
-        return;
-      }
-      this.panel?.focus?.();
-    } catch {
-      // ignore
-    }
+    // No fallback subtree in the single-shell architecture.
   }
 
+  /**
+   * Compact fatal-only Retry banner rendered into the SINGLE shell container.
+   * Never shows the normal "basic apps are ready" notice — only appears when the
+   * catalog/render genuinely failed. Known-good tiles (if any) stay usable.
+   */
   #showFallbackFailureBanner(show) {
-    const fallback = document.getElementById(
-      "PanelUI-zen-app-launcher-fallback"
-    );
-    if (!fallback) {
+    const container = this.container;
+    if (!container) {
       return;
     }
     let banner = document.getElementById("astra-app-hub-fallback-banner");
@@ -653,7 +653,7 @@ class AstraAppHubManager {
       setL10nOrText(
         msg,
         "astra-app-hub-advanced-unavailable",
-        "Advanced App Hub is unavailable. Basic apps are ready."
+        "App Hub could not finish loading."
       );
 
       const retry = document.createXULElement("toolbarbutton");
@@ -665,12 +665,8 @@ class AstraAppHubManager {
       banner.appendChild(msg);
       banner.appendChild(retry);
 
-      const title = document.getElementById("PanelUI-zen-app-launcher-title");
-      if (title && title.parentNode === fallback) {
-        fallback.insertBefore(banner, title.nextSibling);
-      } else {
-        fallback.insertBefore(banner, fallback.firstChild);
-      }
+      // Insert at the top of the single container (above header/list).
+      container.insertBefore(banner, container.firstChild);
     }
     if (banner) {
       banner.hidden = !show;
@@ -739,9 +735,8 @@ class AstraAppHubManager {
     } finally {
       this.#retryInFlight = false;
       if (!this.#destroyed && !window.closed) {
-        const advanced =
-          this.panel?.getAttribute("app-hub-mode") === "advanced";
-        this.#showFallbackFailureBanner(!advanced);
+        const okNow = this.#rendered && !!this.#catalog && !this.#catalogError;
+        this.#showFallbackFailureBanner(!okNow);
       }
     }
   }
@@ -836,15 +831,13 @@ class AstraAppHubManager {
       setL10nOrText(doneBtn, "astra-app-hub-done", "Done");
       header.appendChild(doneBtn);
 
+      // Legacy static title node (pre-V3) is no longer packaged; remove it if a
+      // stale build ever left one behind.
       const oldTitle = document.getElementById("PanelUI-zen-app-launcher-title");
-      // Never destroy the known-good fallback title node.
-      if (
-        oldTitle &&
-        !oldTitle.closest?.("#PanelUI-zen-app-launcher-fallback")
-      ) {
+      if (oldTitle) {
         oldTitle.remove();
       }
-      // Insert advanced header before the advanced list (after fallback block).
+      // Insert the header above the single shell list.
       const listEl = this.list;
       if (listEl && listEl.parentNode === container) {
         container.insertBefore(header, listEl);
@@ -1451,6 +1444,11 @@ class AstraAppHubManager {
     try {
       this.#ensureShell();
       this.#bindPanelListeners();
+      // Single shell: unhide the one container so the opened panel is never empty.
+      const container = this.container;
+      if (container) {
+        container.hidden = false;
+      }
     } catch (error) {
       this.#popupTransition = false;
       console.error("[AstraAppHub] shell/bind failed:", error);
@@ -2198,7 +2196,10 @@ class AstraAppHubManager {
         !safe.startsWith("//")
       ) {
         // HTML img: XUL <image> no longer fires load/error (Bug 1815229).
-        const image = document.createElement("img");
+        const image = document.createElementNS(
+          "http://www.w3.org/1999/xhtml",
+          "img"
+        );
         image.classList.add(
           "zen-app-launcher-item-icon",
           "astra-app-hub-item-icon"
@@ -2206,6 +2207,8 @@ class AstraAppHubManager {
         image.setAttribute("alt", "");
         image.setAttribute("draggable", "false");
         image.setAttribute("aria-hidden", "true");
+        // Attach load/error BEFORE setting src so an already-cached/synchronous
+        // decode cannot fire before the listeners exist.
         image.addEventListener(
           "load",
           () => {
@@ -2235,6 +2238,10 @@ class AstraAppHubManager {
         );
         image.src = safe;
         stack.appendChild(image);
+        // Immediately reconcile: if the packaged icon decoded synchronously the
+        // load event may never reach a late listener, leaving the tile stuck on
+        // its monogram. Reflect the current state now.
+        this.#reconcileIconState(stack, image);
       }
     }
     button.appendChild(stack);
@@ -2258,15 +2265,23 @@ class AstraAppHubManager {
     }
 
     if (!this.#customizeMode) {
+      const isFav = favSet.has(app.id);
       const star = document.createXULElement("toolbarbutton");
       star.classList.add("astra-app-hub-fav-btn");
       star.setAttribute("data-action", "toggle-favorite");
       star.setAttribute("data-app-id", app.id);
-      star.setAttribute(
-        "tooltiptext",
-        favSet.has(app.id) ? "Remove from favorites" : "Add to favorites"
+      // Accessible label + pressed state so the control is usable and visible
+      // on hover AND keyboard focus (CSS reveals via :focus-within / aria-pressed).
+      const favLabel = isFav ? "Remove from favorites" : "Add to favorites";
+      star.setAttribute("tooltiptext", favLabel);
+      star.setAttribute("aria-label", favLabel);
+      star.setAttribute("aria-pressed", isFav ? "true" : "false");
+      setL10nOrText(
+        star,
+        isFav ? "astra-app-hub-favorite-remove" : "astra-app-hub-favorite-add",
+        favLabel
       );
-      star.textContent = favSet.has(app.id) ? "★" : "☆";
+      star.textContent = isFav ? "★" : "☆";
       button.appendChild(star);
     } else {
       button.setAttribute("draggable", "true");
@@ -2423,7 +2438,10 @@ class AstraAppHubManager {
     if (!stack || !dataURI) {
       return;
     }
-    const image = document.createElement("img");
+    const image = document.createElementNS(
+      "http://www.w3.org/1999/xhtml",
+      "img"
+    );
     image.classList.add(
       "zen-app-launcher-item-icon",
       "astra-app-hub-item-icon"
@@ -2431,6 +2449,7 @@ class AstraAppHubManager {
     image.setAttribute("alt", "");
     image.setAttribute("draggable", "false");
     image.setAttribute("aria-hidden", "true");
+    // Attach load/error BEFORE setting src.
     image.addEventListener(
       "load",
       () => {
@@ -2460,6 +2479,38 @@ class AstraAppHubManager {
     );
     image.src = dataURI;
     stack.appendChild(image);
+    this.#reconcileIconState(stack, image);
+  }
+
+  /**
+   * Reflect an <img>'s current load state onto its stack. Needed because a
+   * cached/synchronous decode can complete before (or without) firing a load
+   * event to a listener attached this tick, which would otherwise leave the
+   * tile stuck on its monogram. Uses image.complete + naturalWidth.
+   */
+  #reconcileIconState(stack, image) {
+    if (!stack || !image) {
+      return;
+    }
+    try {
+      if (!image.complete) {
+        return;
+      }
+      if (image.naturalWidth > 0) {
+        stack.setAttribute("data-icon-loaded", "true");
+        stack.removeAttribute("data-icon-error");
+      } else {
+        stack.setAttribute("data-icon-error", "true");
+        stack.removeAttribute("data-icon-loaded");
+        try {
+          image.removeAttribute("src");
+        } catch {
+          // ignore
+        }
+      }
+    } catch {
+      // ignore reconciliation errors
+    }
   }
 
   /**
@@ -4024,8 +4075,14 @@ class AstraAppHubManager {
       const rect = node.getBoundingClientRect();
       return rect.width > 0 || rect.height > 0;
     };
-    const eventAnchor = event?.sourceEvent?.target || event?.target;
+    const src = event?.sourceEvent || event;
+    const eventAnchor = src?.currentTarget || src?.target || event?.target;
+    const closestBtn =
+      typeof eventAnchor?.closest === "function"
+        ? eventAnchor.closest("toolbarbutton")
+        : null;
     const candidates = [
+      isUsableAnchor(closestBtn) ? closestBtn : null,
       isUsableAnchor(eventAnchor) ? eventAnchor : null,
       document.getElementById("zen-app-launcher-button"),
       document.getElementById("zen-sidebar-top-buttons-separator"),

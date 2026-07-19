@@ -14,6 +14,7 @@ const ADVANCED_ID = "PanelUI-astra-suraksha-advanced";
 const BUTTON_ITEM_ID = "astra-suraksha-button";
 const APPMENU_ID = "appMenu-astra-suraksha-button";
 const PREF_ENABLED = "astra.suraksha.enabled";
+const PERF_PREF = "astra.diagnostics.performance";
 const LOG_PREFIX = "[AstraSuraksha]";
 const MANAGER_URL =
   "chrome://browser/content/zen-components/AstraSurakshaManager.mjs";
@@ -39,6 +40,7 @@ class AstraSurakshaBootstrap {
   #pendingManagerOptions = null;
   #postconditionScheduled = false;
   #openRetried = false;
+  #shellOpenStartedAt = 0;
 
   constructor() {
     window.gAstraSurakshaBootstrap = this;
@@ -138,11 +140,15 @@ class AstraSurakshaBootstrap {
       return;
     }
     this.#destroyed = true;
+    this.#popupTransition = false;
+    this.#openRetried = false;
+    this.#postconditionScheduled = false;
     try {
       this.close({ restoreFocus: false });
     } catch {
       // ignore
     }
+    this.#popupTransition = false;
     this.#teardownListeners();
     this.#teardownPrefObserver();
     if (this.#boundUnload) {
@@ -275,6 +281,7 @@ class AstraSurakshaBootstrap {
     this.#boundPopupShown = () => {
       this.#popupTransition = false;
       this.#openRetried = false;
+      this.#logShellOpenDuration();
       // Request the lazy manager exactly once, only after the shell is proven
       // open. #requestManager is self-deduping (no duplicate imports).
       this.#kickManagerAfterShellOpen(this.#pendingManagerOptions);
@@ -362,15 +369,47 @@ class AstraSurakshaBootstrap {
     return rect.width > 0 || rect.height > 0;
   }
 
+  #toolbarButtonFromEvent(event) {
+    const src = event?.sourceEvent || event;
+    if (!src || typeof src !== "object") {
+      return null;
+    }
+    const current =
+      src.currentTarget?.nodeType === 1 ? src.currentTarget : null;
+    const target = src.target?.nodeType === 1 ? src.target : null;
+    const fromCurrent =
+      current?.localName === "toolbarbutton"
+        ? current
+        : current?.closest?.("toolbarbutton");
+    if (fromCurrent) {
+      return fromCurrent;
+    }
+    const fromTarget =
+      target?.localName === "toolbarbutton"
+        ? target
+        : target?.closest?.("toolbarbutton");
+    return fromTarget || null;
+  }
+
   #resolveAnchor(event) {
     const doc = document;
-    const eventAnchor = event?.sourceEvent?.target || event?.target;
+    const toolbarButton = this.#toolbarButtonFromEvent(event);
+    // App Menu is the primary built-in entry: anchor to the hamburger button
+    // (or another proven connected App Menu anchor), not a detached menuitem.
+    const fromAppMenu =
+      toolbarButton?.id === APPMENU_ID ||
+      !!toolbarButton?.closest?.("#appMenu-popup, #appMenu-mainView");
+    if (fromAppMenu) {
+      const menuAnchor = doc.getElementById("PanelUI-menu-button");
+      if (this.#isUsableAnchor(menuAnchor)) {
+        return menuAnchor;
+      }
+    }
+    if (this.#isUsableAnchor(toolbarButton)) {
+      return toolbarButton;
+    }
     const candidates = [
-      this.#isUsableAnchor(eventAnchor) ? eventAnchor : null,
       doc.getElementById(BUTTON_ITEM_ID),
-      doc.getElementById("zen-app-launcher-button"),
-      doc.getElementById("zen-sidebar-top-buttons-separator"),
-      doc.getElementById("zen-sidebar-top-buttons"),
       doc.getElementById("PanelUI-menu-button"),
       doc.getElementById("nav-bar"),
       doc.getElementById("browser"),
@@ -446,6 +485,23 @@ class AstraSurakshaBootstrap {
    * The manager import helper is self-deduping, so repeated popupshown events
    * are safe.
    */
+  #logShellOpenDuration() {
+    if (!this.#shellOpenStartedAt) {
+      return;
+    }
+    try {
+      if (!Services.prefs.getBoolPref(PERF_PREF, false)) {
+        this.#shellOpenStartedAt = 0;
+        return;
+      }
+      const durationMs = Math.max(0, Date.now() - this.#shellOpenStartedAt);
+      console.debug(`${LOG_PREFIX} shell-open duration_ms=${durationMs}`);
+    } catch {
+      // ignore diagnostics failures
+    }
+    this.#shellOpenStartedAt = 0;
+  }
+
   #kickManagerAfterShellOpen(options) {
     void this.#requestManager().then(() => {
       if (this.#destroyed || !this.#manager) {
@@ -482,6 +538,7 @@ class AstraSurakshaBootstrap {
 
     const anchor = this.#resolveAnchor(options.event);
     this.#popupTransition = true;
+    this.#shellOpenStartedAt = Date.now();
     try {
       if (options.source === "keyboard") {
         panel.removeAttribute("noautofocus");

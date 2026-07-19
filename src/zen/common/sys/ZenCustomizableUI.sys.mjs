@@ -19,11 +19,9 @@ export const ZenCustomizableUI = new (class {
       "zen-sidebar-top-buttons",
       {
         type: this.TYPE_TOOLBAR,
-        defaultPlacements: [
-          "zen-toggle-compact-mode",
-          "zen-app-launcher-button",
-          "astra-suraksha-button",
-        ],
+        // Match upstream Zen: only compact-mode is default-placed here.
+        // App Hub + Suraksha remain creatable (palette / App Menu / shortcuts).
+        defaultPlacements: ["zen-toggle-compact-mode"],
         defaultCollapsed: null,
         overflowable: true,
       },
@@ -113,6 +111,7 @@ export const ZenCustomizableUI = new (class {
               data-l10n-id="zen-toggle-compact-mode-button"
               flex="1" />
           </toolbaritem>
+          <!-- Optional palette widgets (not in defaultPlacements). -->
           <toolbaritem id="zen-app-launcher-button" removable="true">
             <toolbarbutton
               class="toolbarbutton-1"
@@ -120,15 +119,13 @@ export const ZenCustomizableUI = new (class {
               tooltiptext="Bharat Apps 🇮🇳"
               flex="1" />
           </toolbaritem>
-          <toolbaritem id="astra-suraksha-button" removable="true">
-            <toolbarbutton
-              id="astra-suraksha-toolbarbutton"
-              class="toolbarbutton-1"
-              command="cmd_astraOpenSurakshaCenter"
-              data-l10n-id="astra-suraksha-button"
-              tooltiptext="Astra Suraksha"
-              flex="1" />
-          </toolbaritem>
+          <!-- One real toolbarbutton; public widget id is the button itself. -->
+          <toolbarbutton
+            id="astra-suraksha-button"
+            class="toolbarbutton-1 chromeclass-toolbar-additional"
+            removable="true"
+            command="cmd_astraOpenSurakshaCenter"
+            data-l10n-id="astra-suraksha-button" />
           <html:div id="zen-sidebar-top-buttons-separator" skipintoolbarset="true" overflows="false"></html:div>
         </hbox>
       </toolbar>

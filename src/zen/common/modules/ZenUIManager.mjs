@@ -164,39 +164,79 @@ window.gZenUIManager = {
     }
     Services.prefs.setBoolPref(kPref, true);
 
-    // Additive Suraksha toolbar placement for existing profiles (independent of App Hub).
-    // Do not consume the migration flag while the feature is disabled or the widget
-    // DOM is not ready yet — otherwise re-enabling never places the button.
-    const kSurakshaPref = "astra.ui.migration.suraksha-button-added";
+    // Legacy additive Suraksha placement is retired. Mark the old flag consumed
+    // so re-enabling Suraksha never re-injects the button into sidebar-top.
     try {
-      if (!Services.prefs.getBoolPref(kSurakshaPref, false)) {
-        if (!Services.prefs.getBoolPref("astra.suraksha.enabled", true)) {
-          // Defer until Suraksha is enabled.
-        } else if (!document.getElementById("astra-suraksha-button")) {
-          // Widget markup not ready in this window yet — retry later.
-        } else {
-          const placements = CustomizableUI.getWidgetIdsInArea(
-            "zen-sidebar-top-buttons"
-          );
-          if (placements.includes("astra-suraksha-button")) {
-            Services.prefs.setBoolPref(kSurakshaPref, true);
-          } else if (placements.includes("zen-app-launcher-button")) {
-            const hubIndex = placements.indexOf("zen-app-launcher-button");
-            CustomizableUI.addWidgetToArea(
-              "astra-suraksha-button",
-              "zen-sidebar-top-buttons",
-              hubIndex + 1
-            );
-            Services.prefs.setBoolPref(kSurakshaPref, true);
-          } else {
-            // Feature enabled and widget exists, but current layout has no hub
-            // anchor — stop retrying without forcing a layout reset.
-            Services.prefs.setBoolPref(kSurakshaPref, true);
+      Services.prefs.setBoolPref(
+        "astra.ui.migration.suraksha-button-added",
+        true
+      );
+    } catch {
+      // ignore
+    }
+
+    this._migrateAstraSidebarCleanupIfNeeded();
+  },
+
+  /**
+   * One-time, versioned cleanup for profiles that inherited the affected Astra
+   * sidebar layout (App Hub + Suraksha default-placed in zen-sidebar-top-buttons,
+   * content-driven ~289px width). Idempotent: records the version only after
+   * successful completion. Does not reset unrelated toolbar customization and
+   * never touches extension / uBlock placements.
+   */
+  _migrateAstraSidebarCleanupIfNeeded() {
+    const kCleanupPref = "astra.ui.sidebar-cleanup.version";
+    const kCleanupVersion = 1;
+    try {
+      if (Services.prefs.getIntPref(kCleanupPref, 0) >= kCleanupVersion) {
+        return;
+      }
+    } catch {
+      // proceed with migration when pref read fails
+    }
+
+    try {
+      const area = "zen-sidebar-top-buttons";
+      const removeIds = ["zen-app-launcher-button", "astra-suraksha-button"];
+      for (const widgetId of removeIds) {
+        try {
+          const placement = CustomizableUI.getPlacementOfWidget(widgetId);
+          if (placement?.area === area) {
+            CustomizableUI.removeWidgetFromArea(widgetId);
           }
+        } catch (error) {
+          console.warn(
+            `[Astra] sidebar cleanup: failed to remove ${widgetId}`,
+            error
+          );
+          return;
         }
       }
-    } catch (e) {
-      console.error("Error adding Suraksha button to sidebar:", e);
+
+      // Reset only navigator-toolbox width/style to the upstream Windows/macOS
+      // default. Native #zen-sidebar-splitter remains the sole resize owner
+      // afterwards; any later user-chosen valid width persists normally.
+      const kDefaultSidebarWidth =
+        window.AppConstants.platform === "macosx" ? "230px" : "186px";
+      const toolbox = window.gNavToolbox;
+      if (toolbox) {
+        try {
+          const uri = document.documentURI;
+          Services.xulStore.removeValue(uri, "navigator-toolbox", "width");
+          Services.xulStore.removeValue(uri, "navigator-toolbox", "style");
+        } catch (error) {
+          console.warn("[Astra] sidebar cleanup: XULStore clear failed", error);
+          return;
+        }
+        toolbox.removeAttribute("style");
+        toolbox.style.width = kDefaultSidebarWidth;
+        toolbox.setAttribute("width", kDefaultSidebarWidth);
+      }
+
+      Services.prefs.setIntPref(kCleanupPref, kCleanupVersion);
+    } catch (error) {
+      console.error("[Astra] sidebar cleanup migration failed", error);
     }
   },
 

@@ -127,13 +127,17 @@ astra-app-hub-error-icon-unsupported =
 astra-app-hub-error-icon-too-large =
     .value = That image is too large. Choose a file under 1 MB.
 
+# Fatal-only: shown in the single shell when the catalog/render genuinely fails.
+# Not shown in normal operation.
+astra-app-hub-load-failed =
+    .value = App Hub could not finish loading.
 astra-app-hub-load-error =
-    .value = Advanced App Hub is unavailable. Basic apps are ready.
+    .value = App Hub could not finish loading.
 astra-app-hub-advanced-unavailable =
-    .value = Advanced App Hub is unavailable. Basic apps are ready.
+    .value = App Hub could not finish loading.
 astra-app-hub-retry =
     .label = Retry
-    .tooltiptext = Retry loading Advanced App Hub
+    .tooltiptext = Retry loading App Hub
 
 astra-app-hub-confirm-delete-title = Delete custom app?
 astra-app-hub-confirm-delete-body = This removes the app from App Hub, favorites, and recent lists.
