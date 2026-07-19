@@ -1,0 +1,194 @@
+# ASTRA-CAP-014 — Session restore and recently closed tabs/windows
+
+> Design document only. No runtime source, prefs, manifests, packaging, policies, localization, or installers were modified.
+> Baseline: `architecture/astra-capability-rfcs` @ `29d95dd9ee311331f328e4c57162bddc7a900d36`
+> Canonical source: `HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19` index 14
+
+## Identity
+
+| Field | Value |
+|---|---|
+| Stable ID | `ASTRA-CAP-014` |
+| Slug | `session-restore-and-recently-closed` |
+| Title | Session restore and recently closed tabs/windows |
+| Canonical group | Everyday Productivity |
+| Secondary groups | `Reliability` |
+| Audiences | `NORM`, `STU`, `CORP` |
+| Classification | `USE_NATIVE` |
+| Supporting classifications | `INTEGRATE` |
+| Integration mode | `DEEP_INTEGRATION` |
+| Batch | Batch 0 |
+| Readiness status | `DISCOVERED` |
+| Source / package / runtime status | `UNVERIFIED` / `UNVERIFIED` / `UNVERIFIED` |
+| Dependencies | _none_ |
+
+### Why this classification
+
+Primary classification `USE_NATIVE` is taken exactly from the human-approved 62-item catalog (index 14). Supporting tags from the capability matrix are recorded as notes, not extra registry rows.
+
+### Integration notes
+
+- Two session stores (Firefox sessionstore + Zen); reconcile, do not add a third.
+
+## Canonical source
+
+| Field | Value |
+|---|---|
+| source_id | `HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19` |
+| canonical_index | 14 |
+| canonical_title | Session restore and recently closed tabs/windows |
+| canonical_group | Everyday Productivity |
+| canonical_primary_classification | `USE_NATIVE` |
+
+## Matrix evidence
+
+| Field | Value |
+|---|---|
+| blocks | `A12` |
+| mapping_status | `VERIFIED` |
+| notes | 1:1 with matrix block A12 (Session restore); dual-store conflict. |
+
+## Owners
+
+| Role | Owner |
+|---|---|
+| Native owner | Firefox SessionStore + Zen ZenSessionStore |
+| UX owner | Zen/Astra coordinator over native sessionstore |
+
+## Evidence blocks
+
+### native_evidence
+
+| Field | Value |
+|---|---|
+| level | `E0` |
+| references | _empty (allowed at E0)_ |
+
+**Evidence status:** UNVERIFIED — UPSTREAM REVISION NOT PINNED. The vendored Firefox `engine/` tree is absent from this architecture worktree (ASTRA-CONFLICT-031). Matrix/audit path names are documentary only and do **not** raise evidence above E0.
+
+### astra_integration_evidence
+
+| Field | Value |
+|---|---|
+| level | `E0` |
+| references | _empty (allowed at E0)_ |
+
+**Evidence status:** Design-only. Overlay file presence (if listed below) is not E1/E2 wiring proof, packaging proof, or installer SourceStamp proof. `Astra integration evidence remains E0 until wiring/entrypoint references are pinned.`
+
+### Readiness note
+
+Current readiness `DISCOVERED` is preserved from the registry. Existence of this feature document does **not** advance readiness to `DESIGN_READY_FOR_IMPLEMENTATION`.
+
+## Upstream implementation locations
+
+Evidence status for every `engine/**` path: **UNVERIFIED — UPSTREAM REVISION NOT PINNED**.
+
+- `engine/browser/components/sessionstore/`
+
+## Proposed Astra / Zen entrypoints
+
+Zen session modules coordinate with native SessionStore (do not add a third session system).
+
+### Related overlay / prefs paths (worktree presence only; not E2+)
+
+- `src/zen/sessionstore/ (present)`
+- `src/zen/common/modules/ZenSessionStore.mjs (present)`
+- `prefs/zen/session-store.yaml (verified)`
+
+## State
+
+| Field | Value |
+|---|---|
+| state_status | `REFERENCED` |
+| state_refs | `ASTRA-STATE-003`, `ASTRA-STATE-004` |
+
+- `ASTRA-STATE-003` — owner: **Two owners:** Firefox SessionStore (`sessionstore.jsonlz4`) + Zen ZenSessionStore (`zen-sessions.jsonlz4`) (canonical text only in [astra-state-ownership.md](../architecture/astra-state-ownership.md))
+- `ASTRA-STATE-004` — owner: Zen `gZenWorkspaces` (canonical text only in [astra-state-ownership.md](../architecture/astra-state-ownership.md))
+
+## Conflicts and resolution rules
+
+- `ASTRA-CONFLICT-002` — Native horizontal tabs vs Zen tabs (map #2, S2). Status: RESOLVED_BY_DESIGN (architecture constraint only; not runtime proof). See [astra-conflict-resolution.md](../architecture/astra-conflict-resolution.md).
+- `ASTRA-CONFLICT-019` — SessionStore vs Spaces recovery (map #19, S1). Status: RESOLVED_BY_DESIGN (architecture constraint only; not runtime proof). See [astra-conflict-resolution.md](../architecture/astra-conflict-resolution.md).
+- `ASTRA-CONFLICT-021` — Shared-global vs window-global modules (map #21, S2). Status: RESOLVED_BY_DESIGN (architecture constraint only; not runtime proof). See [astra-conflict-resolution.md](../architecture/astra-conflict-resolution.md).
+- `ASTRA-CONFLICT-022` — Multi-window managers vs singleton state (map #22, S2). Status: RESOLVED_BY_DESIGN (architecture constraint only; not runtime proof). See [astra-conflict-resolution.md](../architecture/astra-conflict-resolution.md).
+
+Applicable rule: RESOLVED_BY_DESIGN means an accepted architecture constraint exists. It is **not** proof that implementation, enforcement, source tests, packaging, or runtime behavior passed.
+
+## Feature flag
+
+`NATIVE_PREF` `zen.session-store.backup-file` (status: VERIFIED) — verified present in worktree prefs/ where applicable.
+
+## Lazy-load / startup plan
+
+Follow App Hub V3 / Suraksha patterns:
+
+1. Must **not** block `browser.xhtml` startup.
+2. Any new Astra panel/command loads lazily after first user action or `popupshown`; prefer static fallback shell where a panel is introduced.
+3. Bootstrap failures are non-fatal (try/catch); hide the surface rather than brick chrome.
+4. `Do not introduce a second state owner or eager heavy import.`
+
+## Source test plan
+
+| Check | Result |
+|---|---|
+| Architecture validator (`scripts/validate_astra_architecture_docs.cjs`) includes this ID/slug | NOT TESTED (document-level; suite run at Checkpoint C) |
+| Registry field parity (id/title/group/classification/integration_mode/state/conflict) | NOT TESTED |
+| No invented wrapper for NATIVE_ONLY | NOT TESTED |
+| Pref/policy names match registry only | NOT TESTED |
+
+SOURCE_IMPLEMENTATION_COMPLETE: **Not claimed. Existing overlay modules (if listed) are presence-only at E0; wiring not E2-verified in this pass.**
+
+## Manual runtime test plan
+
+All results are **NOT TESTED** until Batch 0 on a correct installer (BuildID + SourceStamp). Do not infer PASS from audit prose.
+
+| Scenario | Result |
+|---|---|
+| Primary user path for this capability | NOT TESTED |
+| Private window behavior | NOT TESTED |
+| Multi-window behavior | NOT TESTED |
+| Failure / disable / policy override path | NOT TESTED |
+
+## Rollback plan
+
+Revert/disable via verified native pref `zen.session-store.backup-file` and/or remove Astra discoverability surface. Do not delete native backend.
+
+## Minimum beta safety sections
+
+### 1. Data touched
+
+`browsing-sensitive`
+
+### 2. Network behavior
+
+`no network`
+
+### 3. Private-window policy
+
+`fully supported`
+
+### 4. Primary failure behavior
+
+Native failure surfaces its own UI or no-op; browsing remains usable. Astra discoverability/shell failures must hide the surface without blocking browser.xhtml.
+
+### 5. Minimum accessibility gate
+
+| Gate | Status |
+|---|---|
+| Keyboard activation | NOT TESTED |
+| Focus behavior | NOT TESTED |
+| Accessible name | NOT TESTED |
+| Escape/back behavior | NOT TESTED |
+| 200% zoom status | NOT TESTED |
+
+## Open questions
+
+1. When will the pinned Firefox engine checkout be available so native_evidence can move beyond E0?
+2. Which exact installer BuildID/SourceStamp will be used for Batch 0 runtime proof?
+3. Are any packaging gaps (ADMX, dictionaries, CDM/models offline behavior) accepted for the current beta MVP?
+
+## Explicit non-goals
+
+- Do not invent native source files, prefs, policies, package mappings, BuildIDs, SourceStamps, or runtime results.
+- Do not raise evidence levels above E0 without matching pinned source/packaging/runtime proof.
+- Do not treat RESOLVED_BY_DESIGN as implementation, enforcement, or runtime proof.

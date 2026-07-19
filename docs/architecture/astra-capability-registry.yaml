@@ -1,0 +1,2571 @@
+# Astra Capability Registry — Phase 0 canonical inventory
+# Source identity: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+# Baseline branch: architecture/astra-capability-rfcs
+# Baseline HEAD:   29d95dd9ee311331f328e4c57162bddc7a900d36
+#
+# EVIDENCE POLICY (honest, worktree-first):
+#  - The vendored Firefox engine/ tree is NOT present in this architecture
+#    worktree (only the Astra/Zen overlay: src/, prefs/, configs/, locales/,
+#    mods/). Native backend source cannot be verified here, so
+#    native_evidence.level is E0 for every record (native paths are documented
+#    in the capability matrix at its own baseline 1d27263, not re-verifiable
+#    in this worktree).
+#  - No completed installer build exists (obj tree is partial), so
+#    astra_integration_evidence.level is E0 for every record and
+#    source_status/package_status/runtime_status are UNVERIFIED.
+#  - feature_flag names marked VERIFIED were confirmed present in this
+#    worktree prefs/ tree at the baseline HEAD. Governing prefs not present in
+#    the overlay use NATIVE_NO_NEW_FLAG or POLICY_CONTROLLED instead of an
+#    unverifiable NATIVE_PREF claim.
+#  - All records are DISCOVERED, or NEEDS_CLARIFICATION where an audit-
+#    documented gap exists. Phase 1+ will raise evidence via source walking.
+#
+# Parser contract for the validator: top-level key `capabilities:` is a block
+# sequence; each record uses 2-space nesting; all list values are inline flow
+# arrays; no deeper block sequences are used.
+#
+# This file is machine-checked by scripts/validate_astra_architecture_docs.cjs.
+
+capabilities:
+  - id: ASTRA-CAP-001
+    slug: pdf-viewing-and-navigation
+    title: "PDF viewing and navigation"
+    group: "Student & Reading"
+    secondary_groups: []
+    audiences: ["STU", "NORM", "CORP", "GOV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["EXPOSE_NATIVE"]
+    integration_notes: []
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 1
+      canonical_title: "PDF viewing and navigation"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A1"]
+      notes: ["Canonical slice of matrix block A1 (PDF.js viewer)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (pdf.js)"
+    ux_owner: "Native (Firefox)"
+    state_refs: ["ASTRA-STATE-008"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-002
+    slug: pdf-annotations-and-editing
+    title: "PDF annotations and editing tools"
+    group: "Student & Reading"
+    secondary_groups: []
+    audiences: ["STU", "NORM", "CORP", "GOV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: []
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 2
+      canonical_title: "PDF annotations and editing tools"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A1"]
+      notes: ["Canonical slice of matrix block A1 (highlight/annotation editor)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (pdf.js)"
+    ux_owner: "Astra entrypoint over native editor"
+    state_refs: ["ASTRA-STATE-008"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_PREF
+      name: pdfjs.enableHighlightEditor
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-001"]
+  - id: ASTRA-CAP-003
+    slug: pdf-forms-support
+    title: "PDF forms support"
+    group: "Student & Reading"
+    secondary_groups: []
+    audiences: ["CORP", "GOV", "NORM"]
+    classification: USE_NATIVE
+    supporting_classifications: ["EXPOSE_NATIVE"]
+    integration_notes: []
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 3
+      canonical_title: "PDF forms support"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A1"]
+      notes: ["Canonical slice of matrix block A1 (XFA/AcroForms)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (pdf.js)"
+    ux_owner: "Native (Firefox)"
+    state_refs: ["ASTRA-STATE-008"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-001"]
+  - id: ASTRA-CAP-004
+    slug: pdf-signatures
+    title: "PDF signatures"
+    group: "Student & Reading"
+    secondary_groups: []
+    audiences: ["CORP", "GOV", "STU"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: []
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 4
+      canonical_title: "PDF signatures"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A1"]
+      notes: ["Canonical slice of matrix block A1 (signature editor)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (pdf.js)"
+    ux_owner: "Astra entrypoint over native signature editor"
+    state_refs: ["ASTRA-STATE-008"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-001"]
+  - id: ASTRA-CAP-005
+    slug: print-save-as-pdf
+    title: "Print / Save as PDF workflows"
+    group: "Student & Reading"
+    secondary_groups: []
+    audiences: ["STU", "NORM", "CORP", "GOV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: []
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 5
+      canonical_title: "Print / Save as PDF workflows"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A1"]
+      notes: ["Canonical slice of matrix block A1 (print/save-as-PDF)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox (printing) + Toolkit (pdf.js)"
+    ux_owner: "Astra entrypoint over native print"
+    state_refs: ["ASTRA-STATE-008"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-001"]
+  - id: ASTRA-CAP-006
+    slug: reader-mode
+    title: "Reader Mode"
+    group: "Student & Reading"
+    secondary_groups: ["Language & Access"]
+    audiences: ["STU", "NORM", "GOV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: []
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 6
+      canonical_title: "Reader Mode"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A2"]
+      notes: ["Canonical slice of matrix block A2 (Reader Mode)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (Reader)"
+    ux_owner: "Astra entrypoint over native Reader"
+    state_refs: ["ASTRA-STATE-006"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-007
+    slug: narrate-read-aloud
+    title: "Narrate / Read Aloud"
+    group: "Student & Reading"
+    secondary_groups: ["Language & Access"]
+    audiences: ["STU", "NORM", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE", "EXPOSE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Astra command cmd_zenReadAloud wraps native Narrate via AstraPhase1Actions."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 7
+      canonical_title: "Narrate / Read Aloud"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["A2"]
+      notes: ["Canonical slice of matrix block A2 (Narrate/Read-Aloud); Astra wrapper exists."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (Narrate)"
+    ux_owner: "Astra (AstraPhase1Actions wrapper)"
+    state_refs: ["ASTRA-STATE-006"]
+    state_status: NATIVE_STATELESS
+    conflict_refs: ["ASTRA-CONFLICT-025"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-008
+    slug: on-device-webpage-translation
+    title: "On-device webpage translation"
+    group: "Student & Reading"
+    secondary_groups: ["Language & Access", "India & Language"]
+    audiences: ["STU", "NORM", "GOV", "CORP"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["On-device Bergamot; do not build a second translator."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 8
+      canonical_title: "On-device webpage translation"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A3"]
+      notes: ["Canonical slice of matrix block A3 (Translations engine)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (Bergamot on-device)"
+    ux_owner: "Astra entrypoint over native Translations"
+    state_refs: ["ASTRA-STATE-007"]
+    state_status: REFERENCED
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-009
+    slug: translation-model-download-offline
+    title: "Translation model download and offline status"
+    group: "Student & Reading"
+    secondary_groups: ["Language & Access", "India & Language"]
+    audiences: ["STU", "NORM", "GOV"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Models runtime-downloaded via Mozilla Remote Settings; verify offline behavior."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 9
+      canonical_title: "Translation model download and offline status"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["A3"]
+      notes: ["Canonical slice of matrix block A3 (downloadable language models)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Toolkit (Translations) + Mozilla Remote Settings"
+    ux_owner: "Astra status surface over native model management"
+    state_refs: ["ASTRA-STATE-007"]
+    state_status: REFERENCED
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_PREF
+      name: intl.multilingual.downloadEnabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-008"]
+  - id: ASTRA-CAP-010
+    slug: page-and-full-page-screenshots
+    title: "Page and full-page screenshots"
+    group: "Student & Reading"
+    secondary_groups: ["Everyday Productivity"]
+    audiences: ["STU", "NORM", "DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: []
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 10
+      canonical_title: "Page and full-page screenshots"
+      canonical_group: "Student & Reading"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A4"]
+      notes: ["1:1 with matrix block A4 (Screenshots)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox (browser/screenshots)"
+    ux_owner: "Astra entrypoint over native Screenshots"
+    state_refs: ["ASTRA-STATE-002"]
+    state_status: REFERENCED
+    conflict_refs: []
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-011
+    slug: downloads-management-and-search
+    title: "Downloads management and search"
+    group: "Everyday Productivity"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["NORM", "STU", "CORP"]
+    classification: USE_NATIVE
+    supporting_classifications: ["ASTRA_UX_WRAPPER"]
+    integration_notes: ["Zen SMART Guard is local heuristics; download grouping/search is Astra UX only."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 11
+      canonical_title: "Downloads management and search"
+      canonical_group: "Everyday Productivity"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A5"]
+      notes: ["1:1 with matrix block A5 (Downloads + SMART Guard)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox (Downloads/Places) + Zen SMART Guard"
+    ux_owner: "Astra/Zen UX over native downloads"
+    state_refs: ["ASTRA-STATE-002"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-014"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: zen.smart.downloads.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-012
+    slug: bookmarks-history-places
+    title: "Bookmarks, history and Places"
+    group: "Everyday Productivity"
+    secondary_groups: []
+    audiences: ["NORM", "STU", "CORP"]
+    classification: USE_NATIVE
+    supporting_classifications: []
+    integration_notes: ["REJECT any second bookmark system (ASTRA-EXCLUSION-001); Places is canonical."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 12
+      canonical_title: "Bookmarks, history and Places"
+      canonical_group: "Everyday Productivity"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A6"]
+      notes: ["1:1 with matrix block A6 (Bookmarks/Places)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox/Places"
+    ux_owner: "Native (Firefox) + Zen workspace bookmark mapping"
+    state_refs: ["ASTRA-STATE-001", "ASTRA-STATE-004"]
+    state_status: REFERENCED
+    conflict_refs: []
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-013
+    slug: open-tab-search-urlbar-tabs
+    title: "Open-tab search / urlbar TABS mode"
+    group: "Everyday Productivity"
+    secondary_groups: []
+    audiences: ["STU", "DEV", "NORM"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: []
+    integration_notes: ["Astra command cmd_zenSearchOpenTabs plus native % restrict mode."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 13
+      canonical_title: "Open-tab search / urlbar TABS mode"
+      canonical_group: "Everyday Productivity"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A7"]
+      notes: ["1:1 with matrix block A7 (Tab search)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox (urlbar providers)"
+    ux_owner: "Astra command over native urlbar"
+    state_refs: []
+    state_status: IN_MEMORY_ONLY
+    conflict_refs: ["ASTRA-CONFLICT-001", "ASTRA-CONFLICT-025"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_PREF
+      name: browser.urlbar.suggest.openpage
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-014
+    slug: session-restore-and-recently-closed
+    title: "Session restore and recently closed tabs/windows"
+    group: "Everyday Productivity"
+    secondary_groups: ["Reliability"]
+    audiences: ["NORM", "STU", "CORP"]
+    classification: USE_NATIVE
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["Two session stores (Firefox sessionstore + Zen); reconcile, do not add a third."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 14
+      canonical_title: "Session restore and recently closed tabs/windows"
+      canonical_group: "Everyday Productivity"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A12"]
+      notes: ["1:1 with matrix block A12 (Session restore); dual-store conflict."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox SessionStore + Zen ZenSessionStore"
+    ux_owner: "Zen/Astra coordinator over native sessionstore"
+    state_refs: ["ASTRA-STATE-003", "ASTRA-STATE-004"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-002", "ASTRA-CONFLICT-019", "ASTRA-CONFLICT-021", "ASTRA-CONFLICT-022"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: zen.session-store.backup-file
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-015
+    slug: picture-in-picture
+    title: "Picture-in-Picture"
+    group: "Media & Classes"
+    secondary_groups: ["Entertainment"]
+    audiences: ["STU", "ENT", "NORM"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Playing/PiP tabs must be exempt from tab suspension/savers."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 15
+      canonical_title: "Picture-in-Picture"
+      canonical_group: "Media & Classes"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["A9"]
+      notes: ["1:1 with matrix block A9 (Picture-in-Picture)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox Toolkit (PiP)"
+    ux_owner: "Astra urlbar PiP button over native PiP"
+    state_refs: ["ASTRA-STATE-016"]
+    state_status: IN_MEMORY_ONLY
+    conflict_refs: ["ASTRA-CONFLICT-011", "ASTRA-CONFLICT-013", "ASTRA-CONFLICT-030"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: zen.urlbar.show-pip-button
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-016
+    slug: camera-microphone-screen-sharing-permissions
+    title: "Camera, microphone and screen-sharing permissions"
+    group: "Media & Classes"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["STU", "CORP", "NORM"]
+    classification: USE_NATIVE
+    supporting_classifications: []
+    integration_notes: ["WebRTC ICE hardening must be validated against Meet/Zoom TURN."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 16
+      canonical_title: "Camera, microphone and screen-sharing permissions"
+      canonical_group: "Media & Classes"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["A10"]
+      notes: ["1:1 with matrix block A10 (Mic/Camera/Screen-share)."]
+      mapping_status: VERIFIED
+    native_owner: "Gecko WebRTC + Firefox actors"
+    ux_owner: "Native (Firefox) + Zen media-sharing indicator"
+    state_refs: ["ASTRA-STATE-009"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-012"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-017
+    slug: spellcheck-and-dictionaries
+    title: "Spellcheck and dictionaries"
+    group: "Language & Access"
+    secondary_groups: ["India & Language"]
+    audiences: ["STU", "CORP", "NORM"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Verify Indian-language Hunspell dictionaries are actually packaged."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 17
+      canonical_title: "Spellcheck and dictionaries"
+      canonical_group: "Language & Access"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["A11"]
+      notes: ["1:1 with matrix block A11 (Spellcheck/dictionaries)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox Toolkit (Hunspell)"
+    ux_owner: "Native (Firefox)"
+    state_refs: ["ASTRA-STATE-026"]
+    state_status: REFERENCED
+    conflict_refs: []
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-018
+    slug: zoom-contrast-reduced-motion-keyboard-nav
+    title: "Zoom, contrast, reduced motion and keyboard navigation"
+    group: "Language & Access"
+    secondary_groups: []
+    audiences: ["STU", "NORM", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Custom Astra/Zen controls must meet ARIA baseline (a11y audit)."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 18
+      canonical_title: "Zoom, contrast, reduced motion and keyboard navigation"
+      canonical_group: "Language & Access"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["A8"]
+      notes: ["1:1 with matrix block A8 (Zoom/Accessibility/keyboard)."]
+      mapping_status: VERIFIED
+    native_owner: "Gecko/Toolkit platform accessibility"
+    ux_owner: "Astra accessibility entrypoint over platform a11y"
+    state_refs: ["ASTRA-STATE-005", "ASTRA-STATE-027"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-017", "ASTRA-CONFLICT-020", "ASTRA-CONFLICT-026"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-019
+    slug: devtools-page-inspector
+    title: "Page Inspector"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002); Astra Inspector remap C to L."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 19
+      canonical_title: "Page Inspector"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools toolbox)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-020
+    slug: devtools-web-console
+    title: "Web Console"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 20
+      canonical_title: "Web Console"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools console)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-021
+    slug: devtools-javascript-debugger
+    title: "JavaScript Debugger"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 21
+      canonical_title: "JavaScript Debugger"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools debugger)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-022
+    slug: devtools-network-monitor
+    title: "Network Monitor"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 22
+      canonical_title: "Network Monitor"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools network)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-023
+    slug: devtools-storage-inspector
+    title: "Storage Inspector"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 23
+      canonical_title: "Storage Inspector"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools storage)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-024
+    slug: devtools-responsive-design-mode
+    title: "Responsive Design Mode"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: EXPOSE_NATIVE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 24
+      canonical_title: "Responsive Design Mode"
+      canonical_group: "Developer"
+      canonical_primary_classification: EXPOSE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools RDM)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint (Developer Hub) over native DevTools"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-025
+    slug: devtools-accessibility-inspector
+    title: "Accessibility Inspector"
+    group: "Developer"
+    secondary_groups: ["Language & Access"]
+    audiences: ["DEV", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 25
+      canonical_title: "Accessibility Inspector"
+      canonical_group: "Developer"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools a11y panel)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra UX shell over native a11y inspector"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-026"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-026
+    slug: devtools-performance-profiler
+    title: "Performance Profiler"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 26
+      canonical_title: "Performance Profiler"
+      canonical_group: "Developer"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools performance)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra UX shell over native profiler"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-027
+    slug: devtools-service-worker-inspection
+    title: "Service Worker inspection"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 27
+      canonical_title: "Service Worker inspection"
+      canonical_group: "Developer"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools application/SW)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Native (Firefox DevTools)"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-028
+    slug: devtools-websocket-inspection
+    title: "WebSocket inspection"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 28
+      canonical_title: "WebSocket inspection"
+      canonical_group: "Developer"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools network/WS)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Native (Firefox DevTools)"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-029
+    slug: devtools-source-maps-css-grid-flex
+    title: "Source maps and CSS grid/flex tools"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second DevTools stack (ASTRA-EXCLUSION-002)."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 29
+      canonical_title: "Source maps and CSS grid/flex tools"
+      canonical_group: "Developer"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["B1"]
+      notes: ["Canonical slice of matrix block B1 (DevTools inspector tooling)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Native (Firefox DevTools)"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025"]
+    batch: "Batch 1"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-030
+    slug: devtools-browser-console
+    title: "Browser Console"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Off by default via devtools.chrome.enabled; policy-controllable."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 30
+      canonical_title: "Browser Console"
+      canonical_group: "Developer"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["B2"]
+      notes: ["Canonical slice of matrix block B2 (chrome-level console)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint over native chrome console"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 3"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: DisableDeveloperTools
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-031
+    slug: devtools-browser-toolbox
+    title: "Browser Toolbox / chrome debugging"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Off by default; policy-controllable via DisableDeveloperTools."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 31
+      canonical_title: "Browser Toolbox / chrome debugging"
+      canonical_group: "Developer"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["B2"]
+      notes: ["Canonical slice of matrix block B2 (Browser Toolbox)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools"
+    ux_owner: "Astra entrypoint over native Browser Toolbox"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-025", "ASTRA-CONFLICT-029"]
+    batch: "Batch 3"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: DisableDeveloperTools
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-032
+    slug: devtools-remote-and-addon-debugging
+    title: "Remote and add-on debugging"
+    group: "Developer"
+    secondary_groups: []
+    audiences: ["DEV"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Off by default; about:debugging + testing-profile shortcut."]
+    integration_mode: ASTRA_ENTRYPOINT
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 32
+      canonical_title: "Remote and add-on debugging"
+      canonical_group: "Developer"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["B2", "B4"]
+      notes: ["Canonical slice of matrix blocks B2 (remote/add-on debugging) and B4 (dev profiles)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox DevTools + Remote (Marionette/WebDriver BiDi)"
+    ux_owner: "Astra entrypoint over native remote debugging"
+    state_refs: ["ASTRA-STATE-029"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-004", "ASTRA-CONFLICT-029"]
+    batch: "Batch 3"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: DisableDeveloperTools
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-033
+    slug: enterprise-policies-engine
+    title: "EnterprisePolicies engine"
+    group: "Corporate"
+    secondary_groups: []
+    audiences: ["CORP", "GOV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["INTEGRATE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["Enterprise policy must always win over persona presets."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 33
+      canonical_title: "EnterprisePolicies engine"
+      canonical_group: "Corporate"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["C1"]
+      notes: ["1:1 with matrix block C1 (EnterprisePolicies engine)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox EnterprisePolicies"
+    ux_owner: "Native (Firefox); Astra managed status is separate (CAP-041)"
+    state_refs: ["ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: null
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-034
+    slug: windows-gpo-admx-deployment
+    title: "Windows GPO / ADMX deployment support"
+    group: "Corporate"
+    secondary_groups: []
+    audiences: ["CORP", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["ENABLE_AFTER_TEST"]
+    integration_notes: ["ADMX templates are NOT in the tree; Astra-branded ADMX must be shipped."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 34
+      canonical_title: "Windows GPO / ADMX deployment support"
+      canonical_group: "Corporate"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["C2"]
+      notes: ["1:1 with matrix block C2 (ADMX/GPO); templates absent -> needs clarification."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox (WindowsGPOParser)"
+    ux_owner: "Astra (ship/brand ADMX + docs)"
+    state_refs: ["ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: null
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: NEEDS_CLARIFICATION
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-035
+    slug: managed-bookmarks
+    title: "Managed bookmarks"
+    group: "Corporate"
+    secondary_groups: ["Everyday Productivity"]
+    audiences: ["CORP", "GOV"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Delivered via EnterprisePolicies ManagedBookmarks; do not duplicate Places."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 35
+      canonical_title: "Managed bookmarks"
+      canonical_group: "Corporate"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["C1"]
+      notes: ["Sub-aspect of matrix block C1 (policy engine); ManagedBookmarks policy."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox EnterprisePolicies + Places"
+    ux_owner: "Astra managed integration over native policy"
+    state_refs: ["ASTRA-STATE-001", "ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: ManagedBookmarks
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-036
+    slug: extension-allowlist-blocklist-policies
+    title: "Extension allowlist/blocklist and install policies"
+    group: "Corporate"
+    secondary_groups: ["Extensions"]
+    audiences: ["CORP", "GOV"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Delivered via ExtensionSettings policy; signed-only install retained."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 36
+      canonical_title: "Extension allowlist/blocklist and install policies"
+      canonical_group: "Corporate"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["C1", "G6"]
+      notes: ["Sub-aspect of matrix block C1 (policy engine) and G6 (extensions)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox EnterprisePolicies + add-ons"
+    ux_owner: "Astra managed integration over native policy"
+    state_refs: ["ASTRA-STATE-020", "ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-009", "ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: ExtensionSettings
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-037
+    slug: proxy-and-doh-policy-controls
+    title: "Proxy and DoH policy controls"
+    group: "Corporate"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["CORP", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE", "EXPOSE_NATIVE", "INTEGRATE"]
+    integration_notes: ["DoH default (Cloudflare) must be policy-overridable and disclosed."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 37
+      canonical_title: "Proxy and DoH policy controls"
+      canonical_group: "Corporate"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["C3"]
+      notes: ["Sub-aspect of matrix block C3 (proxy/DoH policy)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox netwerk + ProxyPolicies"
+    ux_owner: "Astra managed status over native proxy/DoH"
+    state_refs: ["ASTRA-STATE-014", "ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: NATIVE_PREF
+      name: network.trr.mode
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-038
+    slug: enterprise-roots-internal-cas
+    title: "Enterprise roots and internal certificate authorities"
+    group: "Corporate"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["CORP", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE", "EXPOSE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Certificate visibility surface for managed/GOV; backend is NSS."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 38
+      canonical_title: "Enterprise roots and internal certificate authorities"
+      canonical_group: "Corporate"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["C3"]
+      notes: ["Sub-aspect of matrix block C3 (enterprise roots/certs)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox/NSS"
+    ux_owner: "Astra certificate visibility over native NSS"
+    state_refs: ["ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: Certificates
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-039
+    slug: update-policy-and-channel-control
+    title: "Update policy and channel control"
+    group: "Corporate"
+    secondary_groups: ["Reliability"]
+    audiences: ["CORP", "GOV", "NORM"]
+    classification: INTEGRATE
+    supporting_classifications: ["ENABLE_AFTER_TEST"]
+    integration_notes: ["Signed-update hardening for GOV is DEFERRED (ASTRA-EXCLUSION-007)."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 39
+      canonical_title: "Update policy and channel control"
+      canonical_group: "Corporate"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["C4"]
+      notes: ["1:1 with matrix block C4 (Update service/channels/MAR)."]
+      mapping_status: VERIFIED
+    native_owner: "Toolkit updater (retargeted to Astra host)"
+    ux_owner: "Astra managed integration over native updater"
+    state_refs: ["ASTRA-STATE-017", "ASTRA-STATE-018"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024", "ASTRA-CONFLICT-027"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: AppUpdate
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-040
+    slug: telemetry-and-crash-report-policy
+    title: "Telemetry and crash-report policy controls"
+    group: "Corporate"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["CORP", "GOV"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Telemetry locked off; crash reporter not shipped -> verify controls hold."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 40
+      canonical_title: "Telemetry and crash-report policy controls"
+      canonical_group: "Corporate"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["C1", "D"]
+      notes: ["Sub-aspect of C1 (policy) and Part D (telemetry/crash control); crash reporter absent."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Telemetry (locked off) + policy engine"
+    ux_owner: "Astra managed integration over native telemetry policy"
+    state_refs: ["ASTRA-STATE-017", "ASTRA-STATE-019"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 4"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: DisableTelemetry
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: NEEDS_CLARIFICATION
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-041
+    slug: managed-browser-about-policies-status
+    title: "Managed-browser / about:policies status"
+    group: "Corporate"
+    secondary_groups: []
+    audiences: ["CORP", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["Read-only managed status panel; proposed flag from build-trains."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 41
+      canonical_title: "Managed-browser / about:policies status"
+      canonical_group: "Corporate"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["C5"]
+      notes: ["1:1 with matrix block C5 (managed indicator/diagnostics)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox (about:policies) + policy engine"
+    ux_owner: "Astra managed-status panel (to build)"
+    state_refs: ["ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-021", "ASTRA-CONFLICT-022", "ASTRA-CONFLICT-024", "ASTRA-CONFLICT-026"]
+    batch: "Batch 4"
+    feature_flag:
+      type: ASTRA_PREF_NEW
+      name: astra.managed.status.enabled
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-042
+    slug: offline-silent-deployment-foundation
+    title: "Offline/silent deployment foundation"
+    group: "Corporate"
+    secondary_groups: ["Reliability"]
+    audiences: ["CORP", "GOV"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["Requires installer packaging; offline builds lack runtime CDM/models."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 42
+      canonical_title: "Offline/silent deployment foundation"
+      canonical_group: "Corporate"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["D", "C1"]
+      notes: ["Part D (offline installer) + C1 (policy); requires installer build to verify."]
+      mapping_status: PARTIAL
+    native_owner: "NSIS installer + policy engine"
+    ux_owner: "Astra deployment coordination"
+    state_refs: ["ASTRA-STATE-017"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 5"
+    feature_flag:
+      type: POLICY_CONTROLLED
+      name: null
+      status: PROPOSED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: NEEDS_CLARIFICATION
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-043
+    slug: widevine-eme-protected-playback
+    title: "Widevine / EME protected playback"
+    group: "Entertainment"
+    secondary_groups: []
+    audiences: ["ENT", "NORM"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["REJECT any second DRM stack (ASTRA-EXCLUSION-005); DEFER hard DRM claims (ASTRA-EXCLUSION-009)."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 43
+      canonical_title: "Widevine / EME protected playback"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["F1"]
+      notes: ["1:1 with matrix block F1 (Widevine/EME/DRM)."]
+      mapping_status: VERIFIED
+    native_owner: "Gecko EME + GMP (Widevine, runtime download)"
+    ux_owner: "Astra Media Readiness (truthful status)"
+    state_refs: ["ASTRA-STATE-015"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-010", "ASTRA-CONFLICT-011", "ASTRA-CONFLICT-030"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: media.eme.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-044"]
+  - id: ASTRA-CAP-044
+    slug: openh264-windows-media-decoding
+    title: "OpenH264 / Windows media decoding"
+    group: "Entertainment"
+    secondary_groups: []
+    audiences: ["ENT", "NORM", "STU"]
+    classification: USE_NATIVE
+    supporting_classifications: ["EXPOSE_NATIVE", "INTEGRATE"]
+    integration_notes: ["OpenH264 GMP is a runtime download (Cisco); offline caveat applies."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 44
+      canonical_title: "OpenH264 / Windows media decoding"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["Canonical slice of matrix block F2 (codecs/decode)."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko media platforms (WMF/ffvpx) + OpenH264 GMP"
+    ux_owner: "Native (Firefox)"
+    state_refs: ["ASTRA-STATE-015"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-011", "ASTRA-CONFLICT-030"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-045
+    slug: hardware-acceleration-video-decode-status
+    title: "Hardware acceleration and video decode status"
+    group: "Entertainment"
+    secondary_groups: []
+    audiences: ["ENT", "NORM"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE", "INTEGRATE"]
+    integration_notes: ["Cannot claim guaranteed HW-accel until per-GPU tested."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 45
+      canonical_title: "Hardware acceleration and video decode status"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["Canonical slice of matrix block F2 (HW decode)."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko media platforms"
+    ux_owner: "Astra Media Readiness status over native decode"
+    state_refs: []
+    state_status: IN_MEMORY_ONLY
+    conflict_refs: ["ASTRA-CONFLICT-015", "ASTRA-CONFLICT-030"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_PREF
+      name: media.hardware-video-decoding.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-044"]
+  - id: ASTRA-CAP-046
+    slug: media-session-global-media-controls
+    title: "Media Session / global media controls"
+    group: "Entertainment"
+    secondary_groups: []
+    audiences: ["ENT", "NORM"]
+    classification: ENABLE_AFTER_TEST
+    supporting_classifications: ["EXPOSE_NATIVE", "INTEGRATE"]
+    integration_notes: ["zen.mediacontrols off by default; enable only after test."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 46
+      canonical_title: "Media Session / global media controls"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: ENABLE_AFTER_TEST
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["Canonical slice of matrix block F2 (Media Session/Zen controls)."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko mediacontrol + Zen ZenMediaController"
+    ux_owner: "Zen/Astra media controls UI"
+    state_refs: ["ASTRA-STATE-016"]
+    state_status: IN_MEMORY_ONLY
+    conflict_refs: ["ASTRA-CONFLICT-011", "ASTRA-CONFLICT-013", "ASTRA-CONFLICT-030"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_PREF
+      name: zen.mediacontrols.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-047
+    slug: autoplay-controls
+    title: "Autoplay controls"
+    group: "Entertainment"
+    secondary_groups: ["Privacy & Security"]
+    audiences: ["ENT", "NORM"]
+    classification: USE_NATIVE
+    supporting_classifications: ["EXPOSE_NATIVE"]
+    integration_notes: ["Restrictive autoplay default may over-block wanted playback; verify."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 47
+      canonical_title: "Autoplay controls"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["Canonical slice of matrix block F2 (autoplay policy)."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko AutoplayPolicy"
+    ux_owner: "Native (Firefox)"
+    state_refs: ["ASTRA-STATE-009"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-030"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: media.autoplay.default
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-048
+    slug: fullscreen-subtitles-captions
+    title: "Fullscreen, subtitles and captions"
+    group: "Entertainment"
+    secondary_groups: ["Language & Access"]
+    audiences: ["ENT", "NORM", "STU"]
+    classification: USE_NATIVE
+    supporting_classifications: ["EXPOSE_NATIVE"]
+    integration_notes: ["Fullscreen warning is suppressed by pref; note for GOV."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 48
+      canonical_title: "Fullscreen, subtitles and captions"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["Canonical slice of matrix block F2 (fullscreen/captions)."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko/DOM (fullscreen, WebVTT)"
+    ux_owner: "Native (Firefox)"
+    state_refs: []
+    state_status: NATIVE_STATELESS
+    conflict_refs: []
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-049
+    slug: audio-tab-indicator-and-mute
+    title: "Audio tab indicator and mute controls"
+    group: "Entertainment"
+    secondary_groups: ["Everyday Productivity"]
+    audiences: ["ENT", "NORM"]
+    classification: USE_NATIVE
+    supporting_classifications: []
+    integration_notes: ["No distinct matrix block; mapped to F2 media; needs clarification."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 49
+      canonical_title: "Audio tab indicator and mute controls"
+      canonical_group: "Entertainment"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["F2"]
+      notes: ["No dedicated matrix block; associated with F2 media stack and tab UI."]
+      mapping_status: PARTIAL
+    native_owner: "Gecko media + Firefox/Zen tab UI"
+    ux_owner: "Native (Firefox/Zen)"
+    state_refs: ["ASTRA-STATE-016"]
+    state_status: IN_MEMORY_ONLY
+    conflict_refs: ["ASTRA-CONFLICT-013", "ASTRA-CONFLICT-030"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: NEEDS_CLARIFICATION
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-050
+    slug: container-tabs-contextual-identities
+    title: "Container tabs / contextual identities"
+    group: "Identity & Separation"
+    secondary_groups: ["Corporate"]
+    audiences: ["CORP", "GOV", "NORM"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Containers organize identity; not a substitute for profiles or Spaces."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 50
+      canonical_title: "Container tabs / contextual identities"
+      canonical_group: "Identity & Separation"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["C5"]
+      notes: ["Sub-aspect of matrix block C5 (containers/work separation)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox ContextualIdentityService"
+    ux_owner: "Astra/Zen persona integration over native containers"
+    state_refs: ["ASTRA-STATE-010"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-003"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: privacy.userContext.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-051
+    slug: native-local-profiles-and-switcher
+    title: "Native local profiles and switcher"
+    group: "Identity & Separation"
+    secondary_groups: ["Developer", "Corporate"]
+    audiences: ["NORM", "DEV", "CORP"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE", "EXPOSE_NATIVE"]
+    integration_notes: ["REJECT any second profile system (ASTRA-EXCLUSION-003); upstream dual profile-system risk."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 51
+      canonical_title: "Native local profiles and switcher"
+      canonical_group: "Identity & Separation"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["E2"]
+      notes: ["1:1 with matrix block E2 (Local multi-profile)."]
+      mapping_status: VERIFIED
+    native_owner: "Toolkit SelectableProfileService"
+    ux_owner: "Astra hooks over native profiles UI"
+    state_refs: ["ASTRA-STATE-011"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-003", "ASTRA-CONFLICT-004", "ASTRA-CONFLICT-005"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_PREF
+      name: browser.profiles.enabled
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-052
+    slug: native-browser-migration-wizard
+    title: "Native browser migration wizard"
+    group: "Identity & Separation"
+    secondary_groups: []
+    audiences: ["NORM"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE", "ASTRA_UX_WRAPPER"]
+    integration_notes: ["REJECT any second migration engine (ASTRA-EXCLUSION-004); thin wrapper over native wizard."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 52
+      canonical_title: "Native browser migration wizard"
+      canonical_group: "Identity & Separation"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["E3"]
+      notes: ["1:1 with matrix block E3 (Migration engine)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox MigrationWizard"
+    ux_owner: "Astra Migration Center (UI shell only)"
+    state_refs: ["ASTRA-STATE-001"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-005", "ASTRA-CONFLICT-006"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-053
+    slug: bookmarks-passwords-history-import
+    title: "Bookmarks, passwords and history import resources"
+    group: "Identity & Separation"
+    secondary_groups: ["Everyday Productivity"]
+    audiences: ["NORM"]
+    classification: USE_NATIVE
+    supporting_classifications: ["ASTRA_UX_WRAPPER"]
+    integration_notes: ["Import lands in native profile stores; no folder/DB copying by Astra."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 53
+      canonical_title: "Bookmarks, passwords and history import resources"
+      canonical_group: "Identity & Separation"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["E3"]
+      notes: ["Sub-aspect of matrix block E3 (per-resource import)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox MigrationUtils"
+    ux_owner: "Native (Firefox) via Migration Center entrypoints"
+    state_refs: ["ASTRA-STATE-001", "ASTRA-STATE-011"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-005", "ASTRA-CONFLICT-006"]
+    batch: "Batch 3"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-054
+    slug: firefox-account-sync-identity
+    title: "Existing Firefox Account / Sync identity"
+    group: "Identity & Separation"
+    secondary_groups: []
+    audiences: ["NORM", "CORP"]
+    classification: USE_NATIVE
+    supporting_classifications: []
+    integration_notes: ["Do not rebrand; preserve Firefox Account / Sync identity; independent Astra Sync DEFERRED to Batch 6 (ASTRA-EXCLUSION-008)."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 54
+      canonical_title: "Existing Firefox Account / Sync identity"
+      canonical_group: "Identity & Separation"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["E4"]
+      notes: ["1:1 with matrix block E4 (Firefox Account/Sync); normalized primary to USE_NATIVE."]
+      mapping_status: VERIFIED
+    native_owner: "Mozilla FxA / Sync"
+    ux_owner: "Native (Mozilla); Astra branding on chrome only"
+    state_refs: ["ASTRA-STATE-012"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-006", "ASTRA-CONFLICT-028"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: services.sync.engine.workspaces
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-055
+    slug: enhanced-tracking-protection
+    title: "Enhanced Tracking Protection"
+    group: "Privacy & Security"
+    secondary_groups: []
+    audiences: ["NORM", "CORP", "GOV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["Surfaced by Suraksha (read/link only); do not weaken backend."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 55
+      canonical_title: "Enhanced Tracking Protection"
+      canonical_group: "Privacy & Security"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["G1"]
+      notes: ["Canonical slice of matrix block G1 (privacy/security stack, ETP)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox antitracking (ETP)"
+    ux_owner: "Native (Firefox); Suraksha read-only surface"
+    state_refs: ["ASTRA-STATE-013"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-008", "ASTRA-CONFLICT-009", "ASTRA-CONFLICT-010"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: browser.contentblocking.category
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-056
+    slug: total-cookie-protection
+    title: "Total Cookie Protection"
+    group: "Privacy & Security"
+    secondary_groups: []
+    audiences: ["NORM", "CORP", "GOV"]
+    classification: USE_NATIVE
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["cookieBehavior=5 (TCP); keep firstparty.isolate off to not break login."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 56
+      canonical_title: "Total Cookie Protection"
+      canonical_group: "Privacy & Security"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["G1"]
+      notes: ["Canonical slice of matrix block G1 (TCP/cookie behavior)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox netwerk (cookie behavior)"
+    ux_owner: "Native (Firefox); Suraksha read-only surface"
+    state_refs: ["ASTRA-STATE-013"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-010"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: network.cookie.cookieBehavior
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-057
+    slug: safe-browsing-and-download-protection
+    title: "Safe Browsing and download protection"
+    group: "Privacy & Security"
+    secondary_groups: ["Everyday Productivity"]
+    audiences: ["NORM", "STU", "CORP"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["Safe Browsing native + Zen SMART Guard heuristics; surfaced by Suraksha."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 57
+      canonical_title: "Safe Browsing and download protection"
+      canonical_group: "Privacy & Security"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["G1"]
+      notes: ["Canonical slice of matrix block G1 (Safe Browsing) + A5 download protection."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox Safe Browsing (Google lists)"
+    ux_owner: "Astra/Zen integration + Suraksha surface"
+    state_refs: ["ASTRA-STATE-002", "ASTRA-STATE-013"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-010"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-058
+    slug: site-permissions-and-clear-site-data
+    title: "Site permissions and clear-site-data controls"
+    group: "Privacy & Security"
+    secondary_groups: []
+    audiences: ["NORM", "CORP", "GOV"]
+    classification: INTEGRATE
+    supporting_classifications: ["EXPOSE_NATIVE", "USE_NATIVE"]
+    integration_notes: ["sanitizeOnShutdown default may surprise users; reconsider per persona."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 58
+      canonical_title: "Site permissions and clear-site-data controls"
+      canonical_group: "Privacy & Security"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["E5", "G1"]
+      notes: ["Canonical slice of matrix blocks E5 (normal-user controls) and G1 (permissions)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox permissions + sanitize"
+    ux_owner: "Astra/Suraksha surface over native permissions"
+    state_refs: ["ASTRA-STATE-009"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-010", "ASTRA-CONFLICT-023"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_NO_NEW_FLAG
+      name: null
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-059
+    slug: https-and-dns-modes
+    title: "HTTPS and DNS modes"
+    group: "Privacy & Security"
+    secondary_groups: ["Corporate"]
+    audiences: ["NORM", "CORP", "GOV"]
+    classification: ASTRA_UX_WRAPPER
+    supporting_classifications: ["USE_NATIVE"]
+    integration_notes: ["HTTPS-only may surprise HTTP-only intranet; DoH provider must be disclosed."]
+    integration_mode: ASTRA_UX_WRAPPER
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 59
+      canonical_title: "HTTPS and DNS modes"
+      canonical_group: "Privacy & Security"
+      canonical_primary_classification: ASTRA_UX_WRAPPER
+    matrix_evidence:
+      blocks: ["G1", "C3"]
+      notes: ["Canonical slice of matrix block G1 (HTTPS-only) and C3 (DoH)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox netwerk (HTTPS-only, TRR/DoH)"
+    ux_owner: "Astra UX surface over native HTTPS/DNS"
+    state_refs: ["ASTRA-STATE-014"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-024"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: dom.security.https_only_mode
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-060
+    slug: native-updater-troubleshooting-recovery
+    title: "Native updater, troubleshooting and recovery foundations"
+    group: "Reliability"
+    secondary_groups: ["Corporate"]
+    audiences: ["CORP", "GOV", "NORM"]
+    classification: INTEGRATE
+    supporting_classifications: ["ENABLE_AFTER_TEST"]
+    integration_notes: ["GOV update signing DEFERRED (ASTRA-EXCLUSION-007); crash reporter not shipped."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 60
+      canonical_title: "Native updater, troubleshooting and recovery foundations"
+      canonical_group: "Reliability"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["G7", "C4"]
+      notes: ["Canonical slice of matrix block G7 (updates/recovery) and C4 (update service)."]
+      mapping_status: PARTIAL
+    native_owner: "Toolkit updater + troubleshooting/reset"
+    ux_owner: "Astra integration over native update/recovery"
+    state_refs: ["ASTRA-STATE-018", "ASTRA-STATE-003"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-019", "ASTRA-CONFLICT-027"]
+    batch: "Batch 4"
+    feature_flag:
+      type: NATIVE_PREF
+      name: astra.updates.show-update-notification
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-061
+    slug: firefox-addons-ecosystem-and-extension-debugging
+    title: "Firefox add-ons ecosystem and extension debugging"
+    group: "Extensions"
+    secondary_groups: ["Developer"]
+    audiences: ["NORM", "DEV", "CORP"]
+    classification: USE_NATIVE
+    supporting_classifications: ["INTEGRATE"]
+    integration_notes: ["Signed-only install; uBlock full power; recommendations disabled."]
+    integration_mode: NATIVE_ONLY
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 61
+      canonical_title: "Firefox add-ons ecosystem and extension debugging"
+      canonical_group: "Extensions"
+      canonical_primary_classification: USE_NATIVE
+    matrix_evidence:
+      blocks: ["G6"]
+      notes: ["1:1 with matrix block G6 (Extensions/add-ons)."]
+      mapping_status: VERIFIED
+    native_owner: "Firefox add-ons (AMO/XPInstall)"
+    ux_owner: "Native (Firefox); Suraksha uBlock adapter"
+    state_refs: ["ASTRA-STATE-020"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-009"]
+    batch: "Batch 0"
+    feature_flag:
+      type: NATIVE_PREF
+      name: xpinstall.signatures.required
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: []
+  - id: ASTRA-CAP-062
+    slug: india-language-workflows
+    title: "Hindi/Indian-language UI, dictionaries and local translation workflows"
+    group: "India & Language"
+    secondary_groups: ["Language & Access"]
+    audiences: ["NORM", "STU", "GOV"]
+    classification: INTEGRATE
+    supporting_classifications: ["USE_NATIVE", "EXPOSE_NATIVE"]
+    integration_notes: ["Verify hi langpack + Indian-language dictionaries actually packaged."]
+    integration_mode: DEEP_INTEGRATION
+    canonical_source:
+      source_id: HUMAN_APPROVED_ASTRA_62_CATALOG_2026-07-19
+      canonical_index: 62
+      canonical_title: "Hindi/Indian-language UI, dictionaries and local translation workflows"
+      canonical_group: "India & Language"
+      canonical_primary_classification: INTEGRATE
+    matrix_evidence:
+      blocks: ["A3", "A11", "D"]
+      notes: ["Cross-cutting: A3 (translation), A11 (dictionaries), Part D (Indian-language support)."]
+      mapping_status: PARTIAL
+    native_owner: "Firefox l10n/translations + Hunspell + Astra India catalog"
+    ux_owner: "Astra India integration"
+    state_refs: ["ASTRA-STATE-028", "ASTRA-STATE-007", "ASTRA-STATE-026"]
+    state_status: REFERENCED
+    conflict_refs: ["ASTRA-CONFLICT-020"]
+    batch: "Batch 5"
+    feature_flag:
+      type: NATIVE_PREF
+      name: intl.accept_languages
+      status: VERIFIED
+    native_evidence:
+      level: E0
+      references: []
+    astra_integration_evidence:
+      level: E0
+      references: []
+    readiness_status: DISCOVERED
+    source_status: UNVERIFIED
+    package_status: UNVERIFIED
+    runtime_status: UNVERIFIED
+    dependencies: ["ASTRA-CAP-008", "ASTRA-CAP-017"]
