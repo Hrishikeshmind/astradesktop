@@ -1,3 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <updates>
+  <update type="minor" displayVersion="1.19.8b" appVersion="1.19.8b" platformVersion="149.0.2" buildID="20260803111918">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.8b/linux-aarch64.mar" hashFunction="sha512" hashValue="6d27ff9dfb5a8f18bdf698253b6960b897c998ba809f4649778f753e7fbd950d43f1d782aac55a264980adf42c94e833c07461ed207e9eb287e72117e77d3271" size="77295469"/>
+  </update>
 </updates>
