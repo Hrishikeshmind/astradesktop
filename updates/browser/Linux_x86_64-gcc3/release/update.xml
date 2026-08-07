@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <updates>
-  <update type="minor" displayVersion="1.19.8b" appVersion="1.19.8b" platformVersion="149.0.2" buildID="20260803111918">
-    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.8b/linux.mar" hashFunction="sha512" hashValue="042efb69e0012da65169612ed80a12c0181c4b5a005578d4026817f518c73585266695c4099db4c5debefd83a8c779e492457e8afba501f6cbb27719342b429c" size="91819542"/>
+  <update type="minor" displayVersion="1.19.8b" appVersion="1.19.8b" platformVersion="149.0.2" buildID="20260807031554">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.8b/linux.mar" hashFunction="sha512" hashValue="da8011b1d51d3f98978cd38aa5063b7792237b23f18acb458f4638186559894cbcb2196fb22eb47a7355d9041647bbd43330690c417c820cf7e57dd9f1953c4f" size="91822602"/>
   </update>
 </updates>
