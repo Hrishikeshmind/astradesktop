@@ -57,9 +57,25 @@ jobs:
       version: ${{ steps.data.outputs.version }}
     steps:
       - name: Free disk space
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
+        shell: bash
+        run: |
+          set -x
+          df -hT
+          sudo rm -rf \
+            /usr/share/dotnet \
+            /usr/local/lib/android \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /usr/share/swift \
+            /opt/hostedtoolcache/CodeQL \
+            /usr/local/share/powershell \
+            /usr/share/miniconda \
+            /opt/microsoft || true
+          sudo apt-get clean || true
+          sudo docker system prune -af || true
+          sudo swapoff -a || true
+          sudo rm -f /swapfile || true
+          df -hT
 
       - name: Checkout repository
         uses: actions/checkout@v4
