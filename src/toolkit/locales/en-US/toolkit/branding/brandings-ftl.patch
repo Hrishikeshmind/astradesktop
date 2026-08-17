@@ -1,14 +1,21 @@
 diff --git a/toolkit/locales/en-US/toolkit/branding/brandings.ftl b/toolkit/locales/en-US/toolkit/branding/brandings.ftl
 --- a/toolkit/locales/en-US/toolkit/branding/brandings.ftl
 +++ b/toolkit/locales/en-US/toolkit/branding/brandings.ftl
-@@ -27,7 +27,7 @@
- -firefox-suggest-brand-name = Firefox Suggest
+@@ -46,14 +46,14 @@
  
+ # ”Home" can be localized, “Firefox” must be treated as a brand
+ # and kept in English.
 --firefox-home-brand-name = Firefox Home
 +-firefox-home-brand-name = { -brand-short-name } Home
  
+ # View" can be localized, “Firefox” must be treated as a brand
+ # and kept in English.
 --firefoxview-brand-name = Firefox View
 +-firefoxview-brand-name = { -brand-short-name } View
  
+ # Firefox Labs is the name for a page in Settings to allow users to learn about
+ # experimental and in-development features, and turn those features on and off.
+ # The "Labs" portion can be localized, “Firefox” must be treated as a brand
+ # and kept in English.
 --firefoxlabs-brand-name = Firefox Labs
 +-firefoxlabs-brand-name = { -brand-short-name } Labs
