@@ -10,6 +10,15 @@ index c76a0647e14bac806d9428483bb565b3e10c31e7..2188f7808aca090f92574c7f5c55a28a
        ],
        resizeCallback: async ({ title, frame }) => {
          // Search within main document and highlight matched keyword.
+@@ -225,7 +226,7 @@ const CONFIG_PANES = Object.freeze({
+   about: {
+     l10nId: "about-firefox-header",
+-    iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
++    iconSrc: "chrome://branding/content/about-logo.svg",
+     groupIds: ["updates", "support"],
+     module: "chrome://browser/content/preferences/config/about-firefox.mjs",
+     visible: () => srdSectionPrefs.all,
+   },
 @@ -437,6 +438,8 @@ const CONFIG_PANES = Object.freeze({
    tabsBrowsing: {
      l10nId: "tabs-browsing-section",
@@ -39,7 +48,7 @@ index c76a0647e14bac806d9428483bb565b3e10c31e7..2188f7808aca090f92574c7f5c55a28a
  
    // Restore the cached Firefox Labs nav button visibility so it shows
    // immediately when recipes are expected to be available, before
-@@ -656,9 +663,9 @@ async function gotoPref(
+@@ -656,8 +663,8 @@ async function gotoPref(
    let redesignEnabled = srdSectionPrefs.all;
    let categories = document.getElementById("categories");
    const kDefaultCategoryInternalName = redesignEnabled
@@ -50,7 +59,7 @@ index c76a0647e14bac806d9428483bb565b3e10c31e7..2188f7808aca090f92574c7f5c55a28a
 +  const kDefaultCategory = redesignEnabled ? "tabsBrowsing" : "general";
    let hash = document.location.hash;
    let category = aCategory || hash.substring(1) || kDefaultCategoryInternalName;
-@@
+@@ -1071,7 +1078,4 @@ function maybeDisplayPoliciesNotice() {
  function maybeDisplayPoliciesNotice() {
 -  if (Services.policies.status == Services.policies.ACTIVE) {
 -    document
@@ -60,7 +69,3 @@ index c76a0647e14bac806d9428483bb565b3e10c31e7..2188f7808aca090f92574c7f5c55a28a
 +  // Consumer packaging uses policies.json (uBlock Origin).
 +  // Do not show Firefox's "managed by your organization" banner.
  }
-@@
--    iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
-+    iconSrc: "chrome://branding/content/about-logo.svg",
- 

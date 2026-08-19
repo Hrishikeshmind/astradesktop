@@ -2,6 +2,24 @@ diff --git a/browser/components/preferences/main.js b/browser/components/prefere
 index fcbd421c99b24e53e46131a1e21ec690814cbf4f..fe3778a57aaeebc53f7f6763ea234cbb41816186 100644
 --- a/browser/components/preferences/main.js
 +++ b/browser/components/preferences/main.js
+@@ -606,7 +606,7 @@ function createDefaultBrowserConfig({
+     l10nId: "is-default-browser-2",
+     control: "moz-promo",
+     controlAttrs: {
+-      imagesrc: "chrome://global/skin/illustrations/kit-happy.svg",
++      imagesrc: "chrome://branding/content/about-logo.svg",
+       imagedisplay: "cover",
+     },
+   };
+@@ -628,7 +628,7 @@ function createDefaultBrowserConfig({
+       },
+     ],
+     controlAttrs: {
+-      imagesrc: "chrome://global/skin/illustrations/kit-concerned.svg",
++      imagesrc: "chrome://branding/content/about-logo.svg",
+       imagedisplay: "cover",
+     },
+   };
 @@ -662,6 +662,11 @@ function createStartupConfig(hidden = false) {
            },
          ],
@@ -32,9 +50,3 @@ index fcbd421c99b24e53e46131a1e21ec690814cbf4f..fe3778a57aaeebc53f7f6763ea234cbb
      false,
      undefined,
      locales
-@@
--      imagesrc: "chrome://global/skin/illustrations/kit-happy.svg",
-+      imagesrc: "chrome://branding/content/about-logo.svg",
-@@
--      imagesrc: "chrome://global/skin/illustrations/kit-concerned.svg",
-+      imagesrc: "chrome://branding/content/about-logo.svg",
