@@ -50,4 +50,17 @@ index c76a0647e14bac806d9428483bb565b3e10c31e7..2188f7808aca090f92574c7f5c55a28a
 +  const kDefaultCategory = redesignEnabled ? "tabsBrowsing" : "general";
    let hash = document.location.hash;
    let category = aCategory || hash.substring(1) || kDefaultCategoryInternalName;
+@@
+ function maybeDisplayPoliciesNotice() {
+-  if (Services.policies.status == Services.policies.ACTIVE) {
+-    document
+-      .getElementById("policies-container-content")
+-      .removeAttribute("hidden");
+-  }
++  // Consumer packaging uses policies.json (uBlock Origin).
++  // Do not show Firefox's "managed by your organization" banner.
+ }
+@@
+-    iconSrc: "chrome://browser/skin/sidebar/firefox.svg",
++    iconSrc: "chrome://branding/content/about-logo.svg",
  

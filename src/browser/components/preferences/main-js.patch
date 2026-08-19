@@ -32,3 +32,9 @@ index fcbd421c99b24e53e46131a1e21ec690814cbf4f..fe3778a57aaeebc53f7f6763ea234cbb
      false,
      undefined,
      locales
+@@
+-      imagesrc: "chrome://global/skin/illustrations/kit-happy.svg",
++      imagesrc: "chrome://branding/content/about-logo.svg",
+@@
+-      imagesrc: "chrome://global/skin/illustrations/kit-concerned.svg",
++      imagesrc: "chrome://branding/content/about-logo.svg",

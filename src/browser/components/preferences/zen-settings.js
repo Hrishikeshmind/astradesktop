@@ -18,6 +18,37 @@ const { AddonManager } = ChromeUtils.importESModule(
   "resource://gre/modules/AddonManager.sys.mjs"
 );
 
+/**
+ * policies.json is a consumer packaging mechanism (uBlock force-install).
+ * Never surface Firefox's "managed by your organization" notice.
+ */
+function hideAstraConsumerPoliciesNotice() {
+  const ids = ["policies-container-content", "policies-container"];
+  for (const id of ids) {
+    const el = document.getElementById(id);
+    if (!el) {
+      continue;
+    }
+    el.hidden = true;
+    el.setAttribute("hidden", "true");
+    el.style.setProperty("display", "none", "important");
+  }
+  const aboutBtn = document.getElementById("category-about-firefox");
+  if (aboutBtn && /firefox\.svg/i.test(aboutBtn.getAttribute("iconsrc") || "")) {
+    aboutBtn.setAttribute("iconsrc", "chrome://branding/content/about-logo.svg");
+  }
+}
+
+hideAstraConsumerPoliciesNotice();
+if (document.readyState === "loading") {
+  document.addEventListener(
+    "DOMContentLoaded",
+    hideAstraConsumerPoliciesNotice,
+    { once: true }
+  );
+}
+window.addEventListener("load", hideAstraConsumerPoliciesNotice, { once: true });
+
 var gZenMarketplaceManager = {
   async init() {
     const checkForUpdates = document.getElementById("zenThemeMarketplaceCheckForUpdates");
@@ -669,6 +700,7 @@ var gZenLooksAndFeel = {
     this.applySidebarLayout();
     gZenPrivacyPresets.init();
     gZenRecommendedExtensions.init();
+    hideAstraConsumerPoliciesNotice();
   },
 
   observe() {

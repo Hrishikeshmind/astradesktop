@@ -52,3 +52,12 @@
     display: none !important;
   }
 }
+
+/* Consumer build: hide Firefox enterprise-policy chrome. policies.json is
+   used to ship uBlock Origin, not to manage the browser for an organization. */
+#appMenu-help-enterprisepolicies,
+#appmenu_help_enterprisepolicies,
+menuitem[data-l10n-id="appmenuitem-help-enterprisepolicies"],
+toolbarbutton[data-l10n-id="appmenuitem-help-enterprisepolicies"] {
+  display: none !important;
+}
