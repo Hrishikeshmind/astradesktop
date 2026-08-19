@@ -458,6 +458,15 @@ window.gZenUIManager = {
     ) {
       this._constrainNativePopoverHeight(showEvent.target);
     }
+    // App Hub (and similar overlays) must not attribute popup-open to compact
+    // chrome — that would slide the sidebar out behind the panel.
+    if (
+      showEvent.target?.getAttribute?.("data-astra-compact-isolated") ===
+        "true" ||
+      showEvent.target?.id === "PanelUI-zen-app-launcher"
+    ) {
+      return;
+    }
     for (const el of this._popupTrackingElements) {
       // target may be inside a shadow root, not directly under the element
       // we also ignore menus inside panels

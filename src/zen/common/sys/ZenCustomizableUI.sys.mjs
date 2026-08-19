@@ -86,9 +86,9 @@ export const ZenCustomizableUI = new (class {
               data-l10n-id="zen-toggle-compact-mode-button"
               flex="1" />
           </toolbaritem>
-          <toolbaritem id="zen-app-launcher-button" removable="true">
+          <toolbaritem id="zen-app-launcher-button" class="zen-compact-mode-ignore" removable="true">
             <toolbarbutton
-              class="toolbarbutton-1"
+              class="toolbarbutton-1 zen-compact-mode-ignore"
               command="cmd_zenOpenAppLauncher"
               tooltiptext="Astra App Hub"
               flex="1" />

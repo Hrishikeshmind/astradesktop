@@ -90,7 +90,7 @@ window.gZenCompactModeManager = {
   COMPACT_CHROME_FLASH_ID: "compact-chrome",
   _cachedSidebarVerticalBounds: null,
   _cachedSidebarHandoffExtent: null,
-  /** @type {Set<string>|null} Tokens for Astra-owned panels locking compact reveal. */
+  /** @type {Set<string>|null} Tokens for Astra-owned overlay panels. */
   _panelLockTokens: null,
   /** True only while Astra itself set zen-has-hover for a panel lock. */
   _panelLockOwnedHover: false,
@@ -260,56 +260,91 @@ window.gZenCompactModeManager = {
   },
 
   /**
-   * Lock the Zen compact sidebar open while an Astra-owned panel is shown.
-   * Uses a dedicated attribute so we never steal or clear shared has-popup-menu
-   * ownership from ZenUIManager popup tracking.
+   * Isolate Compact Mode from an Astra overlay panel (App Hub).
+   * The panel must open without also revealing the sidebar / unified chrome.
+   * Suppresses edge-hover and mouseenter reveal until unlockForPanel.
    * Does not read or write Firefox SidebarState / AI panel state.
    *
    * @param {string} token Stable id such as "PanelUI-zen-app-launcher".
    */
   lockForPanel(token) {
-    if (!token || !this.sidebar) {
-      return;
-    }
-    // Visual lock only applies when compact mode is actively hiding the sidebar.
-    if (!this.preference || !this.canHideSidebar) {
-      if (!this._panelLockTokens) {
-        this._panelLockTokens = new Set();
-      }
-      this._panelLockTokens.add(String(token));
+    if (!token) {
       return;
     }
     if (!this._panelLockTokens) {
       this._panelLockTokens = new Set();
     }
-    const already = this._panelLockTokens.has(String(token));
     this._panelLockTokens.add(String(token));
+    // Isolation only applies when compact mode is actively hiding chrome.
+    if (!this.preference || !this.canHideSidebar || !this.sidebar) {
+      return;
+    }
+    this._hideCompactChromeForIsolatedPanel();
+  },
+
+  /**
+   * Stable on-screen anchor so an overlay is not tied to the compact sidebar
+   * button (which slides off-screen when chrome is hidden).
+   */
+  getIsolatedOverlayAnchor() {
+    return (
+      document.getElementById("zen-appcontent-wrapper") ||
+      document.getElementById("browser") ||
+      document.documentElement
+    );
+  },
+
+  shouldIsolateOverlayPanels() {
+    return !!(this.preference && this.canHideSidebar);
+  },
+
+  _hideCompactChromeForIsolatedPanel() {
+    this._panelLockOwnedHover = false;
+    this._edgeRevealActive = false;
+    this._topToolbarEdgeRevealActive = false;
+    this._compactChromeRevealed = false;
+    document.documentElement.removeAttribute(this.COMPACT_CHROME_ATTR);
+    this.clearFlashTimeout(this.COMPACT_CHROME_FLASH_ID);
+    if (!this.sidebar) {
+      return;
+    }
     this.clearFlashTimeout("has-hover" + this.sidebar.id);
     if (this._removeHoverFrames?.[this.sidebar.id]) {
       window.cancelAnimationFrame(this._removeHoverFrames[this.sidebar.id]);
       this._removeHoverFrames[this.sidebar.id] = null;
     }
-    if (this.usesUnifiedCompactChrome) {
-      this._setCompactChromeRevealed(true);
-    } else {
-      this._edgeRevealActive = true;
-    }
-    this.sidebar.setAttribute(this.PANEL_LOCK_ATTR, "true");
-    // Preserve a pre-existing hover/popup attribute; only claim hover if needed.
-    const hadHover = this.sidebar.hasAttribute("zen-has-hover");
-    if (!hadHover) {
-      this._setElementExpandAttribute(this.sidebar, true, "zen-has-hover");
-      this._panelLockOwnedHover = true;
-    } else if (!already && this._panelLockTokens.size === 1) {
-      // First lock while already hovered by the pointer — do not own hover.
-      this._panelLockOwnedHover = false;
+    this._edgeRevealActive = false;
+    this._topToolbarEdgeRevealActive = false;
+    this._compactChromeRevealed = false;
+    document.documentElement.removeAttribute(this.COMPACT_CHROME_ATTR);
+    this.sidebar.removeAttribute(this.PANEL_LOCK_ATTR);
+    this._setElementExpandAttribute(this.sidebar, false, "zen-has-hover");
+    this._setElementExpandAttribute(this.sidebar, false, "has-popup-menu");
+    this._setElementExpandAttribute(
+      this.sidebar,
+      false,
+      "zen-compact-mode-active"
+    );
+    const toolbar = this._getTopToolbarElement();
+    if (toolbar) {
+      this.clearFlashTimeout("has-hover" + toolbar.id);
+      if (this._removeHoverFrames?.[toolbar.id]) {
+        window.cancelAnimationFrame(this._removeHoverFrames[toolbar.id]);
+        this._removeHoverFrames[toolbar.id] = null;
+      }
+      this._setElementExpandAttribute(toolbar, false, "zen-has-hover");
+      this._setElementExpandAttribute(toolbar, false, "has-popup-menu");
+      this._setElementExpandAttribute(
+        toolbar,
+        false,
+        "zen-compact-mode-active"
+      );
     }
   },
 
   /**
-   * Release a panel lock. When no Astra tokens remain, clear only Astra-owned
-   * state. Never clears shared has-popup-menu. Clears zen-has-hover only when
-   * Astra previously owned it and the pointer is not still over the sidebar.
+   * Release a panel lock. When no Astra tokens remain, compact hover/reveal
+   * resumes. Does not re-open the sidebar.
    *
    * @param {string} token
    */
@@ -1040,6 +1075,7 @@ window.gZenCompactModeManager = {
       this._ignoreNextHover ||
       this._isTabBeingDragged ||
       document.documentElement.hasAttribute("zen-compact-animating") ||
+      this.isPanelLocked() ||
       !this.sidebar ||
       window.closed
     ) {
@@ -1096,6 +1132,7 @@ window.gZenCompactModeManager = {
       !this.shouldBeCompact ||
       this._ignoreNextHover ||
       document.documentElement.hasAttribute("zen-compact-animating") ||
+      this.isPanelLocked() ||
       window.closed
     ) {
       return false;
@@ -1143,8 +1180,7 @@ window.gZenCompactModeManager = {
       (this.sidebar.hasAttribute("zen-user-show") ||
         this.sidebar.hasAttribute("zen-has-empty-tab") ||
         this.sidebar.hasAttribute("has-popup-menu") ||
-        this.sidebar.hasAttribute(this.PANEL_LOCK_ATTR) ||
-        this.isPanelLocked());
+        this.sidebar.hasAttribute("zen-compact-mode-active"));
     const toolbarMustStay =
       !!toolbar &&
       (toolbar.hasAttribute("has-popup-menu") ||
@@ -1184,8 +1220,7 @@ window.gZenCompactModeManager = {
           this.sidebar?.hasAttribute("zen-user-show") ||
           this.sidebar?.hasAttribute("zen-has-empty-tab") ||
           this.sidebar?.hasAttribute("has-popup-menu") ||
-          this.sidebar?.hasAttribute(this.PANEL_LOCK_ATTR) ||
-          this.isPanelLocked() ||
+          this.sidebar?.hasAttribute("zen-compact-mode-active") ||
           toolbar?.hasAttribute("has-popup-menu") ||
           toolbar?.hasAttribute("zen-compact-mode-active")
         ) {
@@ -1283,9 +1318,6 @@ window.gZenCompactModeManager = {
     }
 
     if (!this._compactChromeRevealed && !this._edgeRevealActive) {
-      return;
-    }
-    if (this.isPanelLocked()) {
       return;
     }
 
@@ -1412,9 +1444,6 @@ window.gZenCompactModeManager = {
     // Edge detector only initiates reveal. Leaving the 8px strip while still
     // inside the sidebar handoff zone (or over :hover toolbox) must not hide.
     if (this._edgeRevealActive) {
-      if (this.isPanelLocked()) {
-        return;
-      }
       if (sidebarHovered) {
         this._edgeRevealActive = false;
         return;
@@ -1428,8 +1457,7 @@ window.gZenCompactModeManager = {
         !this.sidebar.hasAttribute("zen-user-show") &&
         !this.sidebar.hasAttribute("zen-has-empty-tab") &&
         !this.sidebar.hasAttribute("has-popup-menu") &&
-        !this.sidebar.hasAttribute(this.PANEL_LOCK_ATTR) &&
-        !this.isPanelLocked()
+        !this.sidebar.hasAttribute("zen-compact-mode-active")
       ) {
         this.flashElement(
           this.sidebar,
@@ -1450,6 +1478,16 @@ window.gZenCompactModeManager = {
     const isToolbar = element.id === "zen-appcontent-navbar-wrapper";
     this.log("Setting", attr, "to", value, "on element", element?.id);
     if (value) {
+      if (
+        this.isPanelLocked() &&
+        (element === this.sidebar ||
+          element === this._getTopToolbarElement()) &&
+        (attr === "zen-has-hover" ||
+          attr === "has-popup-menu" ||
+          attr === "zen-compact-mode-active")
+      ) {
+        return;
+      }
       if (
         attr === "zen-has-hover" &&
         element !== gZenVerticalTabsManager.actualWindowButtons
@@ -1531,8 +1569,13 @@ window.gZenCompactModeManager = {
               ) === "true" ||
               this._hasHoveredUrlbar ||
               this._ignoreNextHover ||
-              target.hasAttribute("zen-has-hover")
+              (this.isPanelLocked() &&
+                (target === this.sidebar ||
+                  target === this._getTopToolbarElement()))
             ) {
+              return;
+            }
+            if (target.hasAttribute("zen-has-hover")) {
               // Toolbox owns hover after edge-initiated reveal.
               if (
                 target === this.sidebar &&
@@ -1606,10 +1649,6 @@ window.gZenCompactModeManager = {
           }
 
           if (this._isTabBeingDragged) {
-            return;
-          }
-
-          if (target === this.sidebar && this.isPanelLocked()) {
             return;
           }
 
@@ -1689,7 +1728,7 @@ window.gZenCompactModeManager = {
           ) {
             continue;
           }
-          if (target === this.sidebar && this.isPanelLocked()) {
+          if (this.isPanelLocked()) {
             continue;
           }
           window.cancelAnimationFrame(this._removeHoverFrames[target.id]);
@@ -1803,14 +1842,9 @@ window.gZenCompactModeManager = {
 
   _clearAllHoverStates() {
     this._stopTrackingMouseOutsideWindow();
-    // Clear hover attributes from all hoverable elements, but never while an
-    // Astra panel lock is holding the Zen sidebar open.
+    // Isolated overlay panels suppress compact reveal; never re-open chrome.
     if (this.isPanelLocked()) {
-      if (this.usesUnifiedCompactChrome) {
-        this._setCompactChromeRevealed(true);
-      } else {
-        this._edgeRevealActive = true;
-      }
+      this._hideCompactChromeForIsolatedPanel();
       return;
     }
     for (let entry of this.hoverableElements) {
@@ -1839,9 +1873,7 @@ window.gZenCompactModeManager = {
       this.sidebar.hasAttribute("zen-user-show") ||
       this.sidebar.hasAttribute("zen-has-hover") ||
       this.sidebar.hasAttribute("zen-has-empty-tab") ||
-      this.sidebar.hasAttribute("has-popup-menu") ||
-      this.sidebar.hasAttribute(this.PANEL_LOCK_ATTR) ||
-      this.isPanelLocked()
+      this.sidebar.hasAttribute("has-popup-menu")
     );
   },
 

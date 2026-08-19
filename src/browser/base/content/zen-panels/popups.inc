@@ -177,6 +177,7 @@
   position="bottomright topright"
   side="bottom"
   noautofocus="true"
+  data-astra-compact-isolated="true"
   role="dialog"
   aria-labelledby="astra-app-hub-title"
   app-hub-mode="fallback">

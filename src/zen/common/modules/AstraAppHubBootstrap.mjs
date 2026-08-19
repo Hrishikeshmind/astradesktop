@@ -310,6 +310,13 @@ class AstraAppHubBootstrap {
     };
     this.#boundPopupHidden = () => {
       this.#popupTransition = false;
+      try {
+        window.gZenCompactModeManager?.unlockForPanel?.(
+          "PanelUI-zen-app-launcher"
+        );
+      } catch {
+        // ignore
+      }
     };
     this.#boundUnload = () => {
       this.#destroyListeners();
@@ -603,7 +610,20 @@ class AstraAppHubBootstrap {
     const anchor = this.#resolveAnchor(options.event);
     this.#popupTransition = true;
     try {
-      panel.openPopup(anchor, "after_start", 0, 0, false, false);
+      const compact = window.gZenCompactModeManager;
+      compact?.lockForPanel?.("PanelUI-zen-app-launcher");
+      if (compact?.shouldIsolateOverlayPanels?.()) {
+        panel.openPopup(
+          compact.getIsolatedOverlayAnchor(),
+          "overlap",
+          10,
+          10,
+          false,
+          false
+        );
+      } else {
+        panel.openPopup(anchor, "after_start", 0, 0, false, false);
+      }
     } catch (error) {
       this.#popupTransition = false;
       this.#lastErrorStage = "openPopup";
@@ -622,6 +642,13 @@ class AstraAppHubBootstrap {
       } catch (retryError) {
         this.#popupTransition = false;
         console.error(`${LOG_PREFIX} openPopup failed`, retryError);
+      }
+      try {
+        window.gZenCompactModeManager?.unlockForPanel?.(
+          "PanelUI-zen-app-launcher"
+        );
+      } catch {
+        // ignore
       }
     }
   }

@@ -1969,12 +1969,21 @@ class AstraAppHubManager {
     const anchor = this.#resolveAnchor(options.event);
     this.#popupTransition = true;
     try {
-      // Acquire compact lock before openPopup so hide timers cannot race during
-      // popupshowing while the pointer moves from the sidebar into the panel.
-      window.gZenCompactModeManager?.lockForPanel?.(
-        "PanelUI-zen-app-launcher"
-      );
-      livePanel.openPopup(anchor, "after_start", 0, 0, false, false);
+      // Isolate Compact Mode: do not reveal/lock the sidebar open behind App Hub.
+      const compact = window.gZenCompactModeManager;
+      compact?.lockForPanel?.("PanelUI-zen-app-launcher");
+      if (compact?.shouldIsolateOverlayPanels?.()) {
+        livePanel.openPopup(
+          compact.getIsolatedOverlayAnchor(),
+          "overlap",
+          10,
+          10,
+          false,
+          false
+        );
+      } else {
+        livePanel.openPopup(anchor, "after_start", 0, 0, false, false);
+      }
     } catch (error) {
       this.#popupTransition = false;
       try {
