@@ -9,6 +9,8 @@ import checkForZenUpdates, {
 class ZenStartup {
   #watermarkIgnoreElements = ["zen-toast-container", "zen-browser-background"];
   #hasInitializedLayout = false;
+  /** @type {MutationObserver[]} */
+  #compactRevampPanelObservers = [];
 
   isReady = false;
   promiseInitialized = new Promise(resolve => {
@@ -106,6 +108,7 @@ class ZenStartup {
       this.#initRamSaver();
       this.#initAiWindowBookmarksFix();
       this.#initSidebarLauncherAutoHide();
+      this.#initCompactModeRevampPanelLayout();
       try {
         const { ZenAstraNTP } = ChromeUtils.importESModule(
           "chrome://browser/content/zen-components/ZenAstraNTP.mjs"
@@ -378,6 +381,73 @@ class ZenStartup {
       }).observe(sidebarBox, { attributes: true, attributeFilter: ["sidebarcommand"] });
     } catch (e) {
       console.warn("[Astra]: Failed to initialize AI window/bookmarks fix", e);
+    }
+  }
+
+  /**
+   * Compact Mode + zero tabs + revamp/AI sidebar: force layout/z-index sync on
+   * panel open and tab-strip mutations (not only TabSelect / location change).
+   */
+  #initCompactModeRevampPanelLayout() {
+    try {
+      const sidebarBox = document.getElementById("sidebar-box");
+      const tabsRoot =
+        document.getElementById("tabbrowser-tabs") ||
+        document.getElementById("tabbrowser-arrowscrollbox");
+      if (!sidebarBox || !gZenCompactModeManager) {
+        return;
+      }
+
+      const ensureLayout = () => {
+        requestAnimationFrame(() => {
+          gZenCompactModeManager.ensureRevampPanelLayout?.();
+        });
+      };
+
+      sidebarBox.addEventListener(
+        "sidebar-show",
+        () => {
+          gZenCompactModeManager.syncEmptyTabSidebarState?.();
+          gZenCompactModeManager.ensureRevampPanelLayout?.();
+        },
+        true
+      );
+      sidebarBox.addEventListener("sidebar-hide", ensureLayout, true);
+
+      const aiBox = document.getElementById("ai-window-box");
+      if (aiBox) {
+        const aiObserver = new MutationObserver(ensureLayout);
+        aiObserver.observe(aiBox, {
+          attributes: true,
+          attributeFilter: ["hidden", "style"],
+        });
+        this.#compactRevampPanelObservers.push(aiObserver);
+      }
+
+      if (tabsRoot) {
+        const tabsObserver = new MutationObserver(ensureLayout);
+        tabsObserver.observe(tabsRoot, {
+          childList: true,
+          subtree: true,
+        });
+        this.#compactRevampPanelObservers.push(tabsObserver);
+      }
+
+      window.addEventListener("TabSelect", ensureLayout, true);
+      window.addEventListener("TabClose", ensureLayout, true);
+
+      window.addEventListener(
+        "unload",
+        () => {
+          for (const observer of this.#compactRevampPanelObservers) {
+            observer.disconnect();
+          }
+          this.#compactRevampPanelObservers.length = 0;
+        },
+        { once: true }
+      );
+    } catch (e) {
+      console.warn("[Astra]: Failed to init compact revamp panel layout", e);
     }
   }
 }

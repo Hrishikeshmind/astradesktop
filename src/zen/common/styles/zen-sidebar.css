@@ -155,3 +155,15 @@
 ) #sidebar-box {
   z-index: 14;
 }
+
+/* When a revamp/AI panel is open in compact mode, sit above the empty-tab
+ * sidebar flyout (z-index 15) so the panel stays clickable. */
+:root[zen-compact-mode="true"][astra-compact-revamp-panel-open="true"]
+  #ai-window-splitter,
+:root[zen-compact-mode="true"][astra-compact-revamp-panel-open="true"]
+  #ai-window-box,
+:root[zen-compact-mode="true"][astra-compact-revamp-panel-open="true"]
+  #sidebar-box {
+  z-index: 16;
+  position: relative;
+}

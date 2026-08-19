@@ -260,6 +260,52 @@ window.gZenCompactModeManager = {
   },
 
   /**
+   * Keep compact empty-tab chrome in sync when tabs change outside TabSelect
+   * (e.g. close-all then open AI sidebar). Mirrors ZenSpaceManager.#changeToEmptyTab.
+   */
+  syncEmptyTabSidebarState() {
+    if (!this.sidebar) {
+      return;
+    }
+    const tab = gBrowser?.selectedTab;
+    const isEmpty = tab ? tab.hasAttribute("zen-empty-tab") : true;
+    this.sidebar.toggleAttribute("zen-has-empty-tab", isEmpty);
+    document.documentElement.setAttribute("zen-has-empty-tab", isEmpty);
+  },
+
+  /** Root flag consumed by zen-sidebar.css for revamp-panel z-index. */
+  setRevampPanelOpen(open) {
+    document.documentElement.toggleAttribute(
+      "astra-compact-revamp-panel-open",
+      !!open
+    );
+    this._invalidateSidebarBoundsCache();
+  },
+
+  /**
+   * Re-run compact layout assumptions before showing Firefox revamp / AI panels.
+   * Safe to call when tab count is zero.
+   */
+  ensureRevampPanelLayout() {
+    if (!this.preference) {
+      this.setRevampPanelOpen(false);
+      return;
+    }
+    this.syncEmptyTabSidebarState();
+    const sidebarBox = document.getElementById("sidebar-box");
+    const aiBox = document.getElementById("ai-window-box");
+    const revampOpen =
+      (typeof SidebarController !== "undefined" && SidebarController.isOpen) ||
+      (sidebarBox && !sidebarBox.hidden) ||
+      (aiBox &&
+        !aiBox.hidden &&
+        aiBox.getBoundingClientRect().width > 1);
+    this.setRevampPanelOpen(revampOpen);
+    this.getAndApplySidebarWidth();
+    window.dispatchEvent(new Event("resize"));
+  },
+
+  /**
    * Isolate Compact Mode from an Astra overlay panel (App Hub).
    * The panel must open without also revealing the sidebar / unified chrome.
    * Suppresses edge-hover and mouseenter reveal until unlockForPanel.
