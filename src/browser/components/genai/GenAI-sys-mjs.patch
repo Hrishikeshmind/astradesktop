@@ -1,7 +1,7 @@
 diff --git a/browser/components/genai/GenAI.sys.mjs b/browser/components/genai/GenAI.sys.mjs
 --- a/browser/components/genai/GenAI.sys.mjs
 +++ b/browser/components/genai/GenAI.sys.mjs
-@@ -255,7 +255,9 @@ export const GenAI = {
+@@ -256,6 +256,8 @@ export const GenAI = {
    get currentChatProviderInfo() {
      return {
 -      iconUrl: "chrome://global/skin/icons/highlights.svg",
