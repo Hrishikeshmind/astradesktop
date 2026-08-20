@@ -102,6 +102,12 @@
   }
 }
 
+#astra-ai-sidebar-button,
+#astra-ai-sidebar-button > toolbarbutton,
+#astra-ai-sidebar-toolbarbutton {
+  list-style-image: url("sparkles.svg") !important;
+}
+
 #zen-app-launcher-button .toolbarbutton-icon,
 #zen-app-launcher-button > toolbarbutton > .toolbarbutton-icon {
   list-style-image: url("chrome://browser/skin/zen-icons/selectable/grid-3x3.svg");

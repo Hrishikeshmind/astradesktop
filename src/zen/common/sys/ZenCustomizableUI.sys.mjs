@@ -102,6 +102,13 @@ export const ZenCustomizableUI = new (class {
               flex="1" />
           </toolbaritem>
           <html:div id="zen-sidebar-top-buttons-separator" skipintoolbarset="true" overflows="false"></html:div>
+          <toolbaritem id="astra-ai-sidebar-button" skipintoolbarset="true" overflows="false" removable="false" hidden="true" data-l10n-id="astra-ai-sidebar-button">
+            <toolbarbutton
+              id="astra-ai-sidebar-toolbarbutton"
+              class="toolbarbutton-1"
+              data-l10n-id="astra-ai-sidebar-button"
+              flex="1" />
+          </toolbaritem>
         </hbox>
       </toolbar>
     `);

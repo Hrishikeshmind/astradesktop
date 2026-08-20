@@ -38,11 +38,52 @@
  *
  * Only Sidebar space allocation: App Hub / Suraksha are shortcut-only here
  * (Ctrl+Shift+U / Ctrl+Shift+I). Hide their dedicated strip buttons so
- * Back/Forward/Reload keep a non-overlapping spot. Other layouts keep the
- * visible buttons. JS also sets hidden + overflows=false; CSS is the
+ * Compact / Back / Forward / Reload / AI Sidebar fit the 186px row.
+ * Other layouts keep visible App Hub / Suraksha and never show the AI
+ * strip button. JS also sets hidden + overflows=false; CSS is the
  * layout-mode belt-and-suspenders so a late overflow settle cannot flash them.
  */
 :root[zen-single-toolbar="true"] #zen-app-launcher-button,
 :root[zen-single-toolbar="true"] #astra-suraksha-button {
   display: none !important;
+}
+
+/* AI Sidebar toggle is Only Sidebar only. Other layouts keep Compact / App Hub
+ * / Suraksha as the strip and must not gain this widget.
+ * skipintoolbarset keeps it out of CustomizableUI placements. */
+:root:not([zen-single-toolbar="true"]) #astra-ai-sidebar-button {
+  display: none !important;
+}
+
+:root[zen-single-toolbar="true"] #astra-ai-sidebar-button {
+  display: flex !important;
+}
+
+/* Firefox Sidebars launcher + extension actions already overflowed the 186px
+ * strip (clipped). Hide them here so Compact / Back / Forward / Reload / AI
+ * fit on one row. Extensions stay in the app menu; the launcher is unused
+ * because this layout opens AI directly. */
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons #sidebar-button,
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons .webextension-browser-action,
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons #unified-extensions-button,
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons > #nav-bar-overflow-button {
+  display: none !important;
+}
+
+/* Slightly tighter icon width so Compact + Back + Forward + Reload + AI fit
+ * the real ~186px strip. Do not change --zen-toolbar-height (alignment). */
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons-customization-target
+  > :is(#zen-toggle-compact-mode, #back-button, #forward-button, #stop-reload-button, #astra-ai-sidebar-button) {
+  --toolbarbutton-inner-padding: 4px;
+  min-width: 28px !important;
+  width: 28px;
+  max-width: 28px;
+}
+
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons-customization-target
+  > :is(#zen-toggle-compact-mode, #stop-reload-button, #astra-ai-sidebar-button)
+  > toolbarbutton {
+  min-width: 28px !important;
+  width: 28px;
+  max-width: 28px;
 }

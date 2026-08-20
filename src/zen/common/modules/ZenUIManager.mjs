@@ -1090,6 +1090,7 @@ window.gZenVerticalTabsManager = {
     );
 
     this._updateEvent();
+    this._initOnlySidebarAiButton();
 
     if (!this.isWindowsStyledButtons) {
       document.documentElement.setAttribute(
@@ -1143,7 +1144,8 @@ window.gZenVerticalTabsManager = {
    * Suraksha + Back/Forward/Reload + the » chevron. Prefer navigation: hide
    * App Hub / Suraksha dedicated strip buttons (Ctrl+Shift+U / Ctrl+Shift+I
    * still open them) and pin Back/Forward/Reload so they cannot park under ».
-   * Sidebar+Top Toolbar and Collapsed keep their visible App Hub/Suraksha.
+   * Pin the Only-Sidebar AI toggle after Reload. Sidebar+Top Toolbar and
+   * Collapsed keep their visible App Hub/Suraksha and never show this button.
    */
   _restoreWidgetToSidebarStrip(el) {
     if (!el) {
@@ -1178,6 +1180,9 @@ window.gZenVerticalTabsManager = {
   _applyOnlySidebarIconAllocation(enable) {
     const hubIds = ["zen-app-launcher-button", "astra-suraksha-button"];
     const navIds = ["back-button", "forward-button", "stop-reload-button"];
+    const target = document.getElementById(
+      "zen-sidebar-top-buttons-customization-target"
+    );
 
     if (enable) {
       for (const id of hubIds) {
@@ -1201,9 +1206,6 @@ window.gZenVerticalTabsManager = {
         this._restoreWidgetToSidebarStrip(el);
         // Ensure nav sits after the separator with the swept toolbar icons.
         const separator = this._topButtonsSeparatorElement;
-        const target = document.getElementById(
-          "zen-sidebar-top-buttons-customization-target"
-        );
         if (separator && target?.contains(separator) && target.contains(el)) {
           // Keep relative order: back → forward → reload after separator.
           if (id === "back-button") {
@@ -1217,6 +1219,7 @@ window.gZenVerticalTabsManager = {
           }
         }
       }
+      this._placeOnlySidebarAiButton(target);
     } else {
       for (const id of hubIds) {
         const el = document.getElementById(id);
@@ -1239,7 +1242,98 @@ window.gZenVerticalTabsManager = {
           el.removeAttribute("overflows");
         }
       }
+      this._hideOnlySidebarAiButton();
     }
+  },
+
+  _placeOnlySidebarAiButton(target) {
+    const ai = document.getElementById("astra-ai-sidebar-button");
+    if (!ai || !target) {
+      return;
+    }
+    ai.removeAttribute("hidden");
+    ai.setAttribute("overflows", "false");
+    const reload = document.getElementById("stop-reload-button");
+    if (reload && target.contains(reload)) {
+      reload.after(ai);
+    } else if (!target.contains(ai)) {
+      target.append(ai);
+    }
+    this._syncAiSidebarButton();
+  },
+
+  _hideOnlySidebarAiButton() {
+    const ai = document.getElementById("astra-ai-sidebar-button");
+    if (!ai) {
+      return;
+    }
+    ai.setAttribute("hidden", "true");
+    ai.removeAttribute("open");
+    const strip = document.getElementById(
+      "zen-sidebar-top-buttons-customization-target"
+    );
+    if (strip && !strip.contains(ai)) {
+      strip.append(ai);
+    }
+    const btn = document.getElementById("astra-ai-sidebar-toolbarbutton");
+    btn?.removeAttribute("checked");
+  },
+
+  _initOnlySidebarAiButton() {
+    const btn = document.getElementById("astra-ai-sidebar-toolbarbutton");
+    if (!btn || btn.hasAttribute("astra-ai-bound")) {
+      return;
+    }
+    btn.setAttribute("astra-ai-bound", "true");
+    btn.addEventListener("command", event => {
+      event.preventDefault();
+      this._toggleAiChatSidebar();
+    });
+    const box = document.getElementById("sidebar-box");
+    const sync = () => this._syncAiSidebarButton();
+    box?.addEventListener("sidebar-show", sync);
+    box?.addEventListener("sidebar-hide", sync);
+    sync();
+  },
+
+  _toggleAiChatSidebar() {
+    const sc = window.SidebarController;
+    if (!sc) {
+      return;
+    }
+    const id = "viewGenaiChatSidebar";
+    try {
+      const command = document
+        .getElementById("sidebar-box")
+        ?.getAttribute("sidebarcommand");
+      const open = sc.isOpen && (sc.currentID === id || command === id);
+      if (open) {
+        sc.hide();
+      } else {
+        sc.show(id);
+      }
+    } catch (e) {
+      console.warn("[Astra] Failed to toggle AI sidebar", e);
+    }
+  },
+
+  _syncAiSidebarButton() {
+    const item = document.getElementById("astra-ai-sidebar-button");
+    const btn = document.getElementById("astra-ai-sidebar-toolbarbutton");
+    if (!btn) {
+      return;
+    }
+    const sc = window.SidebarController;
+    const id = "viewGenaiChatSidebar";
+    const command = document
+      .getElementById("sidebar-box")
+      ?.getAttribute("sidebarcommand");
+    const open = !!(
+      sc?.isOpen &&
+      (sc.currentID === id || command === id)
+    );
+    btn.toggleAttribute("checked", open);
+    item?.toggleAttribute("open", open);
   },
 
   animateItemOpen(aItem) {

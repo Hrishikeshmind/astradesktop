@@ -74,6 +74,11 @@ zen-toggle-compact-mode-button =
     .label = Compact Mode
     .tooltiptext = Toggle Compact Mode
 
+astra-ai-sidebar-button =
+    .label = AI Sidebar
+    .tooltiptext = Toggle AI Sidebar
+    .aria-label = Toggle AI Sidebar
+
 # note: Do not translate the "<br/>" tags in the following string
 
 zen-learn-more-text = Learn More
