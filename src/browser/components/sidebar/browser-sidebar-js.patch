@@ -38,7 +38,17 @@ index 947f026af92060bf9ffd3f95664862d5fc62161b..32e45ca5238d53d53a3a8eb59c7bca49
        [
          "viewBookmarksSidebar",
          this.makeSidebar({
-@@ -875,7 +857,7 @@ var SidebarController = {
+@@ -200,7 +182,9 @@ var SidebarController = {
+         // Bug 1900915 to expose as conditional tool
+         revampL10nId: "sidebar-menu-genai-chat-label",
+-        iconUrl: "chrome://global/skin/icons/highlights.svg",
++        // Astra: match Only Sidebar sparkle (not Firefox highlights, which
++        // reads too close to Compact Mode's sidebar glyph at toolbar size).
++        iconUrl: "chrome://browser/skin/zen-icons/sparkles.svg",
+         gleanClickEvent: Glean.sidebar.chatbotIconClick,
+         toolContextMenuId: "aichat",
+         permissions: true,
+@@ -875,7 +859,7 @@ var SidebarController = {
    setPosition() {
      // First reset all ordinals to match DOM ordering.
      let contentArea = document.getElementById("tabbrowser-tabbox");
