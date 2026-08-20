@@ -1365,27 +1365,26 @@
 
 #PanelUI-zen-app-launcher.astra-app-hub-panel,
 #PanelUI-zen-app-launcher {
-  --astra-app-hub-card-radius: 18px;
+  --astra-app-hub-card-radius: 14px;
   --astra-app-hub-icon-radius: 12px;
   --astra-app-hub-item-radius: 12px;
-  --astra-app-hub-accent: var(--focus-outline-color, #8b7cf7);
-  --astra-app-hub-glow: color-mix(in srgb, var(--astra-app-hub-accent) 45%, transparent);
-  --astra-app-hub-navy: color-mix(in srgb, #0b1220 88%, #1a2744);
-  --panel-border-radius: 18px;
-  border-radius: 18px !important;
+  --astra-app-hub-accent: var(--focus-outline-color, #5b9fff);
+  --astra-app-hub-glow: color-mix(in srgb, var(--astra-app-hub-accent) 28%, transparent);
+  --panel-border-radius: var(--arrowpanel-border-radius, 14px);
+  border-radius: var(--panel-border-radius) !important;
 }
 
 #PanelUI-zen-app-launcher-container,
 .astra-app-hub-container {
-  gap: 6px;
-  padding: 14px 14px 12px;
-  background: color-mix(in srgb, var(--astra-app-hub-navy) 55%, var(--arrowpanel-background, Canvas));
+  gap: 8px;
+  padding: 12px 12px 10px;
+  background: transparent;
   border-radius: inherit;
   box-sizing: border-box;
 }
 
 .astra-app-hub-header {
-  padding: 4px 2px 12px;
+  padding: 2px 2px 10px;
   margin-bottom: 8px;
   border-bottom-color: var(--astra-app-hub-border);
 }
@@ -1455,8 +1454,8 @@
 
 /* Rich section headers */
 .astra-app-hub-section {
-  margin-block: 6px 12px;
-  padding: 10px;
+  margin-block: 2px 8px;
+  padding: 8px;
   border-radius: var(--astra-app-hub-card-radius);
   background: color-mix(in srgb, currentColor 4.5%, transparent);
   border: 1px solid var(--astra-app-hub-border);
@@ -1692,9 +1691,69 @@
   margin-inline-start: 2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  #PanelUI-zen-app-launcher-container,
-  .astra-app-hub-container {
-    background: color-mix(in srgb, #0b1220 70%, var(--arrowpanel-background, #1c1b22));
-  }
+/* Launch-pass polish: keep App Hub on Astra panel chrome (no navy wash),
+ * even icon wells, and a single spacing rhythm matching zen-popup cards. */
+#PanelUI-zen-app-launcher.astra-app-hub-panel,
+#PanelUI-zen-app-launcher {
+  --astra-app-hub-surface: color-mix(in srgb, currentColor 5%, transparent);
+  --astra-app-hub-surface-strong: color-mix(in srgb, currentColor 9%, transparent);
+  --astra-app-hub-border: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.astra-app-hub-grid,
+.zen-app-launcher-grid {
+  gap: 4px 6px !important;
+  align-items: start;
+}
+
+.astra-app-hub-item,
+.zen-app-launcher-item {
+  min-height: 72px !important;
+  padding: 8px 4px 6px !important;
+}
+
+.zen-app-launcher-item-icon-stack,
+.astra-app-hub-item-icon-stack {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  margin-bottom: 6px !important;
+}
+
+.astra-app-hub-chip-icon-stack,
+.astra-app-hub-chip .astra-app-hub-item-icon-stack {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  margin-bottom: 0 !important;
+}
+
+.astra-app-hub-item-label,
+.zen-app-launcher-item-label,
+.zen-app-launcher-item-name,
+.astra-app-name {
+  font-size: 0.7rem !important;
+  font-weight: 600 !important;
+  line-height: 1.25 !important;
+  text-align: center !important;
+}
+
+.astra-app-hub-search-row {
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.astra-app-hub-chip-row {
+  gap: 6px;
+  padding: 0 2px 2px;
+}
+
+.astra-app-hub-recent-section {
+  margin-top: 2px;
+}
+
+.astra-app-hub-section-header-rich {
+  padding: 2px 4px 8px !important;
 }

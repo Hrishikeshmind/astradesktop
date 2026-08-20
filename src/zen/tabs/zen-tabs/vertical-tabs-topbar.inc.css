@@ -4,7 +4,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
---zen-toolbar-height: 34px;
+/* Inherit --zen-toolbar-height from :root (38px / 42px mac) so Only Sidebar
+ * window controls share the same band as the sidebar icon row + urlbar. */
 
 height: var(--zen-toolbar-height);
 z-index: 1;

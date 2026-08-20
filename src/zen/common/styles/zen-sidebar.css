@@ -71,12 +71,14 @@
 
 }
 
-/* Align #sidebar-main first tool (AI/history/bookmarks) with the top toolbar
- * row in Sidebar+Top Toolbar mode. Consumed by sidebar-main.css via
+/* Align #sidebar-main first tool (history / bookmarks / opentabs) with the
+ * top toolbar band in every layout. Consumed by sidebar-main.css via
  * --astra-sidebar-tools-first-pad (inherits into the shadow tree).
- * 32px button centered in --zen-toolbar-height (38px) => 3px pad each side. */
-:root:not([zen-single-toolbar="true"]) #sidebar-main,
-:root:not([zen-single-toolbar="true"]) sidebar-main {
+ * 32px button centered in --zen-toolbar-height (38px) => 3px pad each side.
+ * Only Sidebar previously skipped this, so the launcher icon row sat a few
+ * pixels off the search / window-control strip. */
+:root #sidebar-main,
+:root sidebar-main {
   --astra-sidebar-tools-first-pad: max(
     0px,
     calc((var(--zen-toolbar-height) - var(--button-size-icon, 32px)) / 2)

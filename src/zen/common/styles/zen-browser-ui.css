@@ -183,7 +183,6 @@ body,
 
   :root[zen-single-toolbar="true"] & {
     border-top: none !important;
-    --zen-toolbar-height: 37px;
   }
 }
 

@@ -423,6 +423,7 @@
   max-height: var(--zen-toolbar-height) !important;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
 }
 
 :root:not([zen-single-toolbar="true"]) {
