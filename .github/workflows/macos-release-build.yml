@@ -159,8 +159,12 @@ jobs:
           SURFER_COMPAT: ${{ matrix.arch }}
           ZEN_GA_DISABLE_PGO: true
         run: |
+          set -euo pipefail
           export SURFER_PLATFORM="darwin"
           export ZEN_RELEASE=1
+          eval "$(python3 scripts/astra_channel.py --brand "${{ inputs['release-branch'] }}" --export)"
+          export MAR_CHANNEL_ID ACCEPTED_MAR_CHANNEL_IDS
+          echo "MAR_CHANNEL_ID=${MAR_CHANNEL_ID}"
           npm run package
 
       - name: Remove API Keys

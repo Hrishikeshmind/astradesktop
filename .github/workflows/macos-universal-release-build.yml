@@ -231,19 +231,52 @@ jobs:
         env:
           JUST_MAR: true
           ZEN_GA_DISABLE_PGO: true
+          ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64: ${{ secrets.ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 }}
         run: |
           # we don't need it anymore
-          set -ex
+          set -euo pipefail
+          set -x
+          if [[ -z "${ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64:-}" ]]; then
+            echo "::error::ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 secret is missing."
+            echo "Shipped updater is built with MOZ_VERIFY_MAR_SIGNATURE and rejects unsigned MARs."
+            echo "Add the primary private key that matches build/signing/release_primary.der."
+            exit 1
+          fi
           rm -rf ./engine/obj-aarch64-apple-darwin
           mkdir -p ./engine/obj-x86_64-apple-darwin/dist/bin
           mv ./platform.ini ./engine/obj-x86_64-apple-darwin/dist/bin/platform.ini
           export SURFER_PLATFORM="darwin"
           export ZEN_RELEASE=1
+          eval "$(python3 scripts/astra_channel.py --brand "${{ inputs['release-branch'] }}" --export)"
+          export MAR_CHANNEL_ID ACCEPTED_MAR_CHANNEL_IDS
+          echo "MAR_CHANNEL_ID=${MAR_CHANNEL_ID}"
+          node -e "
+            const fs = require('fs');
+            const p = 'node_modules/@zen-browser/surfer/dist/commands/package.js';
+            let t = fs.readFileSync(p, 'utf8');
+            const next = t.replace(
+              /MAR_CHANNEL_ID:\s*channel,/,
+              'MAR_CHANNEL_ID: process.env.MAR_CHANNEL_ID || channel,'
+            );
+            if (next === t) {
+              console.warn('Surfer package.js MAR_CHANNEL_ID override not applied (pattern miss)');
+            } else {
+              fs.writeFileSync(p, next);
+              console.log('Surfer package.js uses MAR_CHANNEL_ID from env when set');
+            }
+          "
           # full path to zen-macos-host-mar
           export MAR=$(pwd)/zen-macos-host-mar
           chmod +x $MAR
           echo "MAR=$MAR"
           npm run package -- --verbose
+          test -s dist/output.mar
+          bash scripts/mar_sign.sh -s dist/output.mar
+          python3 scripts/verify_mar_product_info.py dist/output.mar \
+            --brand "${{ inputs['release-branch'] }}" \
+            --assert-channel --assert-signed \
+            --verify-cert build/signing/release_primary.der \
+            --dump
           mv ./dist/output.mar ./macos.mar
 
       - name: Upload build artifact (.mar)

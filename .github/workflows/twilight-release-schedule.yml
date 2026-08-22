@@ -12,8 +12,27 @@ on:
         default: true
 
 jobs:
+  publish-gate:
+    name: Respect .astra/publish-paused
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.gate.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: gate
+        run: |
+          set -euo pipefail
+          if python3 scripts/ci_guard_update_publish.py --brand twilight --check-pause-only; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Publish paused; skipping scheduled twilight release."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   twilight-release-schedule:
     name: Twilight Release Schedule
+    needs: publish-gate
+    if: needs.publish-gate.outputs.proceed == 'true'
     permissions: write-all
     secrets: inherit
     uses: ./.github/workflows/build.yml

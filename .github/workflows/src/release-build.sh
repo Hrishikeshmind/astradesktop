@@ -37,7 +37,7 @@ if test "${ZEN_GOOGLE_LOCATION_SERVICE_API_KEY:-}"; then
 fi
 
 if [ -f ./scripts/mar_sign.sh ]; then
-  bash ./scripts/mar_sign.sh -i || true
+  bash ./scripts/mar_sign.sh -i
 fi
 
 ulimit -n 4096 || true

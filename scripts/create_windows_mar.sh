@@ -150,10 +150,11 @@ OUT_UNIX="$(to_msys "${OUT_MAR}")"
 MAR_UNIX="$(to_msys "$(cd "$(dirname "${MAR_EXE}")" && pwd)/$(basename "${MAR_EXE}")")"
 
 export MAR="${MAR_UNIX}"
-# Match the Package step channel IDs embedded into the Windows build.
+# Single source of truth: .astra/channel.env via scripts/astra_channel.py
+eval "$(python scripts/astra_channel.py --brand "${CHANNEL}" --export)"
 export MOZ_PRODUCT_VERSION="${VERSION}"
-export MAR_CHANNEL_ID="${MAR_CHANNEL_ID:-firefox-mozilla-central}"
-export ACCEPTED_MAR_CHANNEL_IDS="${ACCEPTED_MAR_CHANNEL_IDS:-firefox-mozilla-central}"
+export MAR_CHANNEL_ID
+export ACCEPTED_MAR_CHANNEL_IDS
 
 # Diagnose ARG_MAX risk: make_full_update.sh historically did
 #   targetfiles="$targetfiles \"$f\""; eval "$mar_command $targetfiles"

@@ -5,6 +5,11 @@
 - name: astra.updates.show-update-notification
   value: true
 
+# Local JSONL log of update-check identity + active update state
+# (ProfD/astra-update-status.log). Opt out with false.
+- name: astra.updates.log-to-file
+  value: true
+
 # Temporary stopgap URLs until astra-browser.app marketing pages exist.
 # Keep in sync with engine/browser/branding/{release,twilight}/pref/firefox-branding.js
 - name: app.update.url.manual

@@ -1,0 +1,199 @@
+#!/usr/bin/env python3
+"""Unit tests for MAR channel SSOT, header parsing, and buildID guards."""
+
+from __future__ import annotations
+
+import struct
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "scripts"))
+
+from astra_channel import load_channel_map, mar_channel_id  # noqa: E402
+from assert_buildid_monotonic import assert_newer, parse_buildid  # noqa: E402
+from mar_create_from_filelist import create_mar  # noqa: E402
+from mar_sign_openssl import sign_mar, verify_mar_signature  # noqa: E402
+from verify_mar_product_info import main as verify_main  # noqa: E402
+from verify_mar_product_info import parse_mar_product_info  # noqa: E402
+
+
+class ChannelSSotTests(unittest.TestCase):
+    def test_release_and_twilight_are_brand_names(self):
+        mapping = load_channel_map()
+        self.assertEqual(mapping["release"], "release")
+        self.assertEqual(mapping["twilight"], "twilight")
+        self.assertEqual(mar_channel_id("release"), "release")
+        self.assertNotIn("firefox-mozilla-central", mapping.values())
+
+    def test_unknown_brand_fails(self):
+        with self.assertRaises(KeyError):
+            mar_channel_id("nightly")
+
+
+class BuildIdTests(unittest.TestCase):
+    def test_parse_rejects_short(self):
+        with self.assertRaises(ValueError):
+            parse_buildid("20260819", "x")
+
+    def test_monotonic_against_ledger(self):
+        with self.assertRaises(ValueError):
+            assert_newer("20260816124354", [])
+        with self.assertRaises(ValueError):
+            assert_newer("20260819052941", [])
+        prev, known = assert_newer("20260821170000", [])
+        self.assertEqual(prev, "20260819052941")
+        self.assertIn("20260819052941", known)
+
+
+class MarHeaderTests(unittest.TestCase):
+    def test_live_windows_mar_is_wrong_channel(self):
+        mar = ROOT / ".tmp-update-apply" / "windows.mar"
+        if not mar.is_file() or mar.stat().st_size < 10_000_000:
+            self.skipTest("published windows.mar fixture not present")
+        info = parse_mar_product_info(mar)
+        self.assertEqual(info.channel_id, "firefox-mozilla-central")
+        self.assertEqual(info.num_signatures, 0)
+        self.assertNotEqual(info.channel_id, mar_channel_id("release"))
+
+    def test_synthetic_release_header(self):
+        # Minimal MAR1 + unsigned product-info block, no members.
+        channel = b"release\0"
+        version = b"1.19.9b\0"
+        unused = b"\0" * (104 - 8 - len(channel) - len(version))
+        block = struct.pack(">II", 104, 1) + channel + version + unused
+        header = (
+            b"MAR1"
+            + struct.pack(">I", 24 + 104)
+            + struct.pack(">Q", 24 + 104)
+            + struct.pack(">I", 0)  # signatures
+            + struct.pack(">I", 1)  # sections
+            + block
+        )
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "t.mar"
+            path.write_bytes(header)
+            info = parse_mar_product_info(path)
+            self.assertEqual(info.channel_id, "release")
+            self.assertEqual(info.product_version, "1.19.9b")
+
+
+class MarSignatureTests(unittest.TestCase):
+    def _tiny_mar(self, td: Path) -> Path:
+        work = td / "app"
+        work.mkdir()
+        (work / "hello.txt").write_text("astra", encoding="utf-8")
+        (td / "files.txt").write_text("hello.txt\n", encoding="utf-8")
+        mar = td / "t.mar"
+        create_mar(mar, work, ["hello.txt"], "release", "1.19.9b")
+        return mar
+
+    def _ephemeral_cert(self, td: Path, cn: str) -> tuple[Path, Path, Path]:
+        import shutil
+        import subprocess
+
+        openssl = shutil.which("openssl") or r"C:\Program Files\Git\usr\bin\openssl.exe"
+        key = td / "k.key"
+        crt = td / "c.crt"
+        der = td / "c.der"
+        subprocess.check_call(
+            [openssl, "genrsa", "-out", str(key), "2048"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.check_call(
+            [
+                openssl,
+                "req",
+                "-new",
+                "-x509",
+                "-sha384",
+                "-key",
+                str(key),
+                "-out",
+                str(crt),
+                "-days",
+                "2",
+                "-subj",
+                f"/CN={cn}",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.check_call(
+            [openssl, "x509", "-in", str(crt), "-outform", "DER", "-out", str(der)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return key, crt, der
+
+    def test_unsigned_fails_assert_signed(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            mar = self._tiny_mar(td)
+            info = parse_mar_product_info(mar)
+            self.assertEqual(info.num_signatures, 0)
+            self.assertEqual(info.channel_id, "release")
+            rc = verify_main([str(mar), "--brand", "release", "--assert-channel", "--assert-signed"])
+            self.assertEqual(rc, 1)
+
+    def test_sign_and_verify_against_matching_cert(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            mar = self._tiny_mar(td)
+            key, crt, der = self._ephemeral_cert(td, "Astra Test MAR")
+            sign_mar(mar, key, crt)
+            info = parse_mar_product_info(mar)
+            self.assertEqual(info.num_signatures, 1)
+            self.assertEqual(info.channel_id, "release")
+            verify_mar_signature(mar, der)
+            rc = verify_main(
+                [
+                    str(mar),
+                    "--brand",
+                    "release",
+                    "--assert-channel",
+                    "--assert-signed",
+                    "--verify-cert",
+                    str(der),
+                    "--dump",
+                ]
+            )
+            self.assertEqual(rc, 0)
+
+    def test_wrong_cert_does_not_verify(self):
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            mar = self._tiny_mar(td)
+            key, crt, _der = self._ephemeral_cert(td, "Astra Test MAR A")
+            other = td / "other"
+            other.mkdir()
+            _k2, _c2, der2 = self._ephemeral_cert(other, "Astra Test MAR B")
+            sign_mar(mar, key, crt)
+            with self.assertRaises(ValueError):
+                verify_mar_signature(mar, der2)
+            rc = verify_main(
+                [str(mar), "--assert-signed", "--verify-cert", str(der2)]
+            )
+            self.assertEqual(rc, 1)
+
+    def test_repo_primary_keypair_if_present(self):
+        key = ROOT / "build" / "signing" / "private" / "astra_mar_signing_primary.key"
+        der = ROOT / "build" / "signing" / "release_primary.der"
+        backup = ROOT / "build" / "signing" / "release_backup.der"
+        if not key.is_file() or not der.is_file():
+            self.skipTest("primary private key not on this machine")
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            mar = self._tiny_mar(td)
+            sign_mar(mar, key, ROOT / "build" / "signing" / "release_primary.crt")
+            verify_mar_signature(mar, der)
+            if backup.is_file():
+                with self.assertRaises(ValueError):
+                    verify_mar_signature(mar, backup)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,19 @@
+Astra MAR signing public certs (safe to commit / share)
+
+Algorithm: RSA-4096, cert signed with SHA-384.
+Updater embed path: mar_sign.sh -i copies these into
+  engine/toolkit/mozapps/update/updater/release_primary.der
+  engine/toolkit/mozapps/update/updater/release_secondary.der
+before compiling updater.exe (MOZILLA_OFFICIAL=1 enables MOZ_VERIFY_MAR_SIGNATURE).
+
+Primary  CN=Astra MAR Signing Primary
+  SHA-256  63:5D:B7:55:86:63:1B:72:7B:1E:C9:33:28:F1:11:F1:05:32:2D:6D:00:78:51:52:11:8F:BE:FF:14:7D:FF:0D
+  SHA-1    F8:7E:31:3C:AB:F0:BF:71:A9:2E:90:FD:A2:D7:8A:83:32:CC:3C:D9
+
+Backup   CN=Astra MAR Signing Backup
+  SHA-256  E6:5D:62:4B:1E:C5:2F:77:18:C4:48:DA:57:F1:01:41:1A:F8:6A:5E:B1:BB:95:15:97:AA:4E:E7:75:A2:73:81
+  SHA-1    94:EC:F7:69:A2:72:58:E9:1B:34:23:A1:FA:77:F7:F3:5B:B4:FE:72
+
+Private keys are NOT in this directory. Primary lives only as GitHub Actions
+secret ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64. Backup lives in a separate offline
+store / password manager — not as another secret in this repo.

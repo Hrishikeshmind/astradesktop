@@ -1,0 +1,4 @@
+paused=1
+reason=Emergency freeze: wait for new MAR signing keypair to be embedded in updater, signed MARs verified, and Part 4 apply->restart smoke on a new-key installer. Do not auto-publish to Pages. 20260819052941 fleet needs one manual reinstall after that cut.
+paused_at=2026-08-21T16:55:00Z
+updated_at=2026-08-21T18:20:00Z

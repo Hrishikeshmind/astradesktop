@@ -1,0 +1,23 @@
+{
+  "description": "Ledger of every Astra buildID that reached a real client or Pages. CI refuses to publish a buildID that is not strictly greater than every entry here AND the currently live update.xml.",
+  "builds": [
+    {
+      "buildID": "20260816064841",
+      "version": "1.19.8b",
+      "platform": "WINNT_x86_64",
+      "note": "Earlier packaged Windows tree used in local AUS tests"
+    },
+    {
+      "buildID": "20260816124354",
+      "version": "1.19.8b",
+      "platform": "all-pages",
+      "note": "Currently live GitHub Pages update.xml (MAR channel firefox-mozilla-central — broken)"
+    },
+    {
+      "buildID": "20260819052941",
+      "version": "1.19.8b",
+      "platform": "WINNT_x86_64",
+      "note": "Real installed Windows clients (Program Files). Newer than Pages; AUS will not offer a Pages downgrade."
+    }
+  ]
+}

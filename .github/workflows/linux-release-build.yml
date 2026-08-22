@@ -162,16 +162,14 @@ jobs:
         env:
           SURFER_COMPAT: ${{ matrix.arch }}
           ZEN_GA_DISABLE_PGO: true
-          # Match Windows MAR channel IDs so updater accepts cross-platform packs.
-          MAR_CHANNEL_ID: firefox-mozilla-central
-          ACCEPTED_MAR_CHANNEL_IDS: firefox-mozilla-central
         run: |
           set -euo pipefail
           export SURFER_PLATFORM="linux"
           export ZEN_RELEASE=1
-          export MAR_CHANNEL_ID="${MAR_CHANNEL_ID}"
-          export ACCEPTED_MAR_CHANNEL_IDS="${ACCEPTED_MAR_CHANNEL_IDS}"
-          # Force Surfer MAR channel IDs to match Windows builds (firefox-mozilla-central).
+          eval "$(python3 scripts/astra_channel.py --brand "${{ inputs['release-branch'] }}" --export)"
+          export MAR_CHANNEL_ID ACCEPTED_MAR_CHANNEL_IDS
+          echo "MAR_CHANNEL_ID=${MAR_CHANNEL_ID}"
+          # Force Surfer MAR channel IDs from SSOT env (must stay aligned with update-settings.ini).
           node -e "
             const fs = require('fs');
             const p = 'node_modules/@zen-browser/surfer/dist/commands/package.js';
@@ -206,6 +204,24 @@ jobs:
             exit 1
           fi
           echo "Linux package OK: $(du -h dist/output.mar | awk '{print $1}') (${MAR_BYTES} bytes) MAR"
+
+      - name: Sign Linux MAR (primary key)
+        env:
+          ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64: ${{ secrets.ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64:-}" ]]; then
+            echo "::error::ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 secret is missing."
+            echo "Shipped updater.exe is built with MOZ_VERIFY_MAR_SIGNATURE and rejects unsigned MARs."
+            echo "Add the primary private key that matches build/signing/release_primary.der."
+            exit 1
+          fi
+          bash scripts/mar_sign.sh -s dist/output.mar
+          python3 scripts/verify_mar_product_info.py dist/output.mar \
+            --brand "${{ inputs['release-branch'] }}" \
+            --assert-channel --assert-signed \
+            --verify-cert build/signing/release_primary.der \
+            --dump
 
       - name: Remove API Keys
         continue-on-error: true
@@ -270,6 +286,15 @@ jobs:
           name: linux${{ matrix.arch == 'aarch64' && '-aarch64' || '' }}.mar
           path: ./linux${{ matrix.arch == 'aarch64' && '-aarch64' || '' }}.mar
           if-no-files-found: error
+
+      - name: Upload signmar (x86_64 host tool)
+        if: matrix.arch == 'x86_64'
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 5
+          name: signmar
+          path: engine/obj-*/dist/host/bin/signmar
+          if-no-files-found: warn
 
       - name: Upload build artifact (update manifests)
         uses: actions/upload-artifact@v4

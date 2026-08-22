@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""CI gate: refuse to publish mismatched / non-monotonic / paused updates."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "scripts") not in sys.path:
+    sys.path.insert(0, str(ROOT / "scripts"))
+
+from assert_buildid_monotonic import assert_newer  # noqa: E402
+from astra_channel import mar_channel_id  # noqa: E402
+from verify_mar_product_info import parse_mar_product_info  # noqa: E402
+from mar_sign_openssl import DEFAULT_PRIMARY_DER, verify_mar_signature  # noqa: E402
+
+PAUSE_FILE = ROOT / ".astra" / "publish-paused"
+
+DEFAULT_LIVE_XML = [
+    "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc-x64/release/update.xml",
+    "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc/release/update.xml",
+    "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_x86_64-gcc3/release/update.xml",
+    "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_aarch64-gcc3/release/update.xml",
+]
+
+
+def is_paused(path: Path = PAUSE_FILE) -> tuple[bool, str]:
+    if not path.is_file():
+        return False, ""
+    text = path.read_text(encoding="utf-8")
+    paused = False
+    reason = ""
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("paused="):
+            paused = line.split("=", 1)[1].strip() in {"1", "true", "yes"}
+        elif line.startswith("reason="):
+            reason = line.split("=", 1)[1].strip()
+    return paused, reason
+
+
+def find_mars(search_roots: list[Path]) -> list[Path]:
+    found: list[Path] = []
+    names = {
+        "windows.mar",
+        "windows-arm64.mar",
+        "linux.mar",
+        "linux-aarch64.mar",
+        "macos.mar",
+    }
+    for root in search_roots:
+        if root.is_file() and root.name in names:
+            found.append(root)
+            continue
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*.mar"):
+            if path.name in names and path.stat().st_size > 0:
+                found.append(path)
+    # De-dupe while preserving order
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in found:
+        resolved = path.resolve()
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(path)
+    return unique
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--brand", required=True)
+    parser.add_argument("--new-buildid", default="")
+    parser.add_argument(
+        "--search",
+        action="append",
+        default=[],
+        help="Directory or MAR path to scan (repeatable). Default: current directory",
+    )
+    parser.add_argument(
+        "--allow-paused-override",
+        action="store_true",
+        help="Do not fail on pause file (still runs channel/buildID checks)",
+    )
+    parser.add_argument(
+        "--require-mars",
+        action="store_true",
+        help="Fail if no MAR files were found",
+    )
+    parser.add_argument("--live-xml", action="append", default=[])
+    parser.add_argument(
+        "--check-pause-only",
+        action="store_true",
+        help="Exit 2 if paused, 0 otherwise. Skip MAR/buildID checks.",
+    )
+    args = parser.parse_args(argv)
+
+    paused, reason = is_paused()
+    if args.check_pause_only:
+        if paused:
+            print(f"publish paused: {reason or 'see .astra/publish-paused'}", file=sys.stderr)
+            return 2
+        print("publish not paused")
+        return 0
+
+    if not args.new_buildid:
+        print("--new-buildid is required unless --check-pause-only", file=sys.stderr)
+        return 2
+
+    if paused and not args.allow_paused_override:
+        print(
+            f"FAIL: publish paused ({reason or 'see .astra/publish-paused'})",
+            file=sys.stderr,
+        )
+        return 2
+
+    expected = mar_channel_id(args.brand)
+    search_roots = args.search or ["."]
+    mars = find_mars([Path(p) for p in search_roots])
+    if args.require_mars and not mars:
+        print("FAIL: no MAR artifacts found", file=sys.stderr)
+        return 1
+
+    failures = 0
+    for mar in mars:
+        info = parse_mar_product_info(mar)
+        print(
+            f"{mar}: channel={info.channel_id!r} version={info.product_version!r} "
+            f"sigs={info.num_signatures} size={info.size}"
+        )
+        if info.channel_id != expected:
+            print(
+                f"FAIL: {mar} channel {info.channel_id!r} != SSOT {expected!r}",
+                file=sys.stderr,
+            )
+            failures += 1
+        if info.num_signatures < 1:
+            print(
+                f"FAIL: {mar} is unsigned (numSignatures={info.num_signatures}); "
+                "shipped updater.exe requires a signature (CERT_VERIFY_ERROR 19)",
+                file=sys.stderr,
+            )
+            failures += 1
+        elif DEFAULT_PRIMARY_DER.is_file():
+            try:
+                verify_mar_signature(mar, DEFAULT_PRIMARY_DER)
+                print(f"OK {mar}: signature verifies against {DEFAULT_PRIMARY_DER.name}")
+            except (ValueError, OSError) as exc:
+                print(f"FAIL: {mar} signature verify: {exc}", file=sys.stderr)
+                failures += 1
+        if info.size < 10 * 1024 * 1024:
+            print(f"FAIL: {mar} is a stub ({info.size} bytes)", file=sys.stderr)
+            failures += 1
+
+    live = args.live_xml or DEFAULT_LIVE_XML
+    try:
+        prev, _known = assert_newer(args.new_buildid, live)
+        print(f"OK buildID {args.new_buildid} > {prev}")
+    except (ValueError, FileNotFoundError) as exc:
+        print(f"FAIL: {exc}", file=sys.stderr)
+        failures += 1
+
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

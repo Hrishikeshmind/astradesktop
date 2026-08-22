@@ -2,192 +2,191 @@
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
+#
+# MAR signing helper.
+#   -g  Generate primary + backup RSA-4096 / SHA-384 certs (local; private keys
+#       stay under gitignored build/signing/private/)
+#   -i  Copy public DERs into engine/toolkit/mozapps/update/updater/ before
+#       compiling updater.exe (primary -> release_primary.der, backup ->
+#       release_secondary.der). Fail closed if the engine tree is missing.
+#   -s  [mar ...]  Sign MAR(s) with the primary private key. If no paths are
+#       given, sign the usual platform artifact names. Uses OpenSSL
+#       RSA-PKCS1-SHA384 (same algorithm ID 2 that signmar/the updater expect).
 
-set -e
+set -euo pipefail
 
 CERT_PATH_DIR=build/signing
+PRIVATE_DIR="$CERT_PATH_DIR/private"
 UPDATER_CERT_DIR="engine/toolkit/mozapps/update/updater"
-NSS_CONFIG_DIR="$CERT_PATH_DIR/nss_config"
+
+pick_python() {
+  local c
+  for c in python3 python py; do
+    if command -v "$c" >/dev/null 2>&1; then
+      if "$c" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
+        printf '%s\n' "$c"
+        return 0
+      fi
+    fi
+  done
+  echo "Error: Python 3.9+ not found (python3/python/py)." >&2
+  exit 1
+}
+PYTHON="$(pick_python)"
 
 generate_certs() {
-  mkdir temp
-  cd temp
+  mkdir -p "$PRIVATE_DIR" "$CERT_PATH_DIR"
+  openssl genrsa -out "$PRIVATE_DIR/astra_mar_signing_primary.key" 4096
+  openssl req -new -x509 -sha384 \
+      -key "$PRIVATE_DIR/astra_mar_signing_primary.key" \
+      -out "$PRIVATE_DIR/astra_mar_signing_primary.crt" \
+      -days 7300 \
+      -subj "/CN=Astra MAR Signing Primary"
+  openssl genrsa -out "$PRIVATE_DIR/astra_mar_signing_backup.key" 4096
+  openssl req -new -x509 -sha384 \
+      -key "$PRIVATE_DIR/astra_mar_signing_backup.key" \
+      -out "$PRIVATE_DIR/astra_mar_signing_backup.crt" \
+      -days 7300 \
+      -subj "/CN=Astra MAR Signing Backup"
 
-  # 1. Generate private key
-  openssl genrsa -out private_key.pem 4096
+  openssl x509 -in "$PRIVATE_DIR/astra_mar_signing_primary.crt" -outform DER \
+      -out "$CERT_PATH_DIR/release_primary.der"
+  openssl x509 -in "$PRIVATE_DIR/astra_mar_signing_backup.crt" -outform DER \
+      -out "$CERT_PATH_DIR/release_backup.der"
+  cp "$PRIVATE_DIR/astra_mar_signing_primary.crt" "$CERT_PATH_DIR/release_primary.crt"
+  cp "$PRIVATE_DIR/astra_mar_signing_backup.crt" "$CERT_PATH_DIR/release_backup.crt"
+  cp "$CERT_PATH_DIR/release_primary.der" "$CERT_PATH_DIR/public_key.der"
 
-  # 2. Generate self-signed certificate (required for PKCS#12 bundling)
-  # RFC 5280 "no well-defined expiration" sentinel: 99991231235959Z
-  openssl req -new -x509 \
-      -key private_key.pem \
-      -out cert.pem \
-      -subj "/CN=MAR Signing" \
-      -not_before 20000101000000Z \
-      -not_after  99991231235959Z
-
-  # 3. Export certificate as DER (for embedding in updater)
-  openssl x509 -in cert.pem -outform DER -out public_key.der
-
-  cd ..
-  mkdir -p "$CERT_PATH_DIR"
-  mv temp/private_key.pem "$CERT_PATH_DIR"/private_key.pem
-  mv temp/cert.pem        "$CERT_PATH_DIR"/cert.pem
-  mv temp/public_key.der  "$CERT_PATH_DIR"/public_key.der
-
-  mkdir -p "$CERT_PATH_DIR/env"
-  base64 -w 0 "$CERT_PATH_DIR"/cert.pem > "$CERT_PATH_DIR"/env/ZEN_SIGNING_CERT_PEM_BASE64
-  base64 -w 0 "$CERT_PATH_DIR"/private_key.pem > "$CERT_PATH_DIR"/env/ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64
-
-  # Make sure no private keys or certs are left
-  # in the public_key.der file, which is the only one that 
-  # should be distributed and embedded in the updater
-  openssl x509 -in "$CERT_PATH_DIR"/public_key.der -inform DER -noout -text > /dev/null
-
-  rm -rf temp
+  echo "Public certs written to $CERT_PATH_DIR (safe to commit)."
+  echo "PRIVATE keys are in $PRIVATE_DIR (gitignored). Store the backup key"
+  echo "offline / in a password manager — not as another GitHub secret."
+  openssl x509 -in "$CERT_PATH_DIR/release_primary.crt" -noout -fingerprint -sha256
+  openssl x509 -in "$CERT_PATH_DIR/release_backup.crt" -noout -fingerprint -sha256
 }
 
 import_cert() {
-  if [ ! -f "$CERT_PATH_DIR/public_key.der" ]; then
-    echo "Error: public_key.der not found. Run with -g first." >&2
+  local primary="$CERT_PATH_DIR/release_primary.der"
+  local backup="$CERT_PATH_DIR/release_backup.der"
+  if [ ! -f "$primary" ]; then
+    echo "Error: $primary not found. Generate or check out the committed DER." >&2
     exit 1
   fi
-  files=(
+  if [ ! -f "$backup" ]; then
+    echo "Error: $backup not found. Generate or check out the committed DER." >&2
+    exit 1
+  fi
+  if [ ! -d "$UPDATER_CERT_DIR" ]; then
+    echo "Error: $UPDATER_CERT_DIR is missing. Import Firefox sources before -i." >&2
+    exit 1
+  fi
+
+  local primary_dests=(
     "$UPDATER_CERT_DIR/release_primary.der"
-    "$UPDATER_CERT_DIR/release_secondary.der"
     "$UPDATER_CERT_DIR/dep1.der"
-    "$UPDATER_CERT_DIR/dep2.der"
     "$UPDATER_CERT_DIR/xpcshellCertificate.der"
   )
-  for file in "${files[@]}"; do
+  local backup_dests=(
+    "$UPDATER_CERT_DIR/release_secondary.der"
+    "$UPDATER_CERT_DIR/dep2.der"
+  )
+  local file
+  for file in "${primary_dests[@]}" "${backup_dests[@]}"; do
     if [ ! -f "$file" ]; then
       echo "Error: $file not found. Make sure the updater certificates exist." >&2
       exit 1
     fi
-    rm -f "$file"
-    echo "Copying $CERT_PATH_DIR/public_key.der to $file"
-    cp "$CERT_PATH_DIR/public_key.der" "$file"
   done
-  echo "Done. Rebuild the updater to embed the new certificate."
-}
-
-create_nss_config_dir() {
-  rm -rf "$NSS_CONFIG_DIR"
-  mkdir "$NSS_CONFIG_DIR"
-
-  if [ -z "$ZEN_MAR_SIGNING_PASSWORD" ]; then
-    echo "Warning: ZEN_MAR_SIGNING_PASSWORD environment variable not set. Using empty password." >&2
-    ZEN_MAR_SIGNING_PASSWORD=""
-  fi
-
-  password_file="$NSS_CONFIG_DIR/password.txt"
-  echo "$ZEN_MAR_SIGNING_PASSWORD" > "$password_file"
-
-  if [ "$ZEN_SIGNING_CERT_PEM_BASE64" ]; then
-    echo "Decoding signing certificate from ZEN_SIGNING_CERT_PEM_BASE64 environment variable..."
-    echo "$ZEN_SIGNING_CERT_PEM_BASE64" | base64 -d > "$CERT_PATH_DIR/cert.pem"
-  fi
-
-  if [ "$ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64" ]; then
-    echo "Decoding signing private key from ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 environment variable..."
-    echo "$ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64" | base64 -d > "$CERT_PATH_DIR/private_key.pem"
-  fi
-
-  echo "Generating NSS config directory at $NSS_CONFIG_DIR"
-  certutil -N -d "$NSS_CONFIG_DIR" -f "$password_file"
-
-  echo "Wrapping private key into PKCS#12..."
-  echo "Wrapping key + cert into PKCS#12..."
-  openssl pkcs12 -export \
-      -inkey "$CERT_PATH_DIR/private_key.pem" \
-      -in    "$CERT_PATH_DIR/cert.pem" \
-      -name  "mar_sig" \
-      -passout pass:"$ZEN_MAR_SIGNING_PASSWORD" \
-      -out   "$CERT_PATH_DIR/private_key.p12"
-
-  echo "Importing PKCS#12 into NSS database..."
-  pk12util \
-      -i "$CERT_PATH_DIR/private_key.p12" \
-      -d "$NSS_CONFIG_DIR" \
-      -W "$ZEN_MAR_SIGNING_PASSWORD" \
-      -K "$ZEN_MAR_SIGNING_PASSWORD"
-}
-
-cleanup_certs() {
-  rm -rf "$NSS_CONFIG_DIR"
-  rm -rf "$CERT_PATH_DIR/env"
-
-  rm -f "$CERT_PATH_DIR/private_key.p12"
-  rm -f "$CERT_PATH_DIR/private_key.pem"
-  rm -f "$CERT_PATH_DIR/cert.pem"
+  for file in "${primary_dests[@]}"; do
+    echo "Copying $primary to $file"
+    cp "$primary" "$file"
+  done
+  for file in "${backup_dests[@]}"; do
+    echo "Copying $backup to $file"
+    cp "$backup" "$file"
+  done
+  echo "Done. Rebuild the updater to embed primary + backup public keys."
 }
 
 update_manifests() {
+  local xml_roots=()
+  local mar_file
   mar_file=$(basename "$1")
+  if [ -d "dist/update" ]; then
+    xml_roots+=("dist/update")
+  fi
   if [[ "$mar_file" == "linux.mar" ]]; then
-    manifest="linux_update_manifest_x86_64"
+    xml_roots+=("linux_update_manifest_x86_64")
   elif [[ "$mar_file" == "linux-aarch64.mar" ]]; then
-    manifest="linux_update_manifest_aarch64"
+    xml_roots+=("linux_update_manifest_aarch64")
   elif [[ "$mar_file" == "windows.mar" ]]; then
-    manifest=".github/workflows/object/windows-x64-signed-x86_64/update_manifest"
-    if [ ! -d "$manifest" ]; then
-      manifest="windows_update_manifest_x86_64"
-    fi
+    xml_roots+=(".github/workflows/object/windows-x64-signed-x86_64/update_manifest")
+    xml_roots+=("windows_update_manifest_x86_64")
   elif [[ "$mar_file" == "windows-arm64.mar" ]]; then
-    manifest=".github/workflows/object/windows-x64-signed-arm64/update_manifest"
-    if [ ! -d "$manifest" ]; then
-      manifest="windows_update_manifest_arm64"
-    fi
+    xml_roots+=(".github/workflows/object/windows-x64-signed-arm64/update_manifest")
+    xml_roots+=("windows_update_manifest_arm64")
   elif [[ "$mar_file" == "macos.mar" ]]; then
-    manifest="macos_update_manifest"
-  else
-    echo "Unknown MAR file name format: $mar_file. Skipping manifest update." >&2
+    xml_roots+=("macos_update_manifest")
+  fi
+  local args=()
+  local root
+  for root in "${xml_roots[@]}"; do
+    if [ -e "$root" ]; then
+      args+=(--refresh-xml "$root")
+    fi
+  done
+  if [ "${#args[@]}" -gt 0 ]; then
+    "$PYTHON" scripts/mar_sign_openssl.py --refresh-only --sign "$1" "${args[@]}"
+  fi
+}
+
+sign_one() {
+  local mar="$1"
+  if [ ! -f "$mar" ]; then
+    echo "Error: MAR not found: $mar" >&2
     exit 1
   fi
-  # There can be any update.xml file, lets just recursively search for the one
-  manifest_files=$(find "$manifest" -type f -name "update.xml")
-  for manifest_file in $manifest_files; do
-    # Example manifest:
-    #  <update type="minor" displayVersion="..." appVersion="..." platformVersion="..." buildID="...">
-    #      <patch type="complete" URL="..." hashFunction="sha512" hashValue="..." size="..."/>
-    #    </update>
-    #  </updates>
-    # When signing the mar, hashValue and size will change, so we need to update the manifest with 
-    # the new values. We can get the new values by running "mar -i signed_mar_file.mar"
-    echo "Updating manifest $manifest_file with new hash and size for $mar_file"
-    size=$(wc -c < "$1" | tr -d ' ')
-    hashValue=$(sha512sum "$1" | awk '{print $1}')
-    # Update the manifest with the new values. We can use sed to do this.
-    # We need to find the line that contains the URL of the mar file, and update the hashValue and size attributes in the same <patch> element.
-    old_hashValue=$(grep -oP 'hashValue="\K[^"]+' "$manifest_file")
-    old_size=$(grep -oP 'size="\K[^"]+' "$manifest_file")
-    if [ -z "$old_hashValue" ] || [ -z "$old_size" ]; then
-      echo "Could not find old hashValue or size in manifest. Skipping manifest update." >&2
-      exit 1
-    fi
-    echo "Old hashValue: $old_hashValue, Old size: $old_size"
-    echo "New hashValue: $hashValue, New size: $size"
-    sed -i.bak "s/hashValue=\"$old_hashValue\"/hashValue=\"$hashValue\"/g; s/size=\"$old_size\"/size=\"$size\"/g" "$manifest_file"
-    rm "$manifest_file.bak"
-    echo "Manifest updated with new hashValue and size for $mar_file"
-  done
+  echo ""
+  echo "Signing $mar with primary key (RSA-PKCS1-SHA384)..."
+  "$PYTHON" scripts/mar_sign_openssl.py \
+      --sign "$mar" \
+      --key-b64-env ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 \
+      --cert "$CERT_PATH_DIR/release_primary.crt"
+}
+
+require_private_key() {
+  if [ -n "${ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64:-}" ]; then
+    return 0
+  fi
+  local local_key="$PRIVATE_DIR/astra_mar_signing_primary.key"
+  if [ -f "$local_key" ]; then
+    echo "ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 unset; using local gitignored $local_key"
+    ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64="$("$PYTHON" -c "import base64,pathlib; print(base64.b64encode(pathlib.Path(r'''$local_key''').read_bytes()).decode())")"
+    export ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64
+    return 0
+  fi
+  echo "Error: ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 is missing." >&2
+  echo "Shipped updater.exe is built with MOZ_VERIFY_MAR_SIGNATURE and rejects unsigned MARs." >&2
+  echo "Add the primary private key that matches build/signing/release_primary.der." >&2
+  exit 1
 }
 
 sign_mars() {
-  if [ ! -f "$SIGNMAR" ]; then
-    echo "Error: signmar not found at $SIGNMAR. Build the engine first." >&2
-    exit 1
+  require_private_key
+
+  if [ "$#" -gt 0 ]; then
+    local mar
+    for mar in "$@"; do
+      sign_one "$mar"
+      update_manifests "$mar"
+    done
+    return 0
   fi
 
-  chmod +x "$SIGNMAR"
-
-  create_nss_config_dir
-
-  folders=(
+  local folders=(
     linux.mar
     linux-aarch64.mar
     macos.mar
   )
-
   if [ -d ".github/workflows/object/windows-x64-signed-x86_64" ]; then
     folders+=(".github/workflows/object/windows-x64-signed-x86_64")
     folders+=(".github/workflows/object/windows-x64-signed-arm64")
@@ -195,36 +194,33 @@ sign_mars() {
     folders+=("windows.mar")
     folders+=("windows-arm64.mar")
   fi
-      
-  # each folder will contain the .mar files for that platform, and the signature will be written in-place
+
+  local folder mar_file
   for folder in "${folders[@]}"; do
     if [ -d "$folder" ]; then
+      local found=0
       for mar_file in "$folder"/*.mar; do
         if [ -f "$mar_file" ]; then
-          echo ""
-          echo "Signing $mar_file..."
-          # mar [-C workingDir] -d NSSConfigDir -n certname -s archive.mar out_signed_archive.mar
-          "$SIGNMAR" -d "$NSS_CONFIG_DIR" -n "mar_sig" -s "$mar_file" "$mar_file".signed
-          echo "Signed $mar_file. Verifying signature..."
-          "$SIGNMAR" -d "$NSS_CONFIG_DIR" -n "mar_sig" -v "$mar_file".signed
-          mv "$mar_file".signed "$mar_file"
-          echo "Successfully signed $mar_file"
+          found=1
+          sign_one "$mar_file"
           update_manifests "$mar_file"
-        else
-          echo "No .mar files found in $folder, skipping."
-          exit 1
         fi
       done
+      if [ "$found" -eq 0 ]; then
+        echo "No .mar files found in $folder, skipping." >&2
+        exit 1
+      fi
+    elif [ -f "$folder" ]; then
+      sign_one "$folder"
+      update_manifests "$folder"
     else
-      echo "Directory $folder not found, skipping."
+      echo "Directory $folder not found, skipping." >&2
       exit 1
     fi
   done
-
-  cleanup_certs
 }
 
-case "$1" in
+case "${1:-}" in
   -g)
     generate_certs
     ;;
@@ -232,13 +228,14 @@ case "$1" in
     import_cert
     ;;
   -s)
-    sign_mars
+    shift
+    sign_mars "$@"
     ;;
   *)
-    echo "Usage: $0 [-g] [-i] [-s]" >&2
-    echo "  -g    Generate MAR signing certificates" >&2
-    echo "  -i    Import the certificate into the updater (release_primary.der)" >&2
-    echo "  -s    Sign *.mar files in the current directory in-place" >&2
+    echo "Usage: $0 [-g] [-i] [-s [mar ...]]" >&2
+    echo "  -g    Generate primary + backup MAR signing certificates" >&2
+    echo "  -i    Import public DERs into the updater (release_primary + release_secondary)" >&2
+    echo "  -s    Sign the given MAR(s), or the default platform artifacts" >&2
     exit 1
     ;;
 esac

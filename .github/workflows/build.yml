@@ -62,11 +62,18 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Fail closed if Pages publish is paused
+        if: ${{ inputs.create_release }}
+        run: python3 scripts/ci_guard_update_publish.py --brand "${{ inputs.update_branch }}" --check-pause-only
+
       - id: get
         shell: bash -xe {0}
         run: |
-          bdat=`date +"%Y%m%d%I%M%S"`
+          bdat=`date -u +"%Y%m%d%H%M%S"`
           echo "bid=${bdat}" >> $GITHUB_OUTPUT
+          python3 scripts/assert_buildid_monotonic.py --new-buildid "${bdat}" \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc-x64/${{ inputs.update_branch }}/update.xml" \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_x86_64-gcc3/${{ inputs.update_branch }}/update.xml"
 
       - name: Debug
         run: |
@@ -152,12 +159,12 @@ jobs:
           npm i -g @zen-browser/surfer
 
       - name: Bump version
-        if: ${{ inputs.update_version && inputs.update_branch == 'release' }}
+        if: ${{ inputs.update_branch == 'release' && (inputs.update_version || inputs.create_release) }}
         run: |
           npm run surfer -- ci --brand ${{ inputs.update_branch }} --bump prerelease
 
       - name: Bump version without new version
-        if: ${{ !inputs.update_version || inputs.update_branch == 'twilight' }}
+        if: ${{ inputs.update_branch == 'twilight' || !(inputs.update_version || inputs.create_release) }}
         run: |
           npm run surfer -- ci --brand ${{ inputs.update_branch }}
 
@@ -177,7 +184,7 @@ jobs:
 
       - name: Commit
         uses: stefanzweifel/git-auto-commit-action@v5
-        if: ${{ inputs.update_version }}
+        if: ${{ inputs.update_branch == 'release' && (inputs.update_version || inputs.create_release) }}
         with:
           commit_message: 🔖 Update version to ${{ steps.data.outputs.version }}
           commit_user_name: Astra Browser Robot
@@ -528,6 +535,33 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
 
+      - name: Sign MARs
+        env:
+          RELEASE_BRANCH: ${{ inputs.update_branch }}
+          ZEN_SIGNING_CERT_PEM_BASE64: ${{ secrets.ZEN_SIGNING_CERT_PEM_BASE64 }}
+          ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64: ${{ secrets.ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 }}
+          ZEN_MAR_SIGNING_PASSWORD: ${{ secrets.ZEN_MAR_SIGNING_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64:-}" ]]; then
+            echo "::error::ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 secret is missing."
+            echo "Shipped updater.exe is built with MOZ_VERIFY_MAR_SIGNATURE and rejects unsigned MARs (CERT_VERIFY_ERROR 19 / 'There must be at least one signature')."
+            echo "Add the primary private key that matches build/signing/release_primary.der (CN=Astra MAR Signing Primary)."
+            exit 1
+          fi
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools openssl
+          SIGNMAR="$(find . -type f \( -name signmar -o -name signmar.exe \) | head -1 || true)"
+          if [[ -z "${SIGNMAR}" ]]; then
+            echo "::error::signmar binary not found in downloaded artifacts"
+            find . -iname '*signmar*' -o -iname 'signmar' | head -50 || true
+            exit 1
+          fi
+          chmod +x "${SIGNMAR}"
+          export SIGNMAR
+          bash scripts/mar_sign.sh -s
+          bash scripts/mar_verify.sh
+
       - name: Checkout updates repository
         uses: actions/checkout@v4
         with:
@@ -536,6 +570,27 @@ jobs:
           path: updates-server
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
+
+      - name: Guard MAR channel, buildID monotonicity, and pause switch
+        env:
+          RELEASE_BRANCH: ${{ inputs.update_branch }}
+        run: |
+          set -euo pipefail
+          NEW_BUILDID="${{ needs.buildid.outputs.buildids }}"
+          python3 scripts/ci_guard_update_publish.py \
+            --brand "${RELEASE_BRANCH}" \
+            --new-buildid "${NEW_BUILDID}" \
+            --require-mars \
+            --search windows.mar \
+            --search windows-arm64.mar \
+            --search linux.mar \
+            --search linux-aarch64.mar \
+            --search macos.mar \
+            --search . \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc-x64/${RELEASE_BRANCH}/update.xml" \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc/${RELEASE_BRANCH}/update.xml" \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_x86_64-gcc3/${RELEASE_BRANCH}/update.xml" \
+            --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_aarch64-gcc3/${RELEASE_BRANCH}/update.xml"
 
       - name: Copy update manifests
         env:
@@ -676,6 +731,16 @@ jobs:
             ./windows-arm64.mar/*
             ./macos.mar/*
             ./zen.macos-universal.dmg/*
+
+  post-publish-header-check:
+    if: ${{ always() && !cancelled() && needs.release.result == 'success' }}
+    name: Post-publish MAR header check
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert live Pages MAR channel + signature
+        run: python3 scripts/post_publish_mar_header_check.py --brand "${{ inputs.update_branch }}"
 
   prepare-flatpak:
     if: ${{ false }}

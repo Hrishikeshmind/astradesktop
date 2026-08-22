@@ -8,11 +8,55 @@ const ZEN_UPDATE_PREF = "astra.updates.last-version";
 const ZEN_BUILD_ID_PREF = "astra.updates.last-build-id";
 const ZEN_UPDATE_SHOW = "astra.updates.show-update-notification";
 const ZEN_UPDATE_NOTIFICATION_TIMEOUT_MS = 15000;
+const ASTRA_UPDATE_LOG_PREF = "astra.updates.log-to-file";
+
+function logAstraUpdateStatus() {
+  if (!Services.prefs.getBoolPref(ASTRA_UPDATE_LOG_PREF, true)) {
+    return;
+  }
+  try {
+    const record = {
+      t: new Date().toISOString(),
+      version: Services.appinfo.version,
+      buildID: Services.appinfo.appBuildID,
+    };
+    try {
+      const um = Cc[
+        "@mozilla.org/updates/update-manager;1"
+      ].getService(Ci.nsIUpdateManager);
+      const active = um.activeUpdate;
+      if (active) {
+        record.active = {
+          state: active.state,
+          statusText: active.statusText,
+          buildID: active.buildID,
+          appVersion: active.appVersion,
+        };
+      }
+    } catch (e) {
+      record.updateManagerError = String(e);
+    }
+    const line = JSON.stringify(record) + "\n";
+    IOUtils.writeUTF8(
+      PathUtils.join(PathUtils.profileDir, "astra-update-status.log"),
+      line,
+      { append: true }
+    ).catch(e => console.warn("astra update log failed", e));
+  } catch (e) {
+    console.warn("astra update log failed", e);
+  }
+}
 
 export default function checkForZenUpdates() {
+  logAstraUpdateStatus();
   const version = Services.appinfo.version;
   const lastVersion = Services.prefs.getStringPref(ZEN_UPDATE_PREF, "");
+  // Persist current version first so subsequent launches compare correctly.
   Services.prefs.setStringPref(ZEN_UPDATE_PREF, version);
+  // First run (empty last-version): seed only — do not show "Update Complete!".
+  if (!lastVersion) {
+    return;
+  }
   if (
     version === lastVersion ||
     gZenUIManager.testingEnabled ||

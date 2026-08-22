@@ -28,10 +28,15 @@ locales/firefox-l10n/
 
 mozconfig
 
+# MAR signing private material — never commit, even transiently.
+*.key
+build/signing/private/
 build/signing/env/
 build/signing/nss_config/
 build/signing/cert.pem
 build/signing/private_key.pem
 build/signing/private_key.p12
+build/signing/*.key
+build/signing/*.p12
 
 bloat-dump.log

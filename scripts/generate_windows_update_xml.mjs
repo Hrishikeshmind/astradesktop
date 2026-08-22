@@ -76,7 +76,7 @@ function buildUpdateXml({
 }) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <updates>
-  <update type="minor" displayVersion="${xmlEscape(version)}" appVersion="${xmlEscape(version)}" platformVersion="${xmlEscape(platformVersion)}" buildID="${xmlEscape(buildID)}">
+  <update type="minor" displayVersion="${xmlEscape(version)}" appVersion="${xmlEscape(version)}" platformVersion="${xmlEscape(platformVersion)}" buildID="${xmlEscape(buildID)}" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
     <patch type="complete" URL="${xmlEscape(url)}" hashFunction="sha512" hashValue="${xmlEscape(hashValue)}" size="${xmlEscape(size)}"/>
   </update>
 </updates>

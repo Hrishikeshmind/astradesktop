@@ -283,8 +283,11 @@ jobs:
           $env:ZEN_RELEASE = "1"
           $env:ZEN_GA_DISABLE_PGO = "true"
           $env:MOZ_DISABLE_MAR_CERT_VERIFICATION = "1"
-          $env:ACCEPTED_MAR_CHANNEL_IDS = "firefox-mozilla-central"
-          $env:MAR_CHANNEL_ID = "firefox-mozilla-central"
+          # Channel IDs come from .astra/channel.env (never hardcode here).
+          $chan = python scripts/astra_channel.py --brand "${{ inputs['release-branch'] }}"
+          $env:MAR_CHANNEL_ID = $chan.Trim()
+          $env:ACCEPTED_MAR_CHANNEL_IDS = $env:MAR_CHANNEL_ID
+          Write-Host "MAR_CHANNEL_ID=$($env:MAR_CHANNEL_ID)"
           npm run package
           Write-Host "Package step completed"
           bash -c 'ls ./dist/ || true; echo "Installer check:"; ls ./dist/zen.installer.exe || echo "No installer found"'
@@ -303,11 +306,11 @@ jobs:
       - name: Create Windows MAR + update manifests
         if: ${{ !inputs['generate-gpo'] }}
         shell: bash
-        env:
-          MAR_CHANNEL_ID: firefox-mozilla-central
-          ACCEPTED_MAR_CHANNEL_IDS: firefox-mozilla-central
         run: |
           set -euo pipefail
+          eval "$(python scripts/astra_channel.py --brand "${{ inputs['release-branch'] }}" --export)"
+          export MAR_CHANNEL_ID ACCEPTED_MAR_CHANNEL_IDS
+          echo "MAR_CHANNEL_ID=${MAR_CHANNEL_ID}"
           FF_VERSION="$(node -e "const c=require('./surfer.json'); process.stdout.write(c.version.version)")"
           bash scripts/create_windows_mar.sh \
             "${{ matrix.arch }}" \
@@ -315,6 +318,25 @@ jobs:
             "${{ inputs['release-branch'] }}" \
             "${{ github.repository }}" \
             "${FF_VERSION}"
+      - name: Sign Windows MAR (primary key)
+        if: ${{ !inputs['generate-gpo'] }}
+        env:
+          ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64: ${{ secrets.ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64:-}" ]]; then
+            echo "::error::ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64 secret is missing."
+            echo "Shipped updater.exe is built with MOZ_VERIFY_MAR_SIGNATURE and rejects unsigned MARs."
+            echo "Add the primary private key that matches build/signing/release_primary.der."
+            exit 1
+          fi
+          bash scripts/mar_sign.sh -s dist/output.mar
+          python scripts/verify_mar_product_info.py dist/output.mar \
+            --brand "${{ inputs['release-branch'] }}" \
+            --assert-channel --assert-signed \
+            --verify-cert build/signing/release_primary.der \
+            --dump
 
       - name: Verify uBlock + policies inside packaged installer and zip
         if: ${{ !(inputs['generate-gpo'] && matrix.arch == 'aarch64') }}

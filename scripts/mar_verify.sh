@@ -15,7 +15,10 @@
 set -euo pipefail
 
 CERT_PATH_DIR="build/signing"
-PUBLIC_KEY_DER="$CERT_PATH_DIR/public_key.der"
+PUBLIC_KEY_DER="$CERT_PATH_DIR/release_primary.der"
+if [ ! -f "$PUBLIC_KEY_DER" ]; then
+  PUBLIC_KEY_DER="$CERT_PATH_DIR/public_key.der"
+fi
 VERIFY_NSS_DIR="$CERT_PATH_DIR/nss_verify"
 LINUX_EXTRACT_DIR="$CERT_PATH_DIR/extracted_linux"
 LINUX_ARCHIVE="zen.linux-x86_64.tar.xz/zen.linux-x86_64.tar.xz"
@@ -52,9 +55,9 @@ if [ ! -f "$PUBLIC_KEY_DER" ]; then
   exit 1
 fi
 
-EXPECTED_MAR_CHANNEL="${RELEASE_BRANCH:-}"
+EXPECTED_MAR_CHANNEL="$(python3 "$(dirname "$0")/astra_channel.py" --brand "${RELEASE_BRANCH}")"
 if [ -z "$EXPECTED_MAR_CHANNEL" ]; then
-  echo "Error: RELEASE_BRANCH environment variable is not set (expected 'release' or 'twilight')." >&2
+  echo "Error: could not resolve MAR channel for brand '$RELEASE_BRANCH' from .astra/channel.env" >&2
   exit 1
 fi
 
