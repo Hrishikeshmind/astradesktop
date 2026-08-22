@@ -7,6 +7,9 @@ console.log("Astra: zen-sets.js loaded");
 const { gZenEnergySaver } = ChromeUtils.importESModule(
   "chrome://browser/content/ZenEnergySaver.mjs"
 );
+const { gZenLowBandwidthMode } = ChromeUtils.importESModule(
+  "chrome://browser/content/ZenLowBandwidthMode.mjs"
+);
 
 function isAstraSafeUrl(url) {
   try {
@@ -534,6 +537,11 @@ document.addEventListener(
 
     window.gZenStartup?.promiseInitialized?.then(() => {
       void gZenEnergySaver.init().catch(console.warn);
+      try {
+        gZenLowBandwidthMode.init();
+      } catch (error) {
+        console.warn("[AstraLowBandwidth] init failed", error);
+      }
       // init() is idempotent: first call registers observers; later calls reapply only.
       window.gAstraTransparency?.init?.();
       window.gAstraTransparency?.onStartupReady?.();

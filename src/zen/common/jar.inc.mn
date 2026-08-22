@@ -68,6 +68,7 @@
         content/browser/ZenUpdates.mjs                                          (../../zen/common/modules/ZenUpdates.mjs)
         content/browser/ZenUIManager.mjs                                        (../../zen/common/modules/ZenUIManager.mjs)
         content/browser/ZenEnergySaver.mjs                                      (../../zen/common/modules/ZenEnergySaver.mjs)
+        content/browser/ZenLowBandwidthMode.mjs                                 (../../zen/common/modules/ZenLowBandwidthMode.mjs)
         content/browser/zen-components/AstraTransparencyManager.mjs             (../../zen/common/modules/AstraTransparencyManager.mjs)
         content/browser/zen-components/ZenCommonUtils.mjs                       (../../zen/common/modules/ZenCommonUtils.mjs)
         content/browser/zen-components/ZenSessionStore.mjs                      (../../zen/common/modules/ZenSessionStore.mjs)

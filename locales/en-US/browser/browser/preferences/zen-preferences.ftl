@@ -49,17 +49,16 @@ zen-look-and-feel-compact-toolbar-flash-popup =
     .label = Briefly make the toolbar popup when switching or opening new tabs in compact mode
 
 zen-low-bandwidth-mode-header = Low Bandwidth Mode
-zen-low-bandwidth-mode-description = Reduces animations and visual effects to improve responsiveness on slower connections or lower-end devices.
+zen-low-bandwidth-mode-description =
+    When on, Astra blocks autoplay, skips extra web-font downloads (uses system fonts), and sends a Save-Data request header so cooperating sites can serve lighter pages. That header is a hint — sites may ignore it. Image blocking is optional and uses Firefox’s per-site image permission (allow a site from the padlock).
 zen-low-bandwidth-mode-enabled =
     .label = Enable Low Bandwidth Mode
 zen-low-bandwidth-mode-block-autoplay =
     .label = Block autoplay media
 zen-low-bandwidth-mode-block-images =
-    .label = Block website images to save data
+    .label = Block website images (allow a site from the padlock if needed)
 zen-low-bandwidth-mode-block-fonts =
-    .label = Replace web fonts with system fonts
-zen-low-bandwidth-mode-lazy-loading =
-    .label = Prefer lazy-loading for page images
+    .label = Skip extra web fonts and use system fonts
 zen-tab-unloader-auto-unload-inactive =
     .label = Auto-unload inactive background tabs (memory saver)
 zen-tab-unloader-aggressiveness-label = Smart suspension mode
@@ -107,9 +106,9 @@ zen-privacy-presets-header = Privacy Presets
 zen-privacy-presets-description = Choose a simple privacy level. You can still customize advanced privacy settings separately.
 zen-privacy-presets-label = Preset
 zen-privacy-presets-balanced =
-    .label = Balanced (Default)
+    .label = Balanced
 zen-privacy-presets-strict =
-    .label = Strict
+    .label = Strict (Default)
 zen-privacy-presets-maximum =
     .label = Maximum
 

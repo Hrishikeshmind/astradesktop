@@ -81,7 +81,8 @@ export default function checkForZenUpdates() {
         icon: "chrome://browser/skin/zen-icons/sparkles.svg",
       },
       {
-        url: "https://www.zen-browser.app/donate",
+        // Stopgap until astra-browser.app marketing/donate exists.
+        url: "https://github.com/Hrishikeshmind/astradesktop",
         l10nId: "zen-sidebar-notification-donate",
         icon: "chrome://browser/skin/zen-icons/heart-circle-fill.svg",
       },

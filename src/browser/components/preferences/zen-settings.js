@@ -701,6 +701,7 @@ var gZenLooksAndFeel = {
     gZenPrivacyPresets.init();
     gZenRecommendedExtensions.init();
     hideAstraConsumerPoliciesNotice();
+    this._bindLowBandwidthSection();
   },
 
   observe() {
@@ -747,6 +748,42 @@ var gZenLooksAndFeel = {
         Services.prefs.setBoolPref(kZenSingleToolbar, layout.getAttribute("layout") == "single");
       });
     }
+  },
+
+  _bindLowBandwidthSection() {
+    const childIds = [
+      "zenLowBandwidthModeBlockAutoplay",
+      "zenLowBandwidthModeBlockImages",
+      "zenLowBandwidthModeBlockFonts",
+    ];
+    const sync = () => {
+      const on = Services.prefs.getBoolPref(
+        "zen.performance.low-bandwidth-mode.enabled",
+        false
+      );
+      for (const id of childIds) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.disabled = !on;
+        }
+      }
+    };
+    sync();
+    const observer = () => sync();
+    Services.prefs.addObserver(
+      "zen.performance.low-bandwidth-mode.enabled",
+      observer
+    );
+    window.addEventListener(
+      "unload",
+      () => {
+        Services.prefs.removeObserver(
+          "zen.performance.low-bandwidth-mode.enabled",
+          observer
+        );
+      },
+      { once: true }
+    );
   },
 };
 
@@ -936,30 +973,42 @@ var gZenPrivacyPresets = {
       return;
     }
     this.__hasInitialized = true;
-    Services.prefs.addObserver(this._pref, this);
+    // Apply only when the user changes the menulist. Calling apply() on pane
+    // init used to rewrite tracking prefs to the "balanced" preset and undo
+    // Astra's strict ETP defaults from prefs/firefox/browser.yaml.
+    const list = document.getElementById("zenPrivacyPreset");
+    if (Services.prefs.getPrefType(this._pref) === Services.prefs.PREF_INVALID) {
+      Services.prefs.setStringPref(this._pref, "strict");
+    }
+    const preset = Services.prefs.getStringPref(this._pref, "strict");
+    if (list && list.value !== preset) {
+      list.value = preset;
+    }
+    list?.addEventListener("command", () => this.apply());
     window.addEventListener("unload", () => {
-      Services.prefs.removeObserver(this._pref, this);
       this.__hasInitialized = false;
     });
-    this.apply();
   },
 
   observe() {
-    this.apply();
+    // Tracking prefs are applied only from the menulist command handler.
   },
 
   apply() {
-    const preset = Services.prefs.getStringPref(this._pref, "balanced");
+    const list = document.getElementById("zenPrivacyPreset");
+    const preset =
+      (list && list.value) ||
+      Services.prefs.getStringPref(this._pref, "strict");
     switch (preset) {
-      case "strict":
-        this._applyStrict();
-        break;
       case "maximum":
         this._applyMaximum();
         break;
       case "balanced":
-      default:
         this._applyBalanced();
+        break;
+      case "strict":
+      default:
+        this._applyStrict();
         break;
     }
   },
@@ -1617,14 +1666,9 @@ Preferences.addAll([
     default: true,
   },
   {
-    id: "zen.performance.low-bandwidth-mode.lazy-loading",
-    type: "bool",
-    default: true,
-  },
-  {
     id: "zen.privacy.preset",
     type: "string",
-    default: "balanced",
+    default: "strict",
   },
   {
     id: "zen.window-sync.sync-only-pinned-tabs",

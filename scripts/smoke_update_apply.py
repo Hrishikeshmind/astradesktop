@@ -81,6 +81,11 @@ Services.prefs.setBoolPref('app.update.auto', false);
 Services.prefs.setBoolPref('app.update.staging.enabled', true);
 Services.prefs.setBoolPref('app.update.log', true);
 Services.prefs.setBoolPref('app.update.disabledForTesting', false);
+// Official branding bakes app.update.url; override-alone was ignored on 153.
+// Pin both prefs to the local AUS before the checker runs.
+const LOCAL_AUS = '__LOCAL_AUS__';
+Services.prefs.setCharPref('app.update.url', LOCAL_AUS);
+Services.prefs.setCharPref('app.update.url.override', LOCAL_AUS);
 
 let aus = Cc['@mozilla.org/updates/update-service;1'].getService(Ci.nsIApplicationUpdateService);
 const checker = Cc['@mozilla.org/updates/update-checker;1'].getService(Ci.nsIUpdateChecker);
@@ -104,6 +109,19 @@ try {
   updateURL = (maybe && typeof maybe.then === 'function') ? waitPromise(maybe, 30000) : maybe;
 } catch (e) {
   updateURL = 'err:' + e;
+}
+if (String(updateURL).indexOf('127.0.0.1') < 0) {
+  let policies = {};
+  try { policies = Services.policies.getActivePolicies(); } catch (e) {}
+  return {
+    phase: 'check',
+    updateURL,
+    appinfoUpdateURL: String(Services.appinfo.updateURL || ''),
+    prefUrl: Services.prefs.getCharPref('app.update.url', ''),
+    prefOverride: Services.prefs.getCharPref('app.update.url.override', ''),
+    policyAppUpdateURL: policies.AppUpdateURL ? String(policies.AppUpdateURL) : null,
+    error: 'checker is not using local AUS; refusing to download a live MAR',
+  };
 }
 
 let checkResult;
@@ -212,6 +230,25 @@ def write_update_xml(dest: Path, version: str, platform_version: str, build_id: 
     dest.write_text(xml, encoding="utf-8")
 
 
+def pin_local_aus_policy(install_dir: Path, url: str) -> Path:
+    """Firefox 153 CheckerService uses Services.appinfo.updateURL, then
+    policies.AppUpdateURL. Prefs (app.update.url / .override) are ignored.
+    Pin the enterprise policy so the real checker hits local AUS.
+    """
+    dest = install_dir / "distribution" / "policies.json"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    data: dict = {"policies": {}}
+    if dest.is_file():
+        try:
+            data = json.loads(dest.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            data = {"policies": {}}
+    policies = data.setdefault("policies", {})
+    policies["AppUpdateURL"] = url
+    dest.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return dest
+
+
 def collect_update_logs(install_dir: Path) -> dict[str, str]:
     logs = {}
     for pattern in ("updates/**/update.log", "updates/last-update.log", "update.log"):
@@ -240,6 +277,7 @@ def launch(exe: Path, profile: Path, port: int, override_url: str = "") -> subpr
         'user_pref("astra.updates.log-to-file", true);',
     ]
     if override_url:
+        lines.append(f'user_pref("app.update.url", "{override_url}");')
         lines.append(f'user_pref("app.update.url.override", "{override_url}");')
     (profile / "user.js").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return subprocess.Popen(
@@ -349,6 +387,11 @@ def main() -> int:
         ini.write_text(text, encoding="utf-8")
         report["rewroteAppUpdateURL"] = True
         override_url = f"http://127.0.0.1:{args.aus_port}/browser/%BUILD_TARGET%/%CHANNEL%/update.xml"
+        concrete = (
+            f"http://127.0.0.1:{args.aus_port}/browser/WINNT_x86_64-msvc-x64/release/update.xml"
+        )
+        pin_local_aus_policy(install_dir, concrete)
+        report["pinnedAppUpdateURLPolicy"] = concrete
     else:
         override_url = args.live_xml
 
@@ -364,7 +407,11 @@ def main() -> int:
             report["error"] = "client already at expected buildID; this is not an existing-install upgrade"
             print(json.dumps(report, indent=2))
             return 1
-        report["cycle"] = m.ex(APPLY_CYCLE, timeout=700)
+        cycle_js = APPLY_CYCLE.replace(
+            "__LOCAL_AUS__",
+            f"http://127.0.0.1:{args.aus_port}/browser/WINNT_x86_64-msvc-x64/release/update.xml",
+        )
+        report["cycle"] = m.ex(cycle_js, timeout=700)
         try:
             m.ex(
                 "try { Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit); } catch (e) { try { window.close(); } catch (e2) {} } return true;",
@@ -379,6 +426,17 @@ def main() -> int:
 
         time.sleep(3)
         report["updateLogsAfterDownload"] = collect_update_logs(install_dir)
+        # Staged Windows applies leave <install>/updated/ then swap on next start.
+        deadline = time.time() + 180
+        updated_ini = install_dir / "updated" / "application.ini"
+        while time.time() < deadline:
+            if updated_ini.is_file():
+                report["stagedUpdatedIni"] = updated_ini.read_text(
+                    encoding="utf-8", errors="replace"
+                )
+                break
+            time.sleep(2)
+        time.sleep(8)
 
         proc2 = launch(exe, profile, args.port, override_url=override_url)
         report["pid2"] = proc2.pid

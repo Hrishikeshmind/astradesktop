@@ -86,6 +86,7 @@
 
 - name: app.normandy.enabled
   value: false
+  locked: true
 
 - name: app.normandy.api_url
   value: ""
@@ -253,3 +254,8 @@
 # Astra: Disable media autoplay completely
 - name: media.autoplay.blocking_policy
   value: 2
+
+# Match prefs/firefox/browser.yaml strict ETP. "balanced" remains available
+# in Look and Feel; do not default to it or opening Settings undoes strict.
+- name: zen.privacy.preset
+  value: "strict"

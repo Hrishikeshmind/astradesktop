@@ -95,10 +95,9 @@
 - name: zen.theme.border-radius
   value: -1
 
-# Opt-in via Looks and Feel. Default false so normal profiles keep Zen/Firefox
-# transitions and animations (the previous true default zeroed all motion and
-# made chrome feel abrupt). Energy Saver and prefers-reduced-motion remain
-# separate reduced-motion paths.
+# Opt-in via Looks and Feel. Enabling applies verified Gecko 153 levers:
+# autoplay block, optional image permission deny, skip downloadable fonts,
+# and a Save-Data request header. See ZenLowBandwidthMode.mjs.
 - name: zen.performance.low-bandwidth-mode.enabled
   value: false
 
@@ -109,9 +108,6 @@
   value: true
 
 - name: zen.performance.low-bandwidth-mode.block-fonts
-  value: true
-
-- name: zen.performance.low-bandwidth-mode.lazy-loading
   value: true
 
 - name: zen.view.hide-window-controls
