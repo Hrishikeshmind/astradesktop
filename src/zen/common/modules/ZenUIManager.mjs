@@ -320,12 +320,11 @@ window.gZenUIManager = {
    * Widgets parked in #widget-overflow-list against zero width stay parked
    * because OverflowableToolbar only re-checks on window resize. Dispatch a
    * synthetic resize so every overflowable toolbar re-measures with real
-   * widths. Compact Mode is pinned (overflows="false") so it always stays in
-   * the sidebar strip. In Only Sidebar, App Hub / Suraksha are shortcut-only
-   * (no dedicated strip button) so Back/Forward/Reload keep a dedicated
-   * non-overlapping spot; other layouts keep their visible App Hub/Suraksha
-   * buttons. If Compact Mode was already parked from an older profile, pull
-   * it back onto the strip.
+   * widths. Compact Mode is pinned (overflows="false"). In Only Sidebar it
+   * lives in the sidebar footer; App Hub / Suraksha are shortcut-only so
+   * Back/Forward/Reload + AI keep a dedicated non-overlapping spot. Other
+   * layouts keep Compact / App Hub / Suraksha in the top strip. If Compact
+   * was already parked from an older profile, pull it back onto chrome.
    */
   async settleToolbarOverflow() {
     document.getElementById("navigator-toolbox")?.getBoundingClientRect();
@@ -333,30 +332,13 @@ window.gZenUIManager = {
     const compact = document.getElementById("zen-toggle-compact-mode");
     if (compact) {
       compact.setAttribute("overflows", "false");
-      const target = document.getElementById(
-        "zen-sidebar-top-buttons-customization-target"
-      );
+      compact.removeAttribute("hidden");
       const parked =
         compact.parentElement?.id === "widget-overflow-list" ||
         compact.getAttribute("overflowedItem") === "true";
-      if (parked && target) {
+      if (parked) {
         compact.removeAttribute("overflowedItem");
         compact.removeAttribute("cui-anchorid");
-        const separator = document.getElementById(
-          "zen-sidebar-top-buttons-separator"
-        );
-        try {
-          if (separator && target.contains(separator)) {
-            target.insertBefore(compact, separator);
-          } else {
-            target.prepend(compact);
-          }
-        } catch (e) {
-          console.warn(
-            "[Astra] Failed to restore Compact Mode from overflow:",
-            e
-          );
-        }
       }
     }
 
@@ -1141,11 +1123,12 @@ window.gZenVerticalTabsManager = {
 
   /**
    * Only Sidebar (zen-single-toolbar) is too narrow for Compact + App Hub +
-   * Suraksha + Back/Forward/Reload + the » chevron. Prefer navigation: hide
-   * App Hub / Suraksha dedicated strip buttons (Ctrl+Shift+U / Ctrl+Shift+I
-   * still open them) and pin Back/Forward/Reload so they cannot park under ».
-   * Pin the Only-Sidebar AI toggle after Reload. Sidebar+Top Toolbar and
-   * Collapsed keep their visible App Hub/Suraksha and never show this button.
+   * Suraksha + Back/Forward/Reload + AI in one 186px row. Prefer navigation:
+   * hide App Hub / Suraksha dedicated strip buttons (Ctrl+Shift+U /
+   * Ctrl+Shift+I still open them), move Compact to the sidebar footer next
+   * to the theme toggle, and pin Back/Forward/Reload + AI so they cannot
+   * park under ». Sidebar+Top Toolbar and Collapsed keep Compact / App Hub
+   * / Suraksha in the top strip and never show the AI strip button.
    */
   _restoreWidgetToSidebarStrip(el) {
     if (!el) {
@@ -1220,7 +1203,9 @@ window.gZenVerticalTabsManager = {
         }
       }
       this._placeOnlySidebarAiButton(target);
+      this._placeOnlySidebarCompactToggle(true);
     } else {
+      this._placeOnlySidebarCompactToggle(false);
       for (const id of hubIds) {
         const el = document.getElementById(id);
         if (!el?.hasAttribute("astra-only-sidebar-shortcut-only")) {
@@ -1277,6 +1262,64 @@ window.gZenVerticalTabsManager = {
     }
     const btn = document.getElementById("astra-ai-sidebar-toolbarbutton");
     btn?.removeAttribute("checked");
+  },
+
+  /**
+   * Only Sidebar: Compact sits in the footer next to the theme toggle so the
+   * 186px nav strip is Back / Forward / Reload / AI only. Other layouts keep
+   * Compact as the first icon in the top strip.
+   */
+  _placeOnlySidebarCompactToggle(enable) {
+    const compact = document.getElementById("zen-toggle-compact-mode");
+    if (!compact) {
+      return;
+    }
+    compact.setAttribute("overflows", "false");
+    compact.removeAttribute("hidden");
+    compact.removeAttribute("astra-only-sidebar-noop");
+    compact.removeAttribute("overflowedItem");
+    compact.removeAttribute("cui-anchorid");
+    if (enable) {
+      compact.setAttribute("astra-only-sidebar-footer", "true");
+      const foot = document.getElementById("zen-sidebar-foot-buttons");
+      if (!foot) {
+        return;
+      }
+      const scheme = document.getElementById("zen-toggle-window-scheme");
+      try {
+        if (scheme && foot.contains(scheme)) {
+          foot.insertBefore(compact, scheme);
+        } else if (!foot.contains(compact)) {
+          foot.prepend(compact);
+        }
+      } catch (e) {
+        console.warn(
+          "[Astra] Failed to move Compact Mode to sidebar footer:",
+          e
+        );
+      }
+    } else {
+      compact.removeAttribute("astra-only-sidebar-footer");
+      this._restoreWidgetToSidebarStrip(compact);
+      const target = document.getElementById(
+        "zen-sidebar-top-buttons-customization-target"
+      );
+      const separator = this._topButtonsSeparatorElement;
+      if (
+        target?.contains(compact) &&
+        separator &&
+        target.contains(separator)
+      ) {
+        try {
+          target.insertBefore(compact, separator);
+        } catch (e) {
+          console.warn(
+            "[Astra] Failed to restore Compact Mode to top strip:",
+            e
+          );
+        }
+      }
+    }
   },
 
   _initOnlySidebarAiButton() {
@@ -1698,7 +1741,8 @@ window.gZenVerticalTabsManager = {
         const panelUIButton = document.getElementById("PanelUI-button");
         buttonsTarget.prepend(panelUIButton);
         panelUIButton.setAttribute("overflows", "false");
-        // Compact Mode must stay visible in Only Sidebar — never park in » .
+        // Compact Mode lives in the sidebar footer in Only Sidebar so the
+        // 186px nav strip can hold Back / Forward / Reload / AI.
         document
           .getElementById("zen-toggle-compact-mode")
           ?.setAttribute("overflows", "false");

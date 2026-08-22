@@ -39,16 +39,59 @@
     0 4px 18px rgba(0, 0, 0, 0.65)
   );
 
-  /* Only Sidebar: the drag strip is redundant — nav lives in the sidebar. */
+  /* Only Sidebar: no full top toolbar (urlbar lives in the sidebar). Keep a
+   * top-right caption hit-zone so min/max/close remain reachable when Compact
+   * has tucked the sidebar. Full-width phantom toolbars must not appear. */
   &[zen-single-toolbar='true'] #zen-appcontent-navbar-wrapper {
-    min-height: 0 !important;
-    height: 0 !important;
-    max-height: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: auto;
+    width: 150px;
+    height: var(--zen-compact-top-hit-zone);
+    min-height: var(--zen-compact-top-hit-zone);
+    max-height: var(--zen-compact-top-hit-zone);
     margin: 0 !important;
-    overflow: hidden !important;
-    -moz-window-dragging: no-drag;
+    overflow: visible;
+    pointer-events: auto;
+    z-index: calc(var(--zen-compact-toolbar-overlay-z) + 2);
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    -moz-window-dragging: drag;
+
+    & #zen-appcontent-navbar-container {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    & #nav-bar,
+    & #urlbar-container,
+    & #PersonalToolbar {
+      display: none !important;
+    }
+
+    &:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]) {
+      height: var(--zen-toolbar-height, 38px);
+      min-height: var(--zen-toolbar-height, 38px);
+      max-height: none;
+      background: var(--zen-compact-toolbar-overlay-bg) !important;
+      backdrop-filter: blur(18px) saturate(120%);
+      border-bottom-left-radius: var(--zen-native-inner-radius);
+      box-shadow: var(--zen-compact-toolbar-overlay-drop);
+      border: 1px solid var(--zen-compact-toolbar-overlay-border);
+      border-top: none;
+      border-right: none;
+      -moz-window-dragging: no-drag;
+
+      & #zen-appcontent-navbar-container {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        background: transparent !important;
+      }
+    }
   }
 
   /* Sidebar+Top Toolbar / Collapsed: zero footprint + hover overlay. */
@@ -165,4 +208,203 @@
   & #zen-appcontent-wrapper {
     margin-top: 0 !important;
   }
+}
+
+/* ==========================================================================
+   Part C — Compact flyout card, edge rail, toggle states
+   Hidden: the toolbox parks fully off-screen so it cannot paint a blank
+   186px slab over the page. A thin left-edge rail is the only rest affordance.
+   Revealed: floating card inset by --zen-element-separation with Astra's
+   existing radius + shadow tokens — not a flush full-height overlay.
+   ========================================================================== */
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']) {
+  --zen-compact-card-inset: var(--zen-element-separation, 8px);
+  --zen-compact-edge-rail: 3px;
+}
+
+/* Edge rail — only while the sidebar is actually tucked. */
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):not(
+  :has(
+    #navigator-toolbox:is(
+      [zen-has-hover],
+      [zen-user-show],
+      [flash-popup],
+      [has-popup-menu],
+      [movingtab],
+      [zen-compact-mode-active],
+      [astra-compact-panel-lock]
+    )
+  )
+) {
+  & #browser::after {
+    content: '';
+    position: fixed;
+    top: 18%;
+    height: 64%;
+    width: 4px;
+    z-index: 20;
+    pointer-events: none;
+    border-radius: 4px;
+    background: light-dark(
+      color-mix(in srgb, var(--zen-primary-color) 75%, black 25%),
+      color-mix(in srgb, var(--zen-primary-color) 55%, white 45%)
+    );
+    opacity: 0.9;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--zen-primary-color) 45%, transparent);
+    transition: opacity 0.15s ease, width 0.15s ease;
+  }
+
+  &[zen-right-side='true'] #browser::after {
+    left: auto;
+    right: 2px;
+  }
+
+  &:not([zen-right-side='true']) #browser::after {
+    left: 2px;
+  }
+}
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']) {
+  border-radius: var(--zen-native-inner-radius);
+  overflow: hidden;
+  transition:
+    left 0.2s ease,
+    right 0.2s ease,
+    top 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.15s ease;
+}
+
+/* Tucked: fully off-canvas. Do not leave a 4px peek that still paints. */
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']):not(
+    :is(
+      [zen-has-hover],
+      [zen-user-show],
+      [flash-popup],
+      [has-popup-menu],
+      [movingtab],
+      [zen-compact-mode-active],
+      [astra-compact-panel-lock]
+    )
+  ) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):not([zen-right-side='true'])
+  #navigator-toolbox:not([animate='true']):not(
+    :is(
+      [zen-has-hover],
+      [zen-user-show],
+      [flash-popup],
+      [has-popup-menu],
+      [movingtab],
+      [zen-compact-mode-active],
+      [astra-compact-panel-lock]
+    )
+  ) {
+  left: calc(-1 * var(--actual-zen-sidebar-width, 186px) - 24px) !important;
+  right: auto !important;
+}
+
+:root[zen-compact-mode='true'][zen-right-side='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']):not(
+    :is(
+      [zen-has-hover],
+      [zen-user-show],
+      [flash-popup],
+      [has-popup-menu],
+      [movingtab],
+      [zen-compact-mode-active],
+      [astra-compact-panel-lock]
+    )
+  ) {
+  right: calc(-1 * var(--actual-zen-sidebar-width, 186px) - 24px) !important;
+  left: auto !important;
+}
+
+/* Revealed: inset floating card so content stays readable underneath. */
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']):is(
+    [zen-has-hover],
+    [zen-user-show],
+    [flash-popup],
+    [has-popup-menu],
+    [movingtab],
+    [zen-compact-mode-active],
+    [astra-compact-panel-lock]
+  ) {
+  top: var(--zen-compact-card-inset) !important;
+  bottom: var(--zen-compact-card-inset) !important;
+  height: auto !important;
+  background: var(--zen-compact-toolbar-overlay-bg) !important;
+  box-shadow: var(--zen-big-shadow) !important;
+  border: 1px solid var(--zen-compact-toolbar-overlay-border);
+  z-index: 15;
+
+  & #titlebar {
+    visibility: visible !important;
+  }
+
+  & .zen-toolbar-background {
+    display: none !important;
+  }
+}
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):not([zen-right-side='true'])
+  #navigator-toolbox:not([animate='true']):is(
+    [zen-has-hover],
+    [zen-user-show],
+    [flash-popup],
+    [has-popup-menu],
+    [movingtab],
+    [zen-compact-mode-active],
+    [astra-compact-panel-lock]
+  ) {
+  left: var(--zen-compact-card-inset) !important;
+  right: auto !important;
+}
+
+:root[zen-compact-mode='true'][zen-right-side='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']):is(
+    [zen-has-hover],
+    [zen-user-show],
+    [flash-popup],
+    [has-popup-menu],
+    [movingtab],
+    [zen-compact-mode-active],
+    [astra-compact-panel-lock]
+  ) {
+  right: var(--zen-compact-card-inset) !important;
+  left: auto !important;
+}
+
+/* Compact toggle — hover / active / checked, matching other chrome buttons. */
+#zen-toggle-compact-mode,
+#zen-toggle-compact-mode > toolbarbutton {
+  transition: background-color 0.12s ease, color 0.12s ease;
+  border-radius: var(--toolbarbutton-border-radius, 6px);
+}
+
+#zen-toggle-compact-mode > toolbarbutton:hover,
+#zen-toggle-compact-mode:hover > toolbarbutton {
+  background: var(--toolbarbutton-hover-background) !important;
+}
+
+#zen-toggle-compact-mode > toolbarbutton:active,
+#zen-toggle-compact-mode > toolbarbutton[open] {
+  background: var(--toolbarbutton-active-background) !important;
+}
+
+#zen-toggle-compact-mode[checked] > toolbarbutton,
+#zen-toggle-compact-mode > toolbarbutton[checked] {
+  background: var(--toolbarbutton-active-background) !important;
+}
+
+#zen-toggle-compact-mode > toolbarbutton:focus-visible {
+  outline: 2px solid var(--focus-outline-color, var(--color-accent-primary));
+  outline-offset: 1px;
 }

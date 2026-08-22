@@ -117,7 +117,7 @@
 #astra-suraksha-button > toolbarbutton > .toolbarbutton-icon,
 #astra-suraksha-toolbarbutton .toolbarbutton-icon,
 #appMenu-astra-suraksha-button {
-  list-style-image: url("chrome://browser/skin/tracking-protection.svg");
+  list-style-image: url("tracking-protection.svg") !important;
 }
 
 #downloads-button,

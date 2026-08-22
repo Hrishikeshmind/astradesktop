@@ -38,13 +38,44 @@
  *
  * Only Sidebar space allocation: App Hub / Suraksha are shortcut-only here
  * (Ctrl+Shift+U / Ctrl+Shift+I). Hide their dedicated strip buttons so
- * Compact / Back / Forward / Reload / AI Sidebar fit the 186px row.
- * Other layouts keep visible App Hub / Suraksha and never show the AI
- * strip button. JS also sets hidden + overflows=false; CSS is the
- * layout-mode belt-and-suspenders so a late overflow settle cannot flash them.
+ * Back / Forward / Reload / AI Sidebar fit the 186px row. Compact Mode
+ * moves to the sidebar footer (next to the theme toggle). Other layouts
+ * keep visible App Hub / Suraksha (unless uBlock's toolbar icon is already
+ * showing) and never show the AI strip button. JS also sets hidden +
+ * overflows=false; CSS is the layout-mode belt-and-suspenders so a late
+ * overflow settle cannot flash them.
  */
 :root[zen-single-toolbar="true"] #zen-app-launcher-button,
 :root[zen-single-toolbar="true"] #astra-suraksha-button {
+  display: none !important;
+}
+
+/* Compact is a footer control in Only Sidebar — never occupy the 186px nav
+ * strip, even if CustomizableUI briefly parks it there. */
+:root[zen-single-toolbar="true"] #zen-sidebar-top-buttons #zen-toggle-compact-mode {
+  display: none !important;
+}
+
+:root[zen-single-toolbar="true"] #zen-sidebar-foot-buttons #zen-toggle-compact-mode {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * Suraksha toolbar icon is redundant when uBlock Origin's browser-action is
+ * already visible (nav-bar or sidebar strip). App Menu + Ctrl+Shift+I remain.
+ * :has() matches a non-hidden, non-overflowed uBlock action anywhere in chrome.
+ */
+:root:has(
+  .webextension-browser-action[data-extensionid="uBlock0@raymondhill.net"]:not([hidden]):not([overflowedItem="true"])
+) #astra-suraksha-button,
+:root:has(
+  #ublock0_raymondhill_net-browser-action:not([hidden]):not([overflowedItem="true"])
+) #astra-suraksha-button,
+:root:has(
+  #ublock0_raymondhill_net-BAP:not([hidden]):not([overflowedItem="true"])
+) #astra-suraksha-button {
   display: none !important;
 }
 
@@ -60,9 +91,9 @@
 }
 
 /* Firefox Sidebars launcher + extension actions already overflowed the 186px
- * strip (clipped). Hide them here so Compact / Back / Forward / Reload / AI
- * fit on one row. Extensions stay in the app menu; the launcher is unused
- * because this layout opens AI directly. */
+ * strip (clipped). Hide them here so Back / Forward / Reload / AI fit on
+ * one row. Extensions stay in the app menu; the launcher is unused because
+ * this layout opens AI directly. Compact lives in the footer. */
 :root[zen-single-toolbar="true"] #zen-sidebar-top-buttons #sidebar-button,
 :root[zen-single-toolbar="true"] #zen-sidebar-top-buttons .webextension-browser-action,
 :root[zen-single-toolbar="true"] #zen-sidebar-top-buttons #unified-extensions-button,
@@ -70,10 +101,10 @@
   display: none !important;
 }
 
-/* Slightly tighter icon width so Compact + Back + Forward + Reload + AI fit
+/* Slightly tighter icon width so Back + Forward + Reload + AI fit
  * the real ~186px strip. Do not change --zen-toolbar-height (alignment). */
 :root[zen-single-toolbar="true"] #zen-sidebar-top-buttons-customization-target
-  > :is(#zen-toggle-compact-mode, #back-button, #forward-button, #stop-reload-button, #astra-ai-sidebar-button) {
+  > :is(#back-button, #forward-button, #stop-reload-button, #astra-ai-sidebar-button) {
   --toolbarbutton-inner-padding: 4px;
   min-width: 28px !important;
   width: 28px;
@@ -81,9 +112,25 @@
 }
 
 :root[zen-single-toolbar="true"] #zen-sidebar-top-buttons-customization-target
-  > :is(#zen-toggle-compact-mode, #stop-reload-button, #astra-ai-sidebar-button)
+  > :is(#stop-reload-button, #astra-ai-sidebar-button)
   > toolbarbutton {
   min-width: 28px !important;
   width: 28px;
   max-width: 28px;
+}
+
+/* Footer Compact + theme + downloads + new: same 28px hit target, matching
+ * the Only Sidebar top-strip scale so the row does not feel mixed. */
+:root[zen-single-toolbar="true"] #zen-sidebar-foot-buttons #zen-toggle-compact-mode,
+:root[zen-single-toolbar="true"] #zen-sidebar-foot-buttons #zen-toggle-compact-mode
+  > toolbarbutton {
+  min-width: 28px;
+  width: 28px;
+  max-width: 28px;
+}
+
+:root[zen-single-toolbar="true"] #zen-sidebar-foot-buttons {
+  gap: 5px;
+  justify-content: space-between;
+  align-items: center;
 }

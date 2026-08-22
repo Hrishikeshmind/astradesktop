@@ -239,6 +239,12 @@ window.gZenCompactModeManager = {
       // Compact Mode always auto-hides the sidebar; keep the CSS gate
       // (hide-tabbar OR single-toolbar) satisfied for every layout mode.
       Services.prefs.setBoolPref("zen.view.compact.hide-tabbar", true);
+      // Sidebar+Top Toolbar / Collapsed: collapse the top bar too (unified
+      // L-chrome). Context-menu "Just toolbar" / "Just sidebar" can still
+      // override hide-toolbar afterward. Only Sidebar never hides a top bar.
+      if (!gZenVerticalTabsManager?._hasSetSingleToolbar) {
+        Services.prefs.setBoolPref("zen.view.compact.hide-toolbar", true);
+      }
     } else {
       this._clearEdgeRevealState();
       this._clearAllPanelLocks();
@@ -567,15 +573,36 @@ window.gZenCompactModeManager = {
       "zen-context-menu-compact-mode-toggle"
     );
     const menu = document.getElementById("zen-context-menu-compact-mode");
+    const toolbarToggle = document.getElementById("zen-toggle-compact-mode");
+    const toolbarButton = toolbarToggle?.querySelector("toolbarbutton");
+    // Keep the chrome toggle in sync with Compact (footer in Only Sidebar,
+    // top strip otherwise). Never hide the control — Compact is a real mode
+    // in every layout.
+    if (toolbarToggle) {
+      toolbarToggle.removeAttribute("hidden");
+      toolbarToggle.removeAttribute("astra-only-sidebar-noop");
+      toolbarToggle.toggleAttribute("checked", this.preference);
+    }
+    if (toolbarButton) {
+      toolbarButton.toggleAttribute("checked", this.preference);
+    }
     if (!menu) {
       return;
     }
     if (isSingleToolbar) {
+      // Only Sidebar has no separate top bar, so the hide-toolbar submenu
+      // is noise. Keep a single Compact on/off item.
       menu.setAttribute("hidden", "true");
-      menu.before(menuitem);
+      if (menuitem) {
+        menuitem.removeAttribute("hidden");
+        menu.before(menuitem);
+      }
     } else {
       menu.removeAttribute("hidden");
-      menu.querySelector("menupopup").prepend(menuitem);
+      if (menuitem) {
+        menuitem.removeAttribute("hidden");
+        menu.querySelector("menupopup")?.prepend(menuitem);
+      }
     }
     const hideToolbarMenuItem = document.getElementById(
       "zen-context-menu-compact-mode-hide-toolbar"
@@ -927,10 +954,13 @@ window.gZenCompactModeManager = {
     const toggle = document.getElementById(
       "zen-context-menu-compact-mode-toggle"
     );
-    if (!toggle) {
-      return;
+    if (toggle) {
+      toggle.toggleAttribute("checked", this.preference);
     }
-    toggle.toggleAttribute("checked", this.preference);
+    const toolbarToggle = document.getElementById("zen-toggle-compact-mode");
+    const toolbarButton = toolbarToggle?.querySelector("toolbarbutton");
+    toolbarToggle?.toggleAttribute("checked", this.preference);
+    toolbarButton?.toggleAttribute("checked", this.preference);
 
     const hideTabBar = this.canHideSidebar;
     const hideToolbar = this.canHideToolbar;
@@ -940,6 +970,9 @@ window.gZenCompactModeManager = {
     const sidebarItem = document.getElementById(idName + "sidebar");
     const toolbarItem = document.getElementById(idName + "toolbar");
     const bothItem = document.getElementById(idName + "both");
+    if (!sidebarItem || !toolbarItem || !bothItem) {
+      return;
+    }
     sidebarItem.toggleAttribute("checked", !hideBoth && hideTabBar);
     toolbarItem.toggleAttribute("checked", !hideBoth && hideToolbar);
     bothItem.toggleAttribute("checked", hideBoth);
