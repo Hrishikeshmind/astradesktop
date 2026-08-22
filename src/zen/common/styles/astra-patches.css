@@ -40,29 +40,50 @@
 }
 
 /* ASTRA-FEATURE-GATE: App Hub.
-   While astra.apphub.enabled is false, hide the sidebar App Hub button and
-   any menu entries that invoke cmd_zenOpenAppLauncher. Bootstrap stays
-   loaded so flipping the pref restores UI without deleting modules/data. */
+   While astra.apphub.enabled is false, hide every chrome entry point —
+   sidebar strip, nav-bar ••• overflow (#widget-overflow-list), customize
+   palette, and command-bound menu items. Bootstrap stays loaded so
+   flipping the pref restores UI without deleting modules/data. */
 /* stylelint-disable-next-line media-query-no-invalid */
 @media not (-moz-pref("astra.apphub.enabled")) {
   #zen-app-launcher-button,
   toolbaritem#zen-app-launcher-button,
+  #widget-overflow-list #zen-app-launcher-button,
+  #widget-overflow #zen-app-launcher-button,
+  #tools-overflow-list #zen-app-launcher-button,
+  #sidebar-tools-overflow #zen-app-launcher-button,
+  toolbaritem[overflowedItem="true"]#zen-app-launcher-button,
+  toolbarpaletteitem[place="palette"] > #zen-app-launcher-button,
   toolbarbutton[command="cmd_zenOpenAppLauncher"],
+  #widget-overflow-list toolbarbutton[command="cmd_zenOpenAppLauncher"],
   menuitem[command="cmd_zenOpenAppLauncher"] {
     display: none !important;
   }
 }
 
 /* ASTRA-FEATURE-GATE: Suraksha panel.
-   While astra.suraksha.enabled is false, hide the sidebar Suraksha button and
-   App Menu entry. Command handler also no-ops. Flip the pref to restore UI
-   without deleting modules. */
+   While astra.suraksha.enabled is false, hide every chrome entry point —
+   sidebar strip, App Menu, nav-bar ••• overflow (#widget-overflow-list /
+   page-action overflow), customize palette, and command-bound menus.
+   Command handler also no-ops. Flip the pref to restore UI without
+   deleting modules. */
 /* stylelint-disable-next-line media-query-no-invalid */
 @media not (-moz-pref("astra.suraksha.enabled")) {
   #astra-suraksha-button,
   toolbaritem#astra-suraksha-button,
   #astra-suraksha-toolbarbutton,
+  #widget-overflow-list #astra-suraksha-button,
+  #widget-overflow-list #astra-suraksha-toolbarbutton,
+  #widget-overflow #astra-suraksha-button,
+  #widget-overflow #astra-suraksha-toolbarbutton,
+  #tools-overflow-list #astra-suraksha-button,
+  #tools-overflow-list #astra-suraksha-toolbarbutton,
+  #sidebar-tools-overflow #astra-suraksha-button,
+  toolbaritem[overflowedItem="true"]#astra-suraksha-button,
+  toolbarpaletteitem[place="palette"] > #astra-suraksha-button,
   toolbarbutton[command="cmd_astraOpenSurakshaCenter"],
+  #widget-overflow-list toolbarbutton[command="cmd_astraOpenSurakshaCenter"],
+  #widget-overflow toolbarbutton[command="cmd_astraOpenSurakshaCenter"],
   #appMenu-astra-suraksha-button,
   menuitem[command="cmd_astraOpenSurakshaCenter"] {
     display: none !important;

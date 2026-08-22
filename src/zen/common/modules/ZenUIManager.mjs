@@ -72,6 +72,7 @@ window.gZenUIManager = {
     this._initCreateNewPopup();
     this._debloatContextMenus();
     this._addNewCustomizableButtonsIfNeeded();
+    this._initFeaturePrefGates();
     this._initOmnibox();
     this._initBookmarkCollapseListener();
 
@@ -202,6 +203,99 @@ window.gZenUIManager = {
       }
     } catch (e) {
       console.error("Error adding Suraksha button to sidebar:", e);
+    }
+  },
+
+  /**
+   * Pref-off for App Hub / Suraksha must remove chrome from the strip AND keep
+   * CustomizableUI from parking the widgets in the nav-bar ••• overflow
+   * (#widget-overflow-list). CSS display:none alone is not enough — overflow
+   * panel styles can still surface the items. Mirror the Only Sidebar pattern:
+   * pull from overflow, set hidden + overflows=false while the pref is off.
+   */
+  _initFeaturePrefGates() {
+    this._applyFeaturePrefGates();
+    // Services.prefs.addObserver requires an nsIObserver (observe method),
+    // not a bare function.
+    this._featurePrefGateObserver = {
+      observe: () => {
+        this._applyFeaturePrefGates();
+      },
+    };
+    for (const pref of ["astra.suraksha.enabled", "astra.apphub.enabled"]) {
+      try {
+        Services.prefs.addObserver(pref, this._featurePrefGateObserver);
+      } catch (e) {
+        console.warn("[Astra] feature pref gate observer failed:", pref, e);
+      }
+    }
+    window.addEventListener(
+      "unload",
+      () => {
+        for (const pref of ["astra.suraksha.enabled", "astra.apphub.enabled"]) {
+          try {
+            Services.prefs.removeObserver(pref, this._featurePrefGateObserver);
+          } catch {
+            // ignore
+          }
+        }
+      },
+      { once: true }
+    );
+  },
+
+  _applyFeaturePrefGates() {
+    const gates = [
+      {
+        id: "astra-suraksha-button",
+        pref: "astra.suraksha.enabled",
+        appMenuId: "appMenu-astra-suraksha-button",
+      },
+      {
+        id: "zen-app-launcher-button",
+        pref: "astra.apphub.enabled",
+      },
+    ];
+    for (const gate of gates) {
+      let enabled = false;
+      try {
+        enabled = Services.prefs.getBoolPref(gate.pref, false);
+      } catch {
+        enabled = false;
+      }
+      const el = document.getElementById(gate.id);
+      if (el) {
+        if (!enabled) {
+          // Pull out of » first so the overflow list does not keep a live entry.
+          // _restoreWidgetToSidebarStrip lives on gZenVerticalTabsManager
+          // (same file, later object), not on gZenUIManager.
+          try {
+            gZenVerticalTabsManager._restoreWidgetToSidebarStrip(el);
+          } catch (e) {
+            console.warn("[Astra] feature gate restore from overflow failed:", e);
+          }
+          el.setAttribute("hidden", "true");
+          el.setAttribute("overflows", "false");
+          el.setAttribute("astra-feature-pref-disabled", "true");
+        } else if (el.getAttribute("astra-feature-pref-disabled") === "true") {
+          el.removeAttribute("astra-feature-pref-disabled");
+          // Only Sidebar shortcut-only mode still owns visibility when set.
+          if (el.getAttribute("astra-only-sidebar-shortcut-only") !== "true") {
+            el.removeAttribute("hidden");
+            el.removeAttribute("overflows");
+          }
+        }
+      }
+      if (gate.appMenuId) {
+        const menu = document.getElementById(gate.appMenuId);
+        if (menu) {
+          if (!enabled) {
+            menu.setAttribute("hidden", "true");
+          } else {
+            menu.removeAttribute("hidden");
+          }
+        }
+      }
     }
   },
 
@@ -1211,9 +1305,21 @@ window.gZenVerticalTabsManager = {
         if (!el?.hasAttribute("astra-only-sidebar-shortcut-only")) {
           continue;
         }
-        el.removeAttribute("hidden");
-        el.removeAttribute("overflows");
         el.removeAttribute("astra-only-sidebar-shortcut-only");
+        // Do not force-show if the feature pref is off — _applyFeaturePrefGates
+        // owns pref-disabled visibility (prevents a flash into the ••• menu).
+        const pref =
+          id === "astra-suraksha-button"
+            ? "astra.suraksha.enabled"
+            : "astra.apphub.enabled";
+        if (Services.prefs.getBoolPref(pref, false)) {
+          el.removeAttribute("hidden");
+          el.removeAttribute("overflows");
+        } else {
+          el.setAttribute("hidden", "true");
+          el.setAttribute("overflows", "false");
+          el.setAttribute("astra-feature-pref-disabled", "true");
+        }
       }
       for (const id of navIds) {
         const el = document.getElementById(id);
@@ -1229,6 +1335,10 @@ window.gZenVerticalTabsManager = {
       }
       this._hideOnlySidebarAiButton();
     }
+    // Re-assert pref gates after layout allocation so Only Sidebar toggles
+    // cannot resurrect a disabled Suraksha/App Hub entry into ••• overflow.
+    // Gates live on gZenUIManager (this method is on gZenVerticalTabsManager).
+    gZenUIManager._applyFeaturePrefGates();
   },
 
   _placeOnlySidebarAiButton(target) {
