@@ -97,7 +97,35 @@
   /* Sidebar+Top Toolbar / Collapsed: zero footprint + hover overlay. */
   &:not([zen-single-toolbar='true']) {
     @media -moz-pref('zen.view.compact.hide-toolbar') {
-      & #zen-appcontent-navbar-wrapper {
+      /* Pair-hide: keep the toolbar in-flow while animating so the
+       * full-width overlay (below) cannot snap over the sidebar. */
+      &:is([zen-compact-animating])
+        #zen-appcontent-navbar-wrapper:not(
+          :is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active])
+        ) {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        right: auto !important;
+        width: auto !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        margin: 0 !important;
+        overflow: clip !important;
+        pointer-events: none;
+        z-index: 1;
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+        backdrop-filter: none !important;
+
+        &::before {
+          display: none !important;
+        }
+      }
+
+      &:not([zen-compact-animating]) #zen-appcontent-navbar-wrapper {
         position: fixed;
         top: 0;
         left: 0;
@@ -352,6 +380,25 @@
   & .zen-toolbar-background {
     display: none !important;
   }
+}
+
+/* Sidebar+Top unified reveal: sit the flyout below the toolbar (L, not stacked). */
+:root[zen-compact-mode='true'][zen-compact-chrome-revealed='true']:not(
+    [zen-single-toolbar='true']
+  ):not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([animate='true']):is(
+    [zen-has-hover],
+    [zen-user-show],
+    [flash-popup],
+    [has-popup-menu],
+    [movingtab],
+    [zen-compact-mode-active],
+    [astra-compact-panel-lock]
+  ) {
+  top: calc(
+    var(--zen-toolbar-height-with-bookmarks, var(--zen-toolbar-height, 38px)) +
+      var(--zen-compact-card-inset)
+  ) !important;
 }
 
 :root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):not([zen-right-side='true'])

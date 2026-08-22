@@ -227,6 +227,14 @@ window.gZenCompactModeManager = {
     delete this._isTabBeingDragged;
     this._stopTrackingMouseOutsideWindow();
     this.sidebar.removeAttribute("zen-user-show");
+    // Pair-hide (Sidebar+Top / Collapsed): mark animating BEFORE compact-mode
+    // so the toolbar overlay does not snap to height:0 a frame before the
+    // sidebar starts moving.
+    const hideToolbarToo =
+      value && !gZenVerticalTabsManager?._hasSetSingleToolbar;
+    if (hideToolbarToo) {
+      document.documentElement.setAttribute("zen-compact-animating", "true");
+    }
     // We use this element in order to make it persis across restarts, by using the XULStore.
     // main-window can't store attributes other than window sizes, so we use this instead
     lazy.mainAppWrapper.setAttribute("zen-compact-mode", value);
@@ -795,12 +803,19 @@ window.gZenCompactModeManager = {
         .getBoundingClientRect().width;
       const isCompactMode = this.preference;
       const canHideSidebar = this.canHideSidebar;
+      const hideToolbarToo = this.canHideToolbar;
       let canAnimate =
         lazy.COMPACT_MODE_CAN_ANIMATE_SIDEBAR &&
         !this.isSidebarPotentiallyOpen();
       if (typeof this._wasInCompactMode !== "undefined") {
         canAnimate = false;
         delete this._wasInCompactMode;
+      }
+      // Unified pair-hide: do not JS-spring the sidebar alone. `left: auto`
+      // cannot CSS-transition, so both pieces snap together instead of the
+      // toolbar vanishing ~120ms before the sidebar.
+      if (canAnimate && hideToolbarToo && isCompactMode) {
+        canAnimate = false;
       }
       // Do this so we can get the correct width ONCE compact mode styled have been applied
       if (canAnimate) {
@@ -818,13 +833,18 @@ window.gZenCompactModeManager = {
         const elementSeparation = ZenThemeModifier.elementSeparation;
         if (!canAnimate) {
           this.sidebar.removeAttribute("animate");
-          document.documentElement.removeAttribute("zen-compact-animating");
-
-          this.getAndApplySidebarWidth({});
-          this._ignoreNextResize = true;
-
-          this._clearIgnoreNextHover();
-          resolve();
+          const finish = () => {
+            document.documentElement.removeAttribute("zen-compact-animating");
+            this.getAndApplySidebarWidth({});
+            this._ignoreNextResize = true;
+            this._clearIgnoreNextHover();
+            resolve();
+          };
+          if (hideToolbarToo && isCompactMode) {
+            window.setTimeout(finish, 200);
+            return;
+          }
+          finish();
           return;
         }
         if (document.documentElement.hasAttribute("zen-sidebar-expanded")) {
