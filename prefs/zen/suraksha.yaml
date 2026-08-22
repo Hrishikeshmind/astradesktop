@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Astra Suraksha Center — fail-safe security/privacy status panel.
-# Disable to hide the toolbar button and App Menu entry (no profile migration).
+# Disabled for this launch (pref gate, not a removal). Flip to true to restore
+# the toolbar button, App Menu entry, and shortcut without profile migration.
 - name: astra.suraksha.enabled
-  value: true
+  value: false

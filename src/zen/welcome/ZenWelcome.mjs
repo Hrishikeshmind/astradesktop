@@ -19,7 +19,19 @@
     "zen-toast-container",
   ];
 
-  const kTotalWelcomeSteps = 6;
+  /** Intro + wizard pages. App Hub page is omitted when astra.apphub.enabled is false. */
+  function isAppHubWelcomeEnabled() {
+    try {
+      return Services.prefs.getBoolPref("astra.apphub.enabled", false);
+    } catch {
+      return false;
+    }
+  }
+
+  function getWelcomeTotalSteps() {
+    // Intro (1) + browser, ublock, [apphub], compact, search
+    return isAppHubWelcomeEnabled() ? 6 : 5;
+  }
 
   /** @type {"chrome"|"new"|null} Layout choice from the browser-switcher step. */
   let _welcomeBrowserChoice = null;
@@ -317,7 +329,7 @@
     wordmark.textContent = "Astra";
     markWrap.after(wordmark);
 
-    const dots = buildProgressDots(1, kTotalWelcomeSteps);
+    const dots = buildProgressDots(1, getWelcomeTotalSteps());
     dots.id = "zen-welcome-start-dots";
     inner.appendChild(dots);
 
@@ -917,7 +929,8 @@
   }
 
   function getWelcomePages() {
-    const totalSteps = kTotalWelcomeSteps;
+    const totalSteps = getWelcomeTotalSteps();
+    const includeAppHub = isAppHubWelcomeEnabled();
 
     const backButton = {
       l10n: "zen-welcome-back",
@@ -938,10 +951,8 @@
       onclick: async () => true,
     };
 
-    return [
+    const pages = [
       {
-        stepNum: 2,
-        totalSteps,
         icon: "folder",
         eyebrow: "zen-welcome-browser-eyebrow",
         text: [
@@ -1027,8 +1038,6 @@
         },
       },
       {
-        stepNum: 3,
-        totalSteps,
         icon: "shield",
         eyebrow: "zen-welcome-ublock-eyebrow",
         text: [
@@ -1044,27 +1053,28 @@
         fadeIn() {},
         fadeOut() {},
       },
+      ...(includeAppHub
+        ? [
+            {
+              icon: "apps",
+              eyebrow: "zen-welcome-apphub-eyebrow",
+              text: [
+                { id: "zen-welcome-apphub-title" },
+                { id: "zen-welcome-apphub-sub" },
+              ],
+              decor: [
+                { icon: "folder", pos: "tl" },
+                { icon: "apps", pos: "tr" },
+                { type: "dot", pos: "b" },
+              ],
+              buttons: [backButton, continueButton, skipButton],
+              fadeIn() {},
+              fadeOut() {},
+            },
+          ]
+        : []),
+
       {
-        stepNum: 4,
-        totalSteps,
-        icon: "apps",
-        eyebrow: "zen-welcome-apphub-eyebrow",
-        text: [
-          { id: "zen-welcome-apphub-title" },
-          { id: "zen-welcome-apphub-sub" },
-        ],
-        decor: [
-          { icon: "folder", pos: "tl" },
-          { icon: "apps", pos: "tr" },
-          { type: "dot", pos: "b" },
-        ],
-        buttons: [backButton, continueButton, skipButton],
-        fadeIn() {},
-        fadeOut() {},
-      },
-      {
-        stepNum: 5,
-        totalSteps,
         icon: "compact",
         eyebrow: "zen-welcome-compact-eyebrow",
         text: [
@@ -1106,8 +1116,6 @@
         fadeOut() {},
       },
       {
-        stepNum: 6,
-        totalSteps,
         icon: "search",
         eyebrow: "zen-welcome-search-eyebrow",
         text: [
@@ -1293,6 +1301,11 @@
         },
       },
     ];
+    pages.forEach((page, i) => {
+      page.stepNum = i + 2; // intro is step 1
+      page.totalSteps = totalSteps;
+    });
+    return pages;
   }
 
   async function animateInitialStage() {

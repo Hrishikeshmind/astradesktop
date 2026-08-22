@@ -53,6 +53,22 @@
   }
 }
 
+/* ASTRA-FEATURE-GATE: Suraksha panel.
+   While astra.suraksha.enabled is false, hide the sidebar Suraksha button and
+   App Menu entry. Command handler also no-ops. Flip the pref to restore UI
+   without deleting modules. */
+/* stylelint-disable-next-line media-query-no-invalid */
+@media not (-moz-pref("astra.suraksha.enabled")) {
+  #astra-suraksha-button,
+  toolbaritem#astra-suraksha-button,
+  #astra-suraksha-toolbarbutton,
+  toolbarbutton[command="cmd_astraOpenSurakshaCenter"],
+  #appMenu-astra-suraksha-button,
+  menuitem[command="cmd_astraOpenSurakshaCenter"] {
+    display: none !important;
+  }
+}
+
 /* Consumer build: hide Firefox enterprise-policy chrome. policies.json is
    used to ship uBlock Origin, not to manage the browser for an organization. */
 #appMenu-help-enterprisepolicies,

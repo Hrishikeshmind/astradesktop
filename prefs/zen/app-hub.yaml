@@ -1,5 +1,5 @@
-# Astra App Hub — enabled for shipping.
-# Set to false to hide the sidebar button, command, shortcut, and panel
-# without deleting App Hub modules or user pin data.
+# Astra App Hub — disabled for this launch (pref gate, not a removal).
+# Flip to true to restore the sidebar button, command, shortcut, panel, and
+# welcome step without deleting App Hub modules or user pin data.
 - name: astra.apphub.enabled
-  value: true
+  value: false

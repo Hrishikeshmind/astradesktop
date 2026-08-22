@@ -145,7 +145,7 @@ export class nsZenMenuBar {
                     command="cmd_astraOpenSurakshaCenter"/>`
         ).querySelector("toolbarbutton");
         extensionsBtn.before(surakshaItem);
-        if (!Services.prefs.getBoolPref("astra.suraksha.enabled", true)) {
+        if (!Services.prefs.getBoolPref("astra.suraksha.enabled", false)) {
           surakshaItem.setAttribute("hidden", "true");
         }
       }

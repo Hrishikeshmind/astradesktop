@@ -768,8 +768,8 @@ document.addEventListener(
           }
           case "cmd_zenOpenAppLauncher": {
             // Always use the stable bootstrap facade (never call manager directly).
-            // Feature-gated: astra.apphub.enabled (default true; set false to hide).
-            if (!Services.prefs.getBoolPref("astra.apphub.enabled", true)) {
+            // Feature-gated: astra.apphub.enabled (default false for this launch).
+            if (!Services.prefs.getBoolPref("astra.apphub.enabled", false)) {
               break;
             }
             const hub = window.gZenAppLauncher;
@@ -795,6 +795,10 @@ document.addEventListener(
             break;
           }
           case "cmd_astraOpenSurakshaCenter": {
+            // Feature-gated: astra.suraksha.enabled (default false for this launch).
+            if (!Services.prefs.getBoolPref("astra.suraksha.enabled", false)) {
+              break;
+            }
             // Custom Suraksha panel is retired. Open native #protections-popup
             // anchored to identity/urlbar chrome (not the hidden TP icon), and
             // defer past #widget-overflow hide to avoid Windows openPopup races.

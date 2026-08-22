@@ -175,7 +175,7 @@ window.gZenUIManager = {
     const kSurakshaPref = "astra.ui.migration.suraksha-button-added";
     try {
       if (!Services.prefs.getBoolPref(kSurakshaPref, false)) {
-        if (!Services.prefs.getBoolPref("astra.suraksha.enabled", true)) {
+        if (!Services.prefs.getBoolPref("astra.suraksha.enabled", false)) {
           // Defer until Suraksha is enabled.
         } else if (!document.getElementById("astra-suraksha-button")) {
           // Widget markup not ready in this window yet — retry later.
