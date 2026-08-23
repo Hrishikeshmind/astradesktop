@@ -14,6 +14,7 @@
     "import": "npm run ffprefs && npm run import:dumps && surfer import && npm run branding:updates",
     "import:dumps": "python3 scripts/update_service_dumps.py",
     "validate:patches": "python3 scripts/validate_patches.py",
+    "validate:apply": "python3 scripts/validate_patch_apply.py",
     "export": "surfer export",
     "init": "npm run download && npm run import && npm run bootstrap",
     "download": "surfer download",

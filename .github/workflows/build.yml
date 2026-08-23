@@ -265,6 +265,9 @@ jobs:
       - name: Download Firefox source and dependencies
         run: npm run download --verbose
 
+      - name: Validate patches apply to upstream
+        run: npm run validate:apply
+
       - name: Import
         run: npm run import -- --verbose
 

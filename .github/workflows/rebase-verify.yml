@@ -109,6 +109,9 @@ jobs:
       - name: Download Firefox source
         run: npm run download
 
+      - name: Validate patches apply to upstream
+        run: npm run validate:apply
+
       - name: Import patches
         run: npm run import
 
