@@ -1,5 +1,5 @@
 diff --git a/browser/components/extensions/parent/ext-browser.js b/browser/components/extensions/parent/ext-browser.js
-index 91adc6bc3649af47745818e6f9d00cbbdffc35a5..e221b077dbfbe20c8696732f003bd5809d761a02 100644
+index 91adc6bc3649af47745818e6f9d00cbbdffc35a5..a1b2c3d4e5f6789012345678abcdef9012345678 100644
 --- a/browser/components/extensions/parent/ext-browser.js
 +++ b/browser/components/extensions/parent/ext-browser.js
 @@ -362,6 +362,7 @@ class TabTracker extends TabTrackerBase {
@@ -18,7 +18,39 @@ index 91adc6bc3649af47745818e6f9d00cbbdffc35a5..e221b077dbfbe20c8696732f003bd580
  
      this._tabs.set(nativeTab, id);
      this._tabIds.set(id, nativeTab);
-@@ -1262,6 +1264,10 @@ class TabManager extends TabManagerBase {
+@@ -625,6 +627,13 @@ class TabTracker extends TabTrackerBase {
+    * @private
+    */
+   _handleWindowOpen(window) {
++    // gBrowserInit is defined by browser-init.js; extension open listeners can
++    // run on "load" before that script has finished on newly opened windows.
++    if (!window.gBrowserInit) {
++      Services.tm.dispatchToMainThread(() => this._handleWindowOpen(window));
++      return;
++    }
++
+     const tabToAdopt = window.gBrowserInit.getTabToAdopt();
+     if (tabToAdopt) {
+       // Note that this event handler depends on running before the
+@@ -1159,7 +1168,7 @@ class Window {
+     // A new window is being opened and it is adopting an existing tab, we return
+     // an empty iterator here because there should be no other tabs to return during
+     // that duration (See Bug 1458918 for a rationale).
+-    if (this.window.gBrowserInit.isAdoptingTab()) {
++    if (this.window.gBrowserInit?.isAdoptingTab()) {
+       return;
+     }
+ 
+@@ -1189,7 +1198,7 @@ class Window {
+     // A new window is being opened and it is adopting a tab, and we do not create
+     // a TabWrapper for the tab being adopted because it will go away once the tab
+     // adoption has been completed (See Bug 1458918 for rationale).
+-    if (this.window.gBrowserInit.isAdoptingTab()) {
++    if (this.window.gBrowserInit?.isAdoptingTab()) {
+       return null;
+     }
+ 
+@@ -1262,6 +1271,10 @@ class TabManager extends TabManagerBase {
    }
  
    canAccessTab(nativeTab) {
@@ -29,3 +61,15 @@ index 91adc6bc3649af47745818e6f9d00cbbdffc35a5..e221b077dbfbe20c8696732f003bd580
      // Check private browsing access at browser window level.
      if (!this.extension.canAccessWindow(nativeTab.documentGlobal)) {
        return false;
+@@ -1280,7 +1293,10 @@ class TabManager extends TabManagerBase {
+   }
+ 
+   getWrapper(nativeTab) {
+-    if (!nativeTab.documentGlobal.gBrowserInit.isAdoptingTab()) {
++    if (nativeTab.hasAttribute("zen-empty-tab")) {
++      return;
++    }
++    if (!nativeTab.documentGlobal.gBrowserInit?.isAdoptingTab()) {
+       return super.getWrapper(nativeTab);
+     }
+   }

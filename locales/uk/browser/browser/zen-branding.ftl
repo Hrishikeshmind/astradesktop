@@ -3,7 +3,3 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ## Override Firefox-hardcoded product names that refer to this browser.
-
--firefoxlabs-brand-name = { -brand-short-name } Labs
--firefoxview-brand-name = { -brand-short-name } View
--firefox-home-brand-name = { -brand-short-name } Home

@@ -1,0 +1,11 @@
+diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/browser/browser.ftl
+index 1111111111111111111111111111111111111111..2222222222222222222222222222222222222222 100644
+--- a/browser/locales/en-US/browser/browser.ftl
++++ b/browser/locales/en-US/browser/browser.ftl
+@@ -375,7 +375,7 @@ quickactions-inspector2 = Open Browser Toolbox
+ # Urlbar quick action: "labs" / "experiment"
+-quickactions-labs = Open { -firefoxlabs-brand-name }
++quickactions-labs = Open { -brand-short-name } Labs
+ 
+ quickactions-library = Open Library
+ quickactions-logins2 = Open Passwords

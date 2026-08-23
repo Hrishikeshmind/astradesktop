@@ -1,0 +1,13 @@
+diff --git a/browser/components/urlbar/QuickActionsLoaderDefault.sys.mjs b/browser/components/urlbar/QuickActionsLoaderDefault.sys.mjs
+index 1111111111111111111111111111111111111111..2222222222222222222222222222222222222222 100644
+--- a/browser/components/urlbar/QuickActionsLoaderDefault.sys.mjs
++++ b/browser/components/urlbar/QuickActionsLoaderDefault.sys.mjs
+@@ -123,7 +123,7 @@ export const QuickActions = {
+     l10nCommands: ["quickactions-cmd-help"],
+     label: "quickactions-help",
+     url:
+-      "https://support.mozilla.org/products/firefox?as=u&utm_source=inproduct"
++      "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug"
+   },
+   {
+     l10nCommands: ["quickactions-cmd-firefoxview"],

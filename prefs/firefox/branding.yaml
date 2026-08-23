@@ -1,0 +1,15 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Astra: Replace Mozilla SUMO/support URLs with project help infrastructure.
+- name: app.support.baseURL
+  value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title="
+
+# Captive-portal canonical page content still referenced Mozilla SUMO.
+- name: captivedetect.canonicalContent
+  value: '<meta http-equiv="refresh" content="0;url=https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title=Captive%20portal"/>'
+
+# detectportal.firefox.com is kept intentionally: it is Mozilla-operated
+# connectivity-check infrastructure with no user-visible branding. Replacing
+# it would require Astra-hosted captive-portal detection endpoints.

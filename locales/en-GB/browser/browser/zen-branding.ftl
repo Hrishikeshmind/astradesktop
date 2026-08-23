@@ -4,9 +4,4 @@
 
 ## Override Firefox-hardcoded product names that refer to this browser.
 
--firefoxlabs-brand-name = { -brand-short-name } Labs
--firefoxview-brand-name = { -brand-short-name } View
--firefox-home-brand-name = { -brand-short-name } Home
-
 # Urlbar quick action: "labs" / "experiment"
-quickactions-labs = Open { -brand-short-name } Labs

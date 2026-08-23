@@ -763,10 +763,10 @@ class nsZenKeyboardShortcutsLoader {
     newShortcutList.push(
       new KeyShortcut(
         "zen-compact-mode-show-sidebar",
-        "S",
         "",
+        "VK_F9",
         ZEN_COMPACT_MODE_SHORTCUTS_GROUP,
-        nsKeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+        nsKeyShortcutModifiers.fromObject({ accel: true }),
         "cmd_zenCompactModeShowSidebar",
         "zen-compact-mode-shortcut-show-sidebar"
       )
@@ -928,7 +928,7 @@ class nsZenKeyboardShortcutsLoader {
 }
 
 class nsZenKeyboardShortcutsVersioner {
-  static LATEST_KBS_VERSION = 33;
+  static LATEST_KBS_VERSION = 34;
 
   constructor() {}
 
@@ -1355,7 +1355,7 @@ class nsZenKeyboardShortcutsVersioner {
           "F",
           "",
           ZEN_OTHER_SHORTCUTS_GROUP,
-          nsKeyShortcutModifiers.fromObject({ accel: true, alt: true }),
+          nsKeyShortcutModifiers.fromObject({ accel: true, shift: true }),
           "cmd_zenFolderQuickSearch",
           "zen-folder-quick-search-shortcut"
         )
@@ -1437,6 +1437,31 @@ class nsZenKeyboardShortcutsVersioner {
             "astra-open-suraksha-shortcut"
           )
         );
+      }
+    }
+    if (version < 34) {
+      // Layout-friendly defaults: Alt+letter shortcuts fail on many non-US layouts
+      // (including Hindi InScript). Rebind the highest-traffic Astra shortcuts.
+      const folderSearch = data.find(s => s.getID?.() === "zen-folder-quick-search");
+      if (folderSearch) {
+        const mods = folderSearch.getModifiers();
+        if (mods.alt && mods.accel && folderSearch.getKeyName() === "f") {
+          folderSearch.setModifiers(
+            nsKeyShortcutModifiers.fromObject({ accel: true, shift: true })
+          );
+        }
+      }
+      const compactSidebar = data.find(
+        s => s.getID?.() === "zen-compact-mode-show-sidebar"
+      );
+      if (compactSidebar) {
+        const mods = compactSidebar.getModifiers();
+        if (mods.alt && mods.accel && compactSidebar.getKeyName() === "s") {
+          compactSidebar.setNewBinding("F9");
+          compactSidebar.setModifiers(
+            nsKeyShortcutModifiers.fromObject({ accel: true })
+          );
+        }
       }
     }
     if (version < 31) {
@@ -1635,7 +1660,11 @@ window.gZenKeyboardShortcutsManager = {
       ) {
         continue;
       }
-      const originalKey = browser.document.getElementById(key.getID());
+      const keyId = key.getID();
+      if (!keyId) {
+        continue;
+      }
+      const originalKey = browser.document.getElementById(keyId);
       // We do not want to remove and create a new key in these cases,
       // because it will lose the event listeners.
       key.replaceWithChild(originalKey);
