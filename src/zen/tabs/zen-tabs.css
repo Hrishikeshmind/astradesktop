@@ -129,7 +129,7 @@
 
 %include zen-essentials-promo.css
 
-/* Astra - Tab Loading Progress Bar */
+/* Astra - Tab Loading Progress Bar (contrast-aware via --zen-loading-indicator-color) */
 .tabbrowser-tab[busy] {
   position: relative;
 }
@@ -139,16 +139,16 @@
   position: absolute;
   bottom: 0;
   left: 0;
-  height: 2px;
+  height: 3px;
   width: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--zen-primary-color, #FF9933) 0%,
-    transparent 100%
-  );
+  /* Solid accent (not fade-to-transparent) so dark-mode contrast stays readable */
+  background: var(--zen-loading-indicator-color, var(--zen-primary-color, #FF9933));
+  box-shadow: 0 0 8px
+    color-mix(in srgb, var(--zen-loading-indicator-color, var(--zen-primary-color)) 70%, transparent);
   animation: zen-tab-loading 1.5s ease-in-out infinite;
-  border-radius: 1px;
+  border-radius: 2px;
   z-index: 999;
+  pointer-events: none;
 }
 
 @keyframes zen-tab-loading {
@@ -175,10 +175,13 @@
   transform: translateX(-50%);
   width: 120px;
   height: 3px;
-  background: var(--zen-primary-color, #FF9933);
+  background: var(--zen-loading-indicator-color, var(--zen-primary-color, #FF9933));
+  box-shadow: 0 0 8px
+    color-mix(in srgb, var(--zen-loading-indicator-color, var(--zen-primary-color)) 60%, transparent);
   border-radius: 0 0 4px 4px;
   z-index: 9999;
   animation: zen-pill-loading 1.5s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes zen-pill-loading {

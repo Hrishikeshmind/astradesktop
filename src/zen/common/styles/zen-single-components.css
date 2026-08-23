@@ -889,9 +889,9 @@ toolbaritem[id$="-browser-action"] {
   list-style-image: none !important;
 }
 
-/* Loading progress bar */
+/* Loading progress bar — uses shared --zen-loading-indicator-color from zen-theme.css */
 #zen-loading-progress-bar {
-  --zen-loading-progress-bar-color: color-mix(in srgb, var(--zen-primary-color), light-dark(rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.5)) 70%);
+  --zen-loading-progress-bar-color: var(--zen-loading-indicator-color);
 
   position: fixed;
   top: calc(var(--zen-element-separation) / -2);

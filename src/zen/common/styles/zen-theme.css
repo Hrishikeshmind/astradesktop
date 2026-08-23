@@ -59,6 +59,20 @@
     color-mix(in srgb, var(--zen-primary-color) 1%, var(--zen-branding-bg) 99%)
   );
 
+  /*
+   * Loading indicators on chrome (tab busy bar, page progress pill).
+   * Accent alone is often too dark in dark mode (workspace themes /
+   * AccentColor resolve to low-L colors). Mix toward near-opaque black
+   * (light) / white (dark) — same contrast recipe as --zen-drag-indicator-bg.
+   * Workspace custom backgrounds can still reduce contrast in edge cases;
+   * this token fixes the default light/dark chrome case.
+   */
+  --zen-loading-indicator-color: color-mix(
+    in srgb,
+    var(--zen-primary-color) 42%,
+    light-dark(rgba(0, 0, 0, 0.9), rgba(255, 255, 255, 0.95)) 58%
+  );
+
   --zen-dialog-background: light-dark(#fafbff, #1c1c1c);
   --zen-urlbar-background: light-dark(
     color-mix(in srgb, var(--zen-primary-color) 3%, #f4f4f4 97%),
