@@ -27,6 +27,7 @@ import {
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  SearchService: "moz-src:///toolkit/components/search/SearchService.sys.mjs",
 });
 
 function getChromeWindow() {
@@ -146,10 +147,10 @@ async function submitSearch(query) {
   const isPrivate = !!(
     chromeWin && lazy.PrivateBrowsingUtils.isWindowPrivate(chromeWin)
   );
-  await Services.search.init();
+  await lazy.SearchService.init();
   const engine = isPrivate
-    ? await Services.search.getDefaultPrivate()
-    : await Services.search.getDefault();
+    ? await lazy.SearchService.getDefaultPrivate()
+    : await lazy.SearchService.getDefault();
   if (!engine) {
     return;
   }
