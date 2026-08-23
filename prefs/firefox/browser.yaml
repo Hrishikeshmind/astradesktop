@@ -118,6 +118,12 @@
 - name: browser.search.widget.new
   value: true
 
+# Astra: default scheduled backup ON for new profiles; save parent is forced to
+# Documents (not OneDrive) via BackupService.DEFAULT_PARENT_DIR_PATH. Existing
+# profiles that never set this pref are pinned to false in ZenUIMigration V10.
+- name: browser.backup.scheduled.enabled
+  value: true
+
 # Astra: user-visible privacy and anti-scam defaults
 - name: browser.contentblocking.category
   value: "strict"

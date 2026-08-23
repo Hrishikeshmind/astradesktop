@@ -1,0 +1,16 @@
+diff --git a/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js b/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
+--- a/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
++++ b/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
+@@ -132,9 +132,9 @@ add_task(async function runTests() {
+     );
+ 
+     Assert.equal(
+       BackupService.DEFAULT_PARENT_DIR_PATH,
+-      test.personalFolder ? test.personalFolder : docsFolder,
+-      "BackupService.DEFAULT_PARENT_DIR_PATH reflects correct folder"
++      docsFolder,
++      "Astra DEFAULT_PARENT_DIR_PATH always uses Documents, not OneDrive"
+     );
+   }
+ 
+   do_cleanup();

@@ -12,7 +12,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 class nsZenUIMigration {
   PREF_NAME = "zen.ui.migration.version";
-  MIGRATION_VERSION = 9;
+  MIGRATION_VERSION = 10;
 
   init(isNewProfile) {
     if (!isNewProfile) {
@@ -211,6 +211,17 @@ class nsZenUIMigration {
       kTools,
       parts.filter(t => t !== "aichat").join(",")
     );
+  }
+
+  _migrateV10() {
+    // Astra now defaults browser.backup.scheduled.enabled to true for new
+    // profiles, with Documents (not OneDrive) as the save parent. Existing
+    // profiles that never set this pref must keep the prior off default —
+    // do not silently enable backup or rewrite an existing location choice.
+    const kScheduled = "browser.backup.scheduled.enabled";
+    if (!Services.prefs.prefHasUserValue(kScheduled)) {
+      Services.prefs.setBoolPref(kScheduled, false);
+    }
   }
 }
 

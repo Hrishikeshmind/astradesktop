@@ -1,0 +1,49 @@
+diff --git a/browser/components/backup/BackupService.sys.mjs b/browser/components/backup/BackupService.sys.mjs
+--- a/browser/components/backup/BackupService.sys.mjs
++++ b/browser/components/backup/BackupService.sys.mjs
+@@ -1016,17 +1016,18 @@ export class BackupService extends EventEmitter {
+ 
+   /**
+    * The path of the default parent directory for saving backups.
+-   * The current default is the Documents directory.
++   * Astra always prefers the local Documents folder (never OneDrive), so
++   * enabling scheduled backups by default does not silently upload to cloud.
++   * Existing profiles that already set browser.backup.location keep that path.
+    *
+    * @returns {string} The path of the default parent directory
+    */
+   static get DEFAULT_PARENT_DIR_PATH() {
+-    return (
+-      BackupService.oneDriveFolderPath?.path ||
+-      BackupService.docsDirFolderPath?.path ||
+-      ""
+-    );
++    // Astra: Documents only — do not prefer OneDrive when present.
++    return BackupService.docsDirFolderPath?.path || "";
+   }
+ 
+   /**
+    * The localized name for the user's backup folder.
+@@ -4607,6 +4608,24 @@ export class BackupService extends EventEmitter {
+ 
+     this.#backupSchedulerInitted = true;
+ 
++    // Astra: when scheduled backups are on by default, persist Documents as the
++    // save parent if the user has never chosen a location. Do not overwrite an
++    // existing browser.backup.location (OneDrive or otherwise).
++    if (lazy.scheduledBackupsPref && !lazy.backupDirPref) {
++      let defaultPath = BackupService.DEFAULT_PARENT_DIR_PATH;
++      if (defaultPath) {
++        this.setParentDirPath(defaultPath).catch(e => {
++          lazy.logConsole.warn(
++            "Could not set default Documents backup location",
++            e
++          );
++        });
++      }
++    }
++
+     let lastBackupPrefValue = Services.prefs.getIntPref(
+       LAST_BACKUP_TIMESTAMP_PREF_NAME,
+       0
+     );
