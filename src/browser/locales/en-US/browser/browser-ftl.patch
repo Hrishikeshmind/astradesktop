@@ -1,11 +1,13 @@
 diff --git a/browser/locales/en-US/browser/browser.ftl b/browser/locales/en-US/browser/browser.ftl
-index 1111111111111111111111111111111111111111..2222222222222222222222222222222222222222 100644
+index f05045a..f762df7 100644
 --- a/browser/locales/en-US/browser/browser.ftl
 +++ b/browser/locales/en-US/browser/browser.ftl
-@@ -375,5 +375,5 @@ quickactions-inspector2 = Open Browser Toolbox
- # Urlbar quick action: "labs" / "experiment"
+@@ -375,7 +375,7 @@ quickactions-viewsource2 = View page source
+ quickactions-cmd-viewsource2 = view source, source, page source
+ 
+ # Opens about:preferences:experimental (Firefox Labs)
 -quickactions-labs = Open { -firefoxlabs-brand-name }
 +quickactions-labs = Open { -brand-short-name } Labs
+ quickactions-cmd-labs = labs, experiment
  
- quickactions-library = Open Library
- quickactions-logins2 = Open Passwords
+ # Tooltip text for the help button shown in the result.
