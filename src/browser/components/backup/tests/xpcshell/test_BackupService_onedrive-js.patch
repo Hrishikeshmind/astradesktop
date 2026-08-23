@@ -1,7 +1,7 @@
 diff --git a/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js b/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
 --- a/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
 +++ b/browser/components/backup/tests/xpcshell/test_BackupService_onedrive.js
-@@ -132,9 +132,9 @@ add_task(async function runTests() {
+@@ -132,10 +132,10 @@ add_task(async function runTests() {
      );
  
      Assert.equal(

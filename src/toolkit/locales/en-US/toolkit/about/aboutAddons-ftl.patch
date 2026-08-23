@@ -11,7 +11,7 @@ diff --git a/toolkit/locales/en-US/toolkit/about/aboutAddons.ftl b/toolkit/local
  
  ## Variables
  ## $domain - Domain name where add-ons are available (e.g. addons.mozilla.org)
-@@ -551,9 +551,9 @@ shortcuts-heading = Manage Extension Shortcuts
+@@ -551,10 +551,10 @@ shortcuts-heading = Manage Extension Shortcuts
  
  default-heading-search-label = Find more add-ons
  addons-heading-search-input =

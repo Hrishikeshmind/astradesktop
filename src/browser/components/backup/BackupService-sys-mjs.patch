@@ -1,7 +1,7 @@
 diff --git a/browser/components/backup/BackupService.sys.mjs b/browser/components/backup/BackupService.sys.mjs
 --- a/browser/components/backup/BackupService.sys.mjs
 +++ b/browser/components/backup/BackupService.sys.mjs
-@@ -1016,17 +1016,18 @@ export class BackupService extends EventEmitter {
+@@ -1016,17 +1016,16 @@ export class BackupService extends EventEmitter {
  
    /**
     * The path of the default parent directory for saving backups.
@@ -24,7 +24,7 @@ diff --git a/browser/components/backup/BackupService.sys.mjs b/browser/component
  
    /**
     * The localized name for the user's backup folder.
-@@ -4607,6 +4608,24 @@ export class BackupService extends EventEmitter {
+@@ -4607,7 +4608,22 @@ export class BackupService extends EventEmitter {
  
      this.#backupSchedulerInitted = true;
  

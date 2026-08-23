@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate patch files
+        run: npm run validate:patches
+
       - name: Restore Surfer engine cache
         id: surfer-engine-cache
         uses: actions/cache@v5
