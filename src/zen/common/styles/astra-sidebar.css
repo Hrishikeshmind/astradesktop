@@ -79,14 +79,17 @@
   display: none !important;
 }
 
-/* AI Sidebar toggle is Only Sidebar only. Other layouts keep Compact / App Hub
- * / Suraksha as the strip and must not gain this widget.
+/* AI Sidebar toggle: Only Sidebar + Sidebar+Top Toolbar (expanded).
+ * Collapsed keeps the thin rail for Compact only — AI stays hidden there.
  * skipintoolbarset keeps it out of CustomizableUI placements. */
-:root:not([zen-single-toolbar="true"]) #astra-ai-sidebar-button {
+:root:not([zen-single-toolbar="true"]):not([zen-sidebar-expanded="true"])
+  #astra-ai-sidebar-button {
   display: none !important;
 }
 
-:root[zen-single-toolbar="true"] #astra-ai-sidebar-button {
+:root[zen-single-toolbar="true"] #astra-ai-sidebar-button,
+:root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
+  #astra-ai-sidebar-button {
   display: flex !important;
 }
 

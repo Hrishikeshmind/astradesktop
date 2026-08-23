@@ -1221,8 +1221,9 @@ window.gZenVerticalTabsManager = {
    * hide App Hub / Suraksha dedicated strip buttons (Ctrl+Shift+U /
    * Ctrl+Shift+I still open them), move Compact to the sidebar footer next
    * to the theme toggle, and pin Back/Forward/Reload + AI so they cannot
-   * park under ». Sidebar+Top Toolbar and Collapsed keep Compact / App Hub
-   * / Suraksha in the top strip and never show the AI strip button.
+   * park under ». Sidebar+Top Toolbar (expanded, multi-toolbar) keeps Compact
+   * in the top strip and places the same AI toggle after Compact / hub icons
+   * (adapted DOM: no Back/Forward/Reload in this strip). Collapsed hides AI.
    */
   _restoreWidgetToSidebarStrip(el) {
     if (!el) {
@@ -1333,7 +1334,8 @@ window.gZenVerticalTabsManager = {
           el.removeAttribute("overflows");
         }
       }
-      this._hideOnlySidebarAiButton();
+      // Not Only Sidebar: show AI on Sidebar+Top Toolbar; hide when collapsed.
+      this._placeAiButtonForNonOnlySidebar(target);
     }
     // Re-assert pref gates after layout allocation so Only Sidebar toggles
     // cannot resurrect a disabled Suraksha/App Hub entry into ••• overflow.
@@ -1353,6 +1355,58 @@ window.gZenVerticalTabsManager = {
       reload.after(ai);
     } else if (!target.contains(ai)) {
       target.append(ai);
+    }
+    this._syncAiSidebarButton();
+  },
+
+  /**
+   * Sidebar+Top Toolbar: AI lives in the sidebar strip after Compact (and
+   * App Hub / Suraksha when those prefs are on). Unlike Only Sidebar, Back /
+   * Forward / Reload stay on the top toolbar — do not anchor after Reload.
+   * Collapsed hides the control (thin rail).
+   */
+  _placeAiButtonForNonOnlySidebar(target) {
+    const expanded =
+      document.documentElement.getAttribute("zen-sidebar-expanded") ===
+        "true" ||
+      Services.prefs.getBoolPref("zen.view.sidebar-expanded", true);
+    if (!expanded) {
+      this._hideOnlySidebarAiButton();
+      return;
+    }
+    this._placeMultiToolbarAiButton(target);
+  },
+
+  _placeMultiToolbarAiButton(target) {
+    const ai = document.getElementById("astra-ai-sidebar-button");
+    if (!ai || !target) {
+      return;
+    }
+    ai.removeAttribute("hidden");
+    ai.setAttribute("overflows", "false");
+    // Anchor after the last visible strip control we own (Compact → App Hub →
+    // Suraksha). Fall back to prepend so AI sits with the strip icons.
+    const anchorIds = [
+      "zen-toggle-compact-mode",
+      "zen-app-launcher-button",
+      "astra-suraksha-button",
+    ];
+    let anchor = null;
+    for (const id of anchorIds) {
+      const el = document.getElementById(id);
+      if (
+        el &&
+        target.contains(el) &&
+        el.getAttribute("hidden") !== "true" &&
+        el.getAttribute("astra-feature-pref-disabled") !== "true"
+      ) {
+        anchor = el;
+      }
+    }
+    if (anchor) {
+      anchor.after(ai);
+    } else if (!target.contains(ai)) {
+      target.prepend(ai);
     }
     this._syncAiSidebarButton();
   },

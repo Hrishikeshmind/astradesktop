@@ -176,6 +176,34 @@ body,
   & #tabbrowser-tabbox[zen-split-view="true"] {
     margin-right: 0;
   }
+
+  /* AI / bookmarks / history panel (#sidebar-box) lives inside the tabbox,
+   * which starts --zen-element-separation inward of the navbar bridge.
+   * Evidence (Marionette, Sidebar+Top, AI open): navbarLeft=186 while
+   * panelLeft=194 (8px step) — a visible jog under the toolbar. Pull the
+   * open panel (and its splitter) by the same separation so its outer edge
+   * shares one vertical line with the bridged toolbar. */
+  & #zen-tabbox-wrapper #tabbrowser-tabbox:not([sidebar-positionend])
+    > :is(#sidebar-box, #sidebar-splitter):not([hidden]) {
+    margin-inline-start: calc(-1 * var(--zen-element-separation));
+  }
+
+  & #zen-tabbox-wrapper #tabbrowser-tabbox[sidebar-positionend]
+    > :is(#sidebar-box, #sidebar-splitter):not([hidden]) {
+    margin-inline-end: calc(-1 * var(--zen-element-separation));
+  }
+
+  &[zen-right-side="true"] #zen-tabbox-wrapper #tabbrowser-tabbox:not([sidebar-positionend])
+    > :is(#sidebar-box, #sidebar-splitter):not([hidden]) {
+    margin-inline-start: 0;
+    margin-inline-end: calc(-1 * var(--zen-element-separation));
+  }
+
+  &[zen-right-side="true"] #zen-tabbox-wrapper #tabbrowser-tabbox[sidebar-positionend]
+    > :is(#sidebar-box, #sidebar-splitter):not([hidden]) {
+    margin-inline-end: 0;
+    margin-inline-start: calc(-1 * var(--zen-element-separation));
+  }
 }
 
 #nav-bar {
