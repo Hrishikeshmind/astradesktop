@@ -26,6 +26,11 @@ on:
         required: true
         type: "boolean"
         default: false
+      skip_macos:
+        description: "Skip macOS / Darwin builds (Windows + Linux only)"
+        required: false
+        default: true
+        type: "boolean"
   workflow_call:
     inputs:
       create_release:
@@ -48,6 +53,11 @@ on:
         required: true
         type: "boolean"
         default: false
+      skip_macos:
+        description: "Skip macOS / Darwin builds (Windows + Linux only)"
+        required: false
+        default: true
+        type: "boolean"
 
 jobs:
   buildid:
@@ -55,6 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       buildids: ${{ steps.get.outputs.bid }}
+      publish_paused: ${{ steps.pause.outputs.publish_paused }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -62,13 +73,31 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Fail closed if Pages publish is paused
-        if: ${{ inputs.create_release }}
+      # Pause blocks Pages publish, not the Windows/Linux build.
+      # Exit 1 = live AUS still offers a <patch> while paused (unsafe).
+      # Exit 2 = paused with empty AUS (safe to build; skip Pages commit).
+      - name: Check publish pause / empty AUS
+        id: pause
         run: |
+          set -euo pipefail
+          set +e
           python3 scripts/ci_guard_update_publish.py \
             --brand "${{ inputs.update_branch }}" \
             --check-pause-only \
             --assert-empty-aus-while-paused
+          rc=$?
+          set -e
+          if [[ "${rc}" -eq 0 ]]; then
+            echo "publish_paused=false" >> "${GITHUB_OUTPUT}"
+            echo "Publish is not paused"
+            exit 0
+          fi
+          if [[ "${rc}" -eq 1 ]]; then
+            echo "::error::Publish is paused but live AUS still offers an update. Refusing to start."
+            exit 1
+          fi
+          echo "publish_paused=true" >> "${GITHUB_OUTPUT}"
+          echo "::warning::Publish is paused. Windows/Linux will still build and can publish GitHub Release assets; Pages update.xml will not be committed."
 
       - id: get
         shell: bash -xe {0}
@@ -85,6 +114,8 @@ jobs:
           echo "update_version: ${{ inputs.update_version }}"
           echo "use sccache: ${{ inputs['use-sccache'] }}"
           echo "update_branch: ${{ inputs.update_branch }}"
+          echo "skip_macos: ${{ inputs.skip_macos }}"
+          echo "publish_paused: ${{ steps.pause.outputs.publish_paused }}"
           echo "GITHUB_REPOSITORY: ${{ github.repository }}"
           echo "GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}"
 
@@ -353,6 +384,7 @@ jobs:
       use-sccache: ${{ inputs['use-sccache'] }}
 
   mac:
+    if: ${{ !inputs.skip_macos }}
     name: macOS build
     uses: ./.github/workflows/macos-release-build.yml
     permissions:
@@ -366,6 +398,7 @@ jobs:
       use-sccache: ${{ inputs['use-sccache'] }}
 
   mac-uni:
+    if: ${{ !inputs.skip_macos }}
     name: macOS build (Universal)
     uses: ./.github/workflows/macos-universal-release-build.yml
     permissions:
@@ -522,6 +555,7 @@ jobs:
     name: Release
     needs:
       [
+        buildid,
         build-data,
         linux,
         windows-step-1,
@@ -584,19 +618,34 @@ jobs:
       - name: Guard MAR channel, buildID monotonicity, and pause switch
         env:
           RELEASE_BRANCH: ${{ inputs.update_branch }}
+          SKIP_MACOS: ${{ inputs.skip_macos }}
+          PUBLISH_PAUSED: ${{ needs.buildid.outputs.publish_paused }}
         run: |
           set -euo pipefail
           NEW_BUILDID="${{ needs.buildid.outputs.buildids }}"
+          search_args=(
+            --search windows.mar
+            --search windows-arm64.mar
+            --search linux.mar
+            --search linux-aarch64.mar
+            --search .
+          )
+          if [[ "${SKIP_MACOS}" != "true" ]]; then
+            search_args+=(--search macos.mar)
+          fi
+          extra_args=()
+          # Pause must not block GitHub Release asset publish. It only blocks
+          # the later Pages commit. Still verify MAR channel + signatures.
+          if [[ "${PUBLISH_PAUSED}" == "true" ]]; then
+            extra_args+=(--allow-paused-override)
+            echo "::warning::Publish paused: MAR/XML will be validated and GitHub Release assets uploaded, but Pages update.xml will not be committed."
+          fi
           python3 scripts/ci_guard_update_publish.py \
             --brand "${RELEASE_BRANCH}" \
             --new-buildid "${NEW_BUILDID}" \
             --require-mars \
-            --search windows.mar \
-            --search windows-arm64.mar \
-            --search linux.mar \
-            --search linux-aarch64.mar \
-            --search macos.mar \
-            --search . \
+            "${search_args[@]}" \
+            ${extra_args[@]+"${extra_args[@]}"} \
             --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc-x64/${RELEASE_BRANCH}/update.xml" \
             --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/WINNT_x86_64-msvc/${RELEASE_BRANCH}/update.xml" \
             --live-xml "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_x86_64-gcc3/${RELEASE_BRANCH}/update.xml" \
@@ -626,11 +675,12 @@ jobs:
             cp -a "$dir"/. updates/
           done
 
-          # macOS is optional so a Mac build failure does not block Windows/Linux updates.
-          if [[ -d ../macos_update_manifest ]]; then
+          # Darwin update.xml is never published from this path when skip_macos
+          # is set (default). Do not copy leftover macOS artifacts onto Pages.
+          if [[ "${{ inputs.skip_macos }}" != "true" && -d ../macos_update_manifest ]]; then
             cp -a ../macos_update_manifest/. updates/
           else
-            echo "::warning::macos_update_manifest artifact missing; skipping Darwin update.xml publish"
+            echo "Skipping Darwin update.xml (skip_macos=${{ inputs.skip_macos }})"
           fi
 
           echo "=== ${RELEASE_BRANCH} update.xml files ==="
@@ -677,12 +727,16 @@ jobs:
             --xml-root updates-server/updates
             --require-win-linux
           )
-          for pair in \
-            "windows.mar=windows.mar" \
-            "windows-arm64.mar=windows-arm64.mar" \
-            "linux.mar=linux.mar" \
-            "linux-aarch64.mar=linux-aarch64.mar" \
-            "macos.mar=macos.mar"
+          pairs=(
+            "windows.mar=windows.mar"
+            "windows-arm64.mar=windows-arm64.mar"
+            "linux.mar=linux.mar"
+            "linux-aarch64.mar=linux-aarch64.mar"
+          )
+          if [[ "${{ inputs.skip_macos }}" != "true" ]]; then
+            pairs+=("macos.mar=macos.mar")
+          fi
+          for pair in "${pairs[@]}"
           do
             name="${pair%%=*}"
             # Artifacts land as either a file or a directory named after the artifact.
@@ -810,7 +864,16 @@ jobs:
             exit 1
           fi
 
+      - name: Upload staged update manifests (for later Pages publish)
+        uses: actions/upload-artifact@v4
+        with:
+          retention-days: 14
+          name: staged-update-manifests
+          path: updates-server/updates
+          if-no-files-found: error
+
       - name: Commit Pages update.xml (after MARs are live)
+        if: ${{ needs.buildid.outputs.publish_paused != 'true' }}
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: 🚀 Update update manifests
@@ -819,6 +882,11 @@ jobs:
           repository: ./updates-server
           branch: updates
           file_pattern: updates/**
+
+      - name: Skip Pages commit while publish is paused
+        if: ${{ needs.buildid.outputs.publish_paused == 'true' }}
+        run: |
+          echo "::warning::Publish paused: GitHub Release assets were uploaded, but live AUS stays empty <updates/>. After Win/Linux verification, set paused=0 and publish the staged-update-manifests artifact to the updates branch."
 
   post-publish-header-check:
     if: ${{ always() && !cancelled() && needs.release.result == 'success' }}

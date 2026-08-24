@@ -185,6 +185,8 @@ sign_mars() {
   local folders=(
     linux.mar
     linux-aarch64.mar
+  )
+  local optional_folders=(
     macos.mar
   )
   if [ -d ".github/workflows/object/windows-x64-signed-x86_64" ]; then
@@ -195,10 +197,12 @@ sign_mars() {
     folders+=("windows-arm64.mar")
   fi
 
-  local folder mar_file
-  for folder in "${folders[@]}"; do
+  sign_folder() {
+    local folder="$1"
+    local optional="${2:-0}"
     if [ -d "$folder" ]; then
       local found=0
+      local mar_file
       for mar_file in "$folder"/*.mar; do
         if [ -f "$mar_file" ]; then
           found=1
@@ -207,16 +211,30 @@ sign_mars() {
         fi
       done
       if [ "$found" -eq 0 ]; then
+        if [ "$optional" = "1" ]; then
+          echo "No .mar files found in optional $folder, skipping."
+          return 0
+        fi
         echo "No .mar files found in $folder, skipping." >&2
         exit 1
       fi
     elif [ -f "$folder" ]; then
       sign_one "$folder"
       update_manifests "$folder"
+    elif [ "$optional" = "1" ]; then
+      echo "Optional $folder not found, skipping (macOS not built)."
     else
       echo "Directory $folder not found, skipping." >&2
       exit 1
     fi
+  }
+
+  local folder
+  for folder in "${folders[@]}"; do
+    sign_folder "$folder" 0
+  done
+  for folder in "${optional_folders[@]}"; do
+    sign_folder "$folder" 1
   done
 }
 

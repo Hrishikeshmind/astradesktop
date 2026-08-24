@@ -21,7 +21,17 @@ if [ ! -f "$PUBLIC_KEY_DER" ]; then
 fi
 VERIFY_NSS_DIR="$CERT_PATH_DIR/nss_verify"
 LINUX_EXTRACT_DIR="$CERT_PATH_DIR/extracted_linux"
-LINUX_ARCHIVE="zen.linux-x86_64.tar.xz/zen.linux-x86_64.tar.xz"
+LINUX_ARCHIVE=""
+for _candidate in \
+  "astra.linux-x86_64.tar.xz/astra.linux-x86_64.tar.xz" \
+  "zen.linux-x86_64.tar.xz/zen.linux-x86_64.tar.xz"
+do
+  if [ -f "$_candidate" ]; then
+    LINUX_ARCHIVE="$_candidate"
+    break
+  fi
+done
+unset _candidate
 
 FAILURES=0
 
@@ -261,6 +271,10 @@ for entry in "${pairs[@]}"; do
   echo "Verifying $label: $mar"
 
   if [ ! -f "$mar" ]; then
+    if [ "$label" = "macos" ]; then
+      echo "  [SKIP] macos: $mar not present (macOS builds disabled)"
+      continue
+    fi
     fail "$label: MAR file $mar not found"
     continue
   fi

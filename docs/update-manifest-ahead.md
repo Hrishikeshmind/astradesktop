@@ -163,10 +163,11 @@ reason=human-readable why
 
 When `paused=1`:
 
-- `build.yml` `buildid` job fails if `create_release` is set (no 6-hour build
-  that cannot publish)
-- `build.yml` release job guard fails before touching the `updates` branch
-- Scheduled twilight (`twilight-release-schedule.yml`) skips via `publish-gate`
+- Live AUS must stay empty `<updates/>`. `buildid` fails if a stale `<patch>` is still offered.
+- Windows/Linux release builds may still run (`create_release=true`) so MARs can be signed and uploaded as GitHub Release assets.
+- The `release` job does **not** commit Pages `update.xml` while paused (staged manifests are uploaded as the `staged-update-manifests` artifact instead).
+- Scheduled twilight (`twilight-release-schedule.yml`) skips via `publish-gate`.
+- macOS / Darwin jobs are skipped by default (`skip_macos=true`). Do not publish Darwin MARs or Darwin `update.xml` from this path.
 
 **Critical:** Pausing publish does **not** automatically clear live Pages
 manifests. A stale `update.xml` that still lists a complete MAR will keep
@@ -249,8 +250,13 @@ new-key installer (see MAR signatures above). Until then keep
 1. Set `.astra/publish-paused` to `paused=0` (keep the file). Commit on `dev`/`stable` as appropriate.
 2. Re-enable scheduled twilight only if intended:
    `gh workflow enable twilight-release-schedule.yml`
-3. Run the release workflow with `create_release=true` and
-   `update_branch=release` from the correct source branch (`stable` for release).
+3. Run **Astra Release builds** (`build.yml`) with `create_release=true`,
+   `update_branch=release`, and `skip_macos=true` (Windows x64/arm64 + Linux
+   x64/aarch64 only). From `dev` until `stable` is the release cut. While
+   `.astra/publish-paused` is still `paused=1`, CI will upload GitHub Release
+   assets and the `staged-update-manifests` artifact but **will not** commit
+   Pages. Un-pause only after Win/Linux apply→restart smoke, then publish that
+   artifact to the `updates` branch.
 4. CI will, in order:
    - Fail closed if still paused / non-monotonic buildID / wrong MAR channel / unsigned MAR
    - Sign MARs (or verify already-signed) and **refresh update.xml hash/size**
