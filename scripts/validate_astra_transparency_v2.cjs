@@ -200,6 +200,30 @@ if (manager.includes("#bumpGeneration(\"delayed-startup\")") || manager.includes
   fail("delayed-startup must not reset attempt budget");
 } else ok("delayed-startup does not reset attempt budget");
 
+if (manager.includes("#onActivate") && manager.includes("idleDispatch")) {
+  ok("activate is deferred off the WM_ACTIVATE turn");
+} else fail("activate still runs DWM reapply synchronously");
+
+if (
+  manager.includes("addEventListener(\"activate\", this.#onActivate") ||
+  manager.includes("addEventListener('activate', this.#onActivate")
+) {
+  ok("activate listener uses dedicated idle handler");
+} else fail("activate still bound to #onLifecycle");
+
+if (
+  manager.includes("#nativeCandidateFromEffective") &&
+  manager.includes("keepAcceptedNative")
+) {
+  ok("accepted native is reused instead of NativeCoordinator.clear()");
+} else fail("missing accepted-native reuse on reapply");
+
+if (
+  /stage === "lifecycle"[\s\S]{0,120}#runHealthCheck/.test(manager)
+) {
+  fail("lifecycle still health-check-clears native on activate");
+} else ok("health check not run on lifecycle/activate");
+
 if (manager.includes("#bumpGeneration(\"startup-ready\")") || manager.includes('#bumpGeneration("startup-ready")')) {
   fail("startup-ready must not reset attempt budget");
 } else ok("startup-ready does not reset attempt budget");
@@ -298,6 +322,7 @@ function decide({
   prefsOk,
   micaCapability,
   attempted,
+  previouslyAccepted,
 }) {
   if (!desired) {
     return {
@@ -352,8 +377,27 @@ function decide({
         : mode === "acrylic"
           ? ["acrylic"]
           : ["acrylic", "mica"];
+  const keepAccepted =
+    !!previouslyAccepted && order.includes(previouslyAccepted);
   for (const c of order) {
-    if (attempted?.has?.(c)) continue;
+    if (attempted?.has?.(c)) {
+      if (keepAccepted && c === previouslyAccepted) {
+        return {
+          effective:
+            c === "acrylic"
+              ? "native-acrylic"
+              : c === "mica"
+                ? "native-mica"
+                : "native-mica-alt",
+          nativeRequested: true,
+          nativeApplied: "best-effort",
+          fallback: "none",
+          clearNative: false,
+          candidate: c,
+        };
+      }
+      continue;
+    }
     if (!prefsOk) continue;
     if (!micaCapability) continue;
     return {
@@ -368,6 +412,21 @@ function decide({
       fallback: "none",
       clearNative: false,
       candidate: c,
+    };
+  }
+  if (keepAccepted) {
+    return {
+      effective:
+        previouslyAccepted === "acrylic"
+          ? "native-acrylic"
+          : previouslyAccepted === "mica"
+            ? "native-mica"
+            : "native-mica-alt",
+      nativeRequested: true,
+      nativeApplied: "best-effort",
+      fallback: "none",
+      clearNative: false,
+      candidate: previouslyAccepted,
     };
   }
   return {
@@ -437,6 +496,40 @@ const cases = [
       micaCapability: false,
     },
     expect: { effective: "astra-glass" },
+  },
+  {
+    name: "lifecycle after native success must not clear",
+    in: {
+      desired: true,
+      mode: "acrylic",
+      platformWin: true,
+      prefsOk: true,
+      micaCapability: true,
+      attempted: new Set(["acrylic"]),
+      previouslyAccepted: "acrylic",
+    },
+    expect: {
+      effective: "native-acrylic",
+      nativeApplied: "best-effort",
+      clearNative: false,
+    },
+  },
+  {
+    name: "auto lifecycle after acrylic success must not try mica/clear",
+    in: {
+      desired: true,
+      mode: "auto",
+      platformWin: true,
+      prefsOk: true,
+      micaCapability: true,
+      attempted: new Set(["acrylic"]),
+      previouslyAccepted: "acrylic",
+    },
+    expect: {
+      effective: "native-acrylic",
+      nativeApplied: "best-effort",
+      clearNative: false,
+    },
   },
 ];
 

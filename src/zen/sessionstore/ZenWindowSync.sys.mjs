@@ -172,6 +172,10 @@ class nsZenWindowSync {
     return null;
   }
 
+  #hasMultipleSyncedWindows() {
+    return this.#browserWindowsList.length > 1;
+  }
+
   init() {
     if (this.#initialized) {
       return;
@@ -733,8 +737,16 @@ class nsZenWindowSync {
    *
    * @param {object} aOurTab - The tab in the current window.
    * @param {object} aOtherTab - The tab in the other window.
+   * @param {object} [options]
+   * @param {boolean} [options.lightweight] Skip PageThumbs capture and
+   *   focus-adjust. Required on OS window-focus so capture/IPC cannot hang
+   *   the parent during WM_ACTIVATE.
    */
-  async #swapBrowserDocShellsAsync(aOurTab, aOtherTab) {
+  async #swapBrowserDocShellsAsync(
+    aOurTab,
+    aOtherTab,
+    { lightweight = false } = {}
+  ) {
     if (!this.#canSwapBrowsers(aOurTab, aOtherTab)) {
       this.log(
         `Cannot swap browsers between tabs ${aOurTab.id} and ${aOtherTab.id} due to process mismatch`
@@ -743,6 +755,20 @@ class nsZenWindowSync {
     }
     if (aOtherTab.closing) {
       this.log(`Cannot swap browsers, other tab ${aOtherTab.id} is closing`);
+      return;
+    }
+    if (lightweight) {
+      try {
+        this.#swapBrowserDocShellsInner(aOurTab, aOtherTab, { focus: false });
+        if (aOurTab.linkedBrowser) {
+          aOurTab.linkedBrowser.docShellIsActive = true;
+        }
+      } catch (e) {
+        console.error(
+          `Error swapping browsers for tabs ${aOurTab.id} and ${aOtherTab.id}:`,
+          e
+        );
+      }
       return;
     }
     await this.#styleSwapedBrowsers(aOurTab, aOtherTab, () => {
@@ -1118,6 +1144,7 @@ class nsZenWindowSync {
    * @param {object} aPreviousTab - The previously selected tab.
    */
   async #onTabSwitchOrWindowFocus(aWindow, aPreviousTab = null) {
+    const lightweight = !aPreviousTab;
     let activeBrowsers = aWindow.gBrowser.selectedBrowsers;
     let activeTabs = activeBrowsers
       .map(browser => aWindow.gBrowser.getTabForBrowser(browser))
@@ -1141,7 +1168,9 @@ class nsZenWindowSync {
         if (otherTabToShow) {
           otherTabToShow._zenContentsVisible = true;
           delete tab._zenContentsVisible;
-          await this.#swapBrowserDocShellsAsync(otherTabToShow, tab);
+          await this.#swapBrowserDocShellsAsync(otherTabToShow, tab, {
+            lightweight,
+          });
         }
       }
     }
@@ -1161,7 +1190,9 @@ class nsZenWindowSync {
       if (otherSelectedTab) {
         delete otherSelectedTab._zenContentsVisible;
         promises.push(
-          this.#swapBrowserDocShellsAsync(selectedTab, otherSelectedTab)
+          this.#swapBrowserDocShellsAsync(selectedTab, otherSelectedTab, {
+            lightweight,
+          })
         );
       }
     }
@@ -1516,6 +1547,13 @@ class nsZenWindowSync {
     ) {
       return;
     }
+    // Returning from another app into a single browser window must not
+    // swap docshells or capture PageThumbs on the UI thread.
+    if (!this.#hasMultipleSyncedWindows()) {
+      this.#lastFocusedWindow = new WeakRef(window);
+      this.#lastSelectedTab = new WeakRef(window.gBrowser.selectedTab);
+      return;
+    }
     if (this.#docShellSwitchPromise) {
       return;
     }
@@ -1531,10 +1569,15 @@ class nsZenWindowSync {
     window.addEventListener("TabSelect", onTabSelect, { once: true });
     // eslint-disable-next-line no-async-promise-executor
     this.#docShellSwitchPromise = new Promise(async resolve => {
-      await this.#onTabSwitchOrWindowFocus(window);
-      window.removeEventListener("TabSelect", onTabSelect);
-      resolve();
-      this.#docShellSwitchPromise = null;
+      try {
+        await this.#onTabSwitchOrWindowFocus(window);
+      } catch (e) {
+        console.error(`Error syncing tab contents on window focus:`, e);
+      } finally {
+        window.removeEventListener("TabSelect", onTabSelect);
+        this.#docShellSwitchPromise = null;
+        resolve();
+      }
     });
   }
 
@@ -1551,10 +1594,15 @@ class nsZenWindowSync {
     }
     // eslint-disable-next-line no-async-promise-executor
     this.#docShellSwitchPromise = new Promise(async resolve => {
-      await promise;
-      await this.#onTabSwitchOrWindowFocus(tab.documentGlobal, previousTab);
-      resolve();
-      this.#docShellSwitchPromise = null;
+      try {
+        await promise;
+        await this.#onTabSwitchOrWindowFocus(tab.documentGlobal, previousTab);
+      } catch (e) {
+        console.error(`Error syncing tab contents on tab select:`, e);
+      } finally {
+        this.#docShellSwitchPromise = null;
+        resolve();
+      }
     });
   }
 

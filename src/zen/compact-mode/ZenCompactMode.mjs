@@ -201,8 +201,19 @@ window.gZenCompactModeManager = {
     });
 
     // Hide any element kept open by the outside mouse tracking as soon as the
-    // window loses focus
-    window.addEventListener("deactivate", () => this._collapseTrackedElement());
+    // window loses focus. Keep this handler exception-safe so deactivate
+    // cannot throw into the OS activation path.
+    window.addEventListener(
+      "deactivate",
+      () => {
+        try {
+          this._collapseTrackedElement();
+        } catch (e) {
+          console.error("[Zen Compact Mode] deactivate collapse failed", e);
+        }
+      },
+      { passive: true }
+    );
 
     this._canShowBackgroundTabToast = Services.prefs.getBoolPref(
       "zen.view.compact.show-background-tab-toast",

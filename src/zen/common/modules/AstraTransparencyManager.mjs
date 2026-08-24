@@ -164,6 +164,7 @@ class AstraTransparencyManager {
   #initialized = false;
   #destroyed = false;
   #reapplyQueued = false;
+  #idleReapplyQueued = false;
   #suppressPrefObserver = false;
   #windowGeneration = 0;
   #attemptedNativeModes = new Set();
@@ -218,8 +219,10 @@ class AstraTransparencyManager {
     window.addEventListener("sizemodechange", this.#onLifecycle, {
       passive: true,
     });
-    // activate: reapply only — does not reset attempt budget
-    window.addEventListener("activate", this.#onLifecycle, { passive: true });
+    // Activate must not mutate DWM prefs on the WM_ACTIVATE turn.
+    // Toggling widget.windows.mica while Windows restores the compositor
+    // hangs the parent UI thread ("Not Responding").
+    window.addEventListener("activate", this.#onActivate, { passive: true });
     document.addEventListener("fullscreenchange", this.#onLifecycle, {
       passive: true,
     });
@@ -287,6 +290,8 @@ class AstraTransparencyManager {
 
   #onLifecycle = () => this.#queueReapply("lifecycle");
 
+  #onActivate = () => this.#queueIdleReapply("activate");
+
   #onDelayedStartup = (subject, topic) => {
     if (topic !== "browser-delayed-startup-finished" || subject !== window) {
       return;
@@ -317,6 +322,7 @@ class AstraTransparencyManager {
   uninit() {
     this.#destroyed = true;
     this.#reapplyQueued = false;
+    this.#idleReapplyQueued = false;
     if (this.#prefObserver) {
       try {
         Services.prefs.removeObserver(PREF_ENABLED, this.#prefObserver);
@@ -347,7 +353,7 @@ class AstraTransparencyManager {
       /* ignore */
     }
     window.removeEventListener("sizemodechange", this.#onLifecycle);
-    window.removeEventListener("activate", this.#onLifecycle);
+    window.removeEventListener("activate", this.#onActivate);
     document.removeEventListener("fullscreenchange", this.#onLifecycle);
     document.removeEventListener("MozDOMFullscreen:Entered", this.#onLifecycle);
     document.removeEventListener("MozDOMFullscreen:Exited", this.#onLifecycle);
@@ -457,6 +463,38 @@ class AstraTransparencyManager {
       queueMicrotask(run);
     } else {
       Promise.resolve().then(run);
+    }
+  }
+
+  /**
+   * Defer work until the parent is idle so we never race WM_ACTIVATE / DWM.
+   */
+  #queueIdleReapply(stage) {
+    if (this.#destroyed || this.#idleReapplyQueued) {
+      return;
+    }
+    this.#idleReapplyQueued = true;
+    const run = () => {
+      this.#idleReapplyQueued = false;
+      this.#queueReapply(stage);
+    };
+    try {
+      ChromeUtils.idleDispatch(run, { timeout: 250 });
+    } catch (e) {
+      window.setTimeout(run, 0);
+    }
+  }
+
+  #nativeCandidateFromEffective(effectiveMode) {
+    switch (effectiveMode) {
+      case "native-acrylic":
+        return "acrylic";
+      case "native-mica":
+        return "mica";
+      case "native-mica-alt":
+        return "mica-alt";
+      default:
+        return null;
     }
   }
 
@@ -628,9 +666,23 @@ class AstraTransparencyManager {
     let selectedNative = null;
     let failReason = "native-application-failed";
     let nativeRequested = false;
+    const previouslyAccepted = this.#nativeCandidateFromEffective(
+      this.#state.effectiveMode
+    );
+    const keepAcceptedNative =
+      this.#state.nativeApplied === "best-effort" &&
+      !!previouslyAccepted &&
+      candidates.includes(previouslyAccepted);
 
     for (const candidate of candidates) {
       if (this.#attemptedNativeModes.has(candidate)) {
+        // The winner stays in the attempt set. Reusing it avoids falling
+        // through to NativeCoordinator.clear() on every activate/lifecycle.
+        if (keepAcceptedNative && candidate === previouslyAccepted) {
+          selectedNative = candidate;
+          nativeRequested = true;
+          break;
+        }
         continue;
       }
       this.#attemptedNativeModes.add(candidate);
@@ -664,7 +716,6 @@ class AstraTransparencyManager {
       const settled =
         stage === "delayed-startup" ||
         stage === "startup-ready" ||
-        stage === "lifecycle" ||
         stage === "theme-update" ||
         stage === "energy-saver" ||
         stage === "pref-changed" ||
@@ -685,22 +736,36 @@ class AstraTransparencyManager {
     }
 
     if (selectedNative) {
-      this.#commitGlass(root, {
-        desiredEnabled,
-        requestedMode,
-        effectiveMode: EFFECTIVE_FOR_NATIVE[selectedNative],
-        nativeSupported: true,
-        nativeRequested: true,
-        nativeApplied: "best-effort",
-        fallbackReason: "none",
-      });
-      if (
-        stage === "startup-ready" ||
-        stage === "delayed-startup" ||
-        stage === "lifecycle"
-      ) {
+      const nextEffective = EFFECTIVE_FOR_NATIVE[selectedNative];
+      const unchanged =
+        this.#state.desiredEnabled === desiredEnabled &&
+        this.#state.requestedMode === requestedMode &&
+        this.#state.effectiveMode === nextEffective &&
+        this.#state.nativeApplied === "best-effort" &&
+        this.#state.nativeRequested &&
+        this.#state.fallbackReason === "none";
+      if (!unchanged) {
+        this.#commitGlass(root, {
+          desiredEnabled,
+          requestedMode,
+          effectiveMode: nextEffective,
+          nativeSupported: true,
+          nativeRequested: true,
+          nativeApplied: "best-effort",
+          fallbackReason: "none",
+        });
+      }
+      // Do not health-check-clear on activate/lifecycle: (-moz-windows-mica)
+      // is unreliable while DWM is resuming the window.
+      if (stage === "startup-ready" || stage === "delayed-startup") {
         this.#runHealthCheck();
       }
+      return;
+    }
+
+    // Attempt budget exhausted, but native is already accepted — keep it.
+    // Clearing mica here is what froze the UI on Alt-Tab.
+    if (keepAcceptedNative) {
       return;
     }
 
@@ -790,11 +855,8 @@ class AstraTransparencyManager {
       return;
     }
 
-    // Capability gate lost → Astra Glass (material floor already present in CSS
-    // for native modes; switch effective mode for honest status).
-    if (!this.#micaMediaActive()) {
-      this.#fallbackFromHealth("native-application-failed");
-    }
+    // MQ is a capability hint, not proof DWM failed. Never tear down native
+    // from MQ alone — that races window activation and hangs the UI thread.
   }
 
   #fallbackFromHealth(reason) {
