@@ -21,8 +21,12 @@
    ========================================================================== */
 
 :root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']) {
-  --zen-compact-top-hit-zone: 8px;
+  --zen-compact-top-hit-zone: 10px;
+  --zen-compact-edge-hit: 10px;
   --zen-compact-toolbar-overlay-z: 10;
+  /* Hit-zones sit above full-bleed content (z≈3) and below revealed chrome
+   * (toolbar z=10, toolbox z=15) so they never steal clicks once revealed. */
+  --zen-compact-hover-edge-z: 9;
   /* Follow browser Light/Dark (color-scheme / zen.view.window.scheme), not the
    * site. Near-opaque tint so icons stay readable over white or dark pages;
    * shadow+border keep the strip separable from light OR dark page backgrounds. */
@@ -145,17 +149,13 @@
         border-bottom: none !important;
         backdrop-filter: none !important;
 
-        /* Invisible top-edge hit target for hover reveal + window drag. */
+        /* Invisible top-edge hit target retired — real chrome boxes
+         * (#zen-compact-hover-*-edge) own hover so -moz-window-dragging
+         * cannot swallow mouseenter on Windows. */
         &::before {
-          content: '';
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: var(--zen-compact-top-hit-zone);
-          z-index: calc(var(--zen-compact-toolbar-overlay-z) + 1);
-          pointer-events: auto;
-          -moz-window-dragging: drag;
+          content: none !important;
+          display: none !important;
+          pointer-events: none !important;
         }
 
         & #zen-appcontent-navbar-container {
@@ -193,7 +193,7 @@
           box-shadow: var(--zen-compact-toolbar-overlay-drop) !important;
 
           &::before {
-            display: none;
+            display: none !important;
           }
 
           & #zen-appcontent-navbar-container {
@@ -228,6 +228,55 @@
       }
     }
   }
+}
+
+/* ==========================================================================
+   Part A3 — Chrome edge hit-zones (Compact Mode hover reveal)
+   Remote web content owns full-bleed pixels when chrome is tucked. These
+   fixed overlays live in the chrome process above content so mouseenter /
+   mouseleave fire immediately at the left/right and top edges.
+   ========================================================================== */
+
+#zen-compact-hover-sidebar-edge,
+#zen-compact-hover-toolbar-edge {
+  position: fixed;
+  z-index: var(--zen-compact-hover-edge-z, 9);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  pointer-events: auto;
+  -moz-window-dragging: no-drag;
+  /* Keep out of accessibility trees / layout noise. */
+  -moz-user-focus: ignore;
+}
+
+#zen-compact-hover-sidebar-edge[hidden],
+#zen-compact-hover-toolbar-edge[hidden],
+#zen-compact-hover-toolbar-edge[zen-hit-suppressed] {
+  pointer-events: none !important;
+  visibility: hidden;
+}
+
+#zen-compact-hover-sidebar-edge {
+  top: 0;
+  bottom: 0;
+  width: var(--zen-compact-edge-hit, 10px);
+  left: 0;
+  right: auto;
+}
+
+#zen-compact-hover-sidebar-edge[zen-right-edge] {
+  left: auto;
+  right: 0;
+}
+
+#zen-compact-hover-toolbar-edge {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--zen-compact-edge-hit, 10px);
+  width: auto;
 }
 
 /* Part B — Compact Mode: sidebar auto-hides in all layout modes. */

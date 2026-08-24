@@ -75,6 +75,20 @@ window.gZenCompactModeManager = {
   // Physical edge proximity (CSS px). Matches _getCrossedEdge maxDistance.
   EDGE_REVEAL_THRESHOLD: 8,
 
+  /**
+   * Width/height of chrome hit-zone overlays that sit above remote web content.
+   * Remote <browser> frames do not deliver pointermove to chrome, so Compact
+   * Mode MUST own a real chrome target at each auto-hide edge.
+   */
+  EDGE_HIT_SIZE: 10,
+
+  /** Premium hide delay when the engine still ships the legacy 1000ms default. */
+  DEFAULT_HIDE_AFTER_HOVER_MS: 300,
+  LEGACY_HIDE_AFTER_HOVER_MS: 1000,
+
+  SIDEBAR_HIT_ID: "zen-compact-hover-sidebar-edge",
+  TOOLBAR_HIT_ID: "zen-compact-hover-toolbar-edge",
+
   _edgePointerBound: false,
   _edgePointerListener: null,
   _edgeRevealRaf: null,
@@ -95,6 +109,9 @@ window.gZenCompactModeManager = {
   /** True only while Astra itself set zen-has-hover for a panel lock. */
   _panelLockOwnedHover: false,
   PANEL_LOCK_ATTR: "astra-compact-panel-lock",
+  _edgeHitTargetsBound: false,
+  _sidebarHitTarget: null,
+  _toolbarHitTarget: null,
 
   preInit() {
     this._wasInCompactMode = Services.prefs.getBoolPref(
@@ -112,6 +129,8 @@ window.gZenCompactModeManager = {
   init() {
     this.addMouseActions();
     this._ensureEdgeRevealListener();
+    this._ensureEdgeHitTargets();
+    this._syncEdgeHitTargets();
 
     const tabIsRightObserver = this._updateSidebarIsOnRight.bind(this);
     Services.prefs.addObserver(
@@ -139,6 +158,7 @@ window.gZenCompactModeManager = {
           tabIsRightObserver
         );
         this._teardownEdgeRevealListener();
+        this._teardownEdgeHitTargets();
         this._clearAllPanelLocks();
       },
       { once: true }
@@ -156,6 +176,7 @@ window.gZenCompactModeManager = {
       this._invalidateSidebarBoundsCache();
       this._clearAllHoverStates();
       this._clearEdgeRevealState();
+      this._syncEdgeHitTargets();
     });
     window.addEventListener("resize", () =>
       this._invalidateSidebarBoundsCache()
@@ -163,6 +184,7 @@ window.gZenCompactModeManager = {
     window.addEventListener("fullscreen", () => {
       this._invalidateSidebarBoundsCache();
       this._clearEdgeRevealState();
+      this._syncEdgeHitTargets();
     });
 
     // Hide any element kept open by the outside mouse tracking as soon as the
@@ -187,6 +209,7 @@ window.gZenCompactModeManager = {
     SessionStore.promiseAllWindowsRestored.then(() => {
       this.preference = this._wasInCompactMode;
       this._syncAutohideSidebarAttribute();
+      this._syncEdgeHitTargets();
     });
   },
 
@@ -258,6 +281,7 @@ window.gZenCompactModeManager = {
       this._clearAllPanelLocks();
     }
     this._syncAutohideSidebarAttribute();
+    this._syncEdgeHitTargets();
     this._updateEvent();
   },
 
@@ -365,6 +389,7 @@ window.gZenCompactModeManager = {
     this._compactChromeRevealed = false;
     document.documentElement.removeAttribute(this.COMPACT_CHROME_ATTR);
     this.clearFlashTimeout(this.COMPACT_CHROME_FLASH_ID);
+    this._syncEdgeHitTargets();
     if (!this.sidebar) {
       return;
     }
@@ -425,6 +450,7 @@ window.gZenCompactModeManager = {
 
   _releasePanelLockVisualState() {
     this._panelLockTokens = null;
+    this._syncEdgeHitTargets();
     if (!this.sidebar) {
       this._panelLockOwnedHover = false;
       return;
@@ -677,6 +703,7 @@ window.gZenCompactModeManager = {
 
   callAllEventListeners() {
     this._eventListeners.forEach(callback => callback());
+    this._syncEdgeHitTargets();
   },
 
   addEventListener(callback) {
@@ -715,6 +742,7 @@ window.gZenCompactModeManager = {
     window.dispatchEvent(
       new CustomEvent("ZenCompactMode:Toggled", { detail: this.preference })
     );
+    this._syncEdgeHitTargets();
   },
 
   // NOTE: Dont actually use event, it's just so we make sure
@@ -1020,6 +1048,7 @@ window.gZenCompactModeManager = {
     );
     this._invalidateSidebarBoundsCache();
     this._clearEdgeRevealState();
+    this._syncEdgeHitTargets();
   },
 
   toggleSidebar() {
@@ -1030,9 +1059,23 @@ window.gZenCompactModeManager = {
     if (this._hideAfterHoverDuration) {
       return this._hideAfterHoverDuration;
     }
-    return Services.prefs.getIntPref(
-      "zen.view.compact.toolbar-hide-after-hover.duration"
-    );
+    const pref = "zen.view.compact.toolbar-hide-after-hover.duration";
+    // Engine default was 1000ms — long enough that Compact Mode felt sticky,
+    // especially when hide was re-armed by stray pointermoves. Prefer ~300ms
+    // unless the user explicitly overrode the pref.
+    let raw;
+    try {
+      raw = Services.prefs.getIntPref(pref, this.DEFAULT_HIDE_AFTER_HOVER_MS);
+    } catch {
+      return this.DEFAULT_HIDE_AFTER_HOVER_MS;
+    }
+    if (
+      raw === this.LEGACY_HIDE_AFTER_HOVER_MS &&
+      !Services.prefs.prefHasUserValue(pref)
+    ) {
+      return this.DEFAULT_HIDE_AFTER_HOVER_MS;
+    }
+    return Math.min(Math.max(raw, 50), 800);
   },
 
   get hoverableElements() {
@@ -1061,10 +1104,15 @@ window.gZenCompactModeManager = {
     }
   },
 
-  flashElement(element, duration, id, attrName = "flash-popup") {
+  flashElement(element, duration, id, attrName = "flash-popup", { rearm = true } = {}) {
     if (this._flashTimeouts[id]) {
+      // Hide paths must not re-arm: continuous out-of-zone events would
+      // otherwise defer collapse forever and feel "stuck".
+      if (!rearm) {
+        return;
+      }
       clearTimeout(this._flashTimeouts[id]);
-    } else {
+    } else if (!element.hasAttribute(attrName)) {
       requestAnimationFrame(() =>
         this._setElementExpandAttribute(element, true, attrName)
       );
@@ -1073,6 +1121,12 @@ window.gZenCompactModeManager = {
       window.requestAnimationFrame(() => {
         this._setElementExpandAttribute(element, false, attrName);
         this._flashTimeouts[id] = null;
+        if (
+          element === this._getTopToolbarElement() ||
+          element === this.sidebar
+        ) {
+          this._syncEdgeHitTargets();
+        }
       });
     }, duration);
   },
@@ -1166,6 +1220,243 @@ window.gZenCompactModeManager = {
     this._clearEdgeRevealState();
   },
 
+  /**
+   * Chrome-process hit targets for Compact Mode edge reveal.
+   *
+   * Why this exists: when the sidebar is parked fully off-canvas and the top
+   * toolbar collapses to height:0, there is no chrome under the cursor at the
+   * window edges. Remote web content then owns those pixels and never delivers
+   * pointermove/mouseenter to chrome JS — so hover reveal feels dead or laggy.
+   * These thin overlays live in chrome above content and restore reliable
+   * mouseenter / mouseleave.
+   */
+  _ensureEdgeHitTargets() {
+    if (this._edgeHitTargetsBound) {
+      return;
+    }
+    const host = document.getElementById("browser") || document.documentElement;
+    const makeHit = id => {
+      let el = document.getElementById(id);
+      if (!el) {
+        el = document.createXULElement("box");
+        el.id = id;
+        el.classList.add("zen-compact-hover-edge");
+        el.setAttribute("hidden", "true");
+        host.appendChild(el);
+      }
+      return el;
+    };
+
+    this._sidebarHitTarget = makeHit(this.SIDEBAR_HIT_ID);
+    this._toolbarHitTarget = makeHit(this.TOOLBAR_HIT_ID);
+
+    this._onSidebarHitEnter = event => this._onEdgeHitEnter("sidebar", event);
+    this._onSidebarHitLeave = event => this._onEdgeHitLeave("sidebar", event);
+    this._onToolbarHitEnter = event => this._onEdgeHitEnter("toolbar", event);
+    this._onToolbarHitLeave = event => this._onEdgeHitLeave("toolbar", event);
+
+    this._sidebarHitTarget.addEventListener("mouseenter", this._onSidebarHitEnter);
+    this._sidebarHitTarget.addEventListener("mouseleave", this._onSidebarHitLeave);
+    this._toolbarHitTarget.addEventListener("mouseenter", this._onToolbarHitEnter);
+    this._toolbarHitTarget.addEventListener("mouseleave", this._onToolbarHitLeave);
+    this._edgeHitTargetsBound = true;
+  },
+
+  _teardownEdgeHitTargets() {
+    if (!this._edgeHitTargetsBound) {
+      return;
+    }
+    if (this._sidebarHitTarget) {
+      this._sidebarHitTarget.removeEventListener(
+        "mouseenter",
+        this._onSidebarHitEnter
+      );
+      this._sidebarHitTarget.removeEventListener(
+        "mouseleave",
+        this._onSidebarHitLeave
+      );
+      this._sidebarHitTarget.remove();
+    }
+    if (this._toolbarHitTarget) {
+      this._toolbarHitTarget.removeEventListener(
+        "mouseenter",
+        this._onToolbarHitEnter
+      );
+      this._toolbarHitTarget.removeEventListener(
+        "mouseleave",
+        this._onToolbarHitLeave
+      );
+      this._toolbarHitTarget.remove();
+    }
+    this._sidebarHitTarget = null;
+    this._toolbarHitTarget = null;
+    this._edgeHitTargetsBound = false;
+  },
+
+  _syncEdgeHitTargets() {
+    this._ensureEdgeHitTargets();
+    const active =
+      this.preference &&
+      this.shouldBeCompact &&
+      !this.isPanelLocked() &&
+      !document.documentElement.hasAttribute("zen-compact-animating") &&
+      !window.fullScreen &&
+      !window.closed;
+
+    if (this._sidebarHitTarget) {
+      const showSidebar = active && this.canHideSidebar;
+      this._sidebarHitTarget.toggleAttribute("hidden", !showSidebar);
+      this._sidebarHitTarget.toggleAttribute(
+        "zen-right-edge",
+        this.sidebarIsOnRight
+      );
+    }
+    if (this._toolbarHitTarget) {
+      const showToolbar = active && this.canHideToolbar;
+      this._toolbarHitTarget.toggleAttribute("hidden", !showToolbar);
+      // When the toolbar is already revealed it owns the top strip; disable
+      // the hit overlay so it cannot steal clicks from the real chrome.
+      const toolbar = this._getTopToolbarElement();
+      const toolbarRevealed =
+        !!toolbar &&
+        (toolbar.hasAttribute("zen-has-hover") ||
+          toolbar.hasAttribute("has-popup-menu") ||
+          toolbar.hasAttribute("zen-compact-mode-active"));
+      this._toolbarHitTarget.toggleAttribute(
+        "zen-hit-suppressed",
+        toolbarRevealed
+      );
+    }
+  },
+
+  _isCompactChromeRelatedTarget(node) {
+    if (!node || !Element.isInstance(node)) {
+      return false;
+    }
+    if (
+      node === this._sidebarHitTarget ||
+      node === this._toolbarHitTarget ||
+      this._sidebarHitTarget?.contains(node) ||
+      this._toolbarHitTarget?.contains(node)
+    ) {
+      return true;
+    }
+    if (this.sidebar?.contains(node)) {
+      return true;
+    }
+    const toolbar = this._getTopToolbarElement();
+    if (toolbar?.contains(node)) {
+      return true;
+    }
+    return false;
+  },
+
+  _isPointerOverCompactChromeUI() {
+    if (
+      this._sidebarHitTarget?.matches(":hover") ||
+      this._toolbarHitTarget?.matches(":hover")
+    ) {
+      return true;
+    }
+    if (this.sidebar?.matches(":hover")) {
+      return true;
+    }
+    const toolbar = this._getTopToolbarElement();
+    if (toolbar?.matches(":hover")) {
+      return true;
+    }
+    return false;
+  },
+
+  _onEdgeHitEnter(kind, _event) {
+    if (
+      !this.preference ||
+      this._ignoreNextHover ||
+      this.isPanelLocked() ||
+      document.documentElement.hasAttribute("zen-compact-animating")
+    ) {
+      return;
+    }
+    // Immediate reveal — no HOVER_HACK_DELAY. Hit zones only exist while
+    // Compact Mode is active, so residual hover on enable is already gated.
+    if (this.usesUnifiedCompactChrome) {
+      this._setCompactChromeRevealed(true);
+      this._syncEdgeHitTargets();
+      return;
+    }
+    if (kind === "sidebar" && this.canHideSidebar) {
+      this.clearFlashTimeout("has-hover" + this.sidebar.id);
+      window.cancelAnimationFrame(this._removeHoverFrames[this.sidebar.id]);
+      this._edgeRevealActive = true;
+      this._setElementExpandAttribute(this.sidebar, true, "zen-has-hover");
+      return;
+    }
+    if (kind === "toolbar" && this.canHideToolbar) {
+      const toolbar = this._getTopToolbarElement();
+      if (!toolbar) {
+        return;
+      }
+      this.clearFlashTimeout("has-hover" + toolbar.id);
+      window.cancelAnimationFrame(this._removeHoverFrames[toolbar.id]);
+      this._topToolbarEdgeRevealActive = true;
+      this._setElementExpandAttribute(toolbar, true, "zen-has-hover");
+      this._syncEdgeHitTargets();
+    }
+  },
+
+  _onEdgeHitLeave(kind, event) {
+    if (this._isCompactChromeRelatedTarget(event.relatedTarget)) {
+      return;
+    }
+    // Defer one turn so a sibling hit-zone / chrome mouseenter can cancel.
+    window.requestAnimationFrame(() => {
+      if (this._isPointerOverCompactChromeUI()) {
+        return;
+      }
+      if (this.usesUnifiedCompactChrome) {
+        this._setCompactChromeRevealed(false);
+        return;
+      }
+      if (kind === "sidebar") {
+        this._edgeRevealActive = false;
+        if (
+          this.sidebar?.hasAttribute("zen-has-hover") &&
+          !this.sidebar.hasAttribute("zen-user-show") &&
+          !this.sidebar.hasAttribute("zen-has-empty-tab") &&
+          !this.sidebar.hasAttribute("has-popup-menu") &&
+          !this.sidebar.hasAttribute("zen-compact-mode-active")
+        ) {
+          this.flashElement(
+            this.sidebar,
+            this.hideAfterHoverDuration,
+            "has-hover" + this.sidebar.id,
+            "zen-has-hover",
+            { rearm: false }
+          );
+        }
+        return;
+      }
+      if (kind === "toolbar") {
+        const toolbar = this._getTopToolbarElement();
+        this._topToolbarEdgeRevealActive = false;
+        if (
+          toolbar?.hasAttribute("zen-has-hover") &&
+          !toolbar.hasAttribute("has-popup-menu") &&
+          !toolbar.hasAttribute("zen-compact-mode-active")
+        ) {
+          this.flashElement(
+            toolbar,
+            this.hideAfterHoverDuration,
+            "has-hover" + toolbar.id,
+            "zen-has-hover",
+            { rearm: false }
+          );
+        }
+        this._syncEdgeHitTargets();
+      }
+    });
+  },
+
   _canProcessEdgeReveal(event) {
     if (
       !this.preference ||
@@ -1254,15 +1545,15 @@ window.gZenCompactModeManager = {
    */
   _setCompactChromeRevealed(revealed, { immediate = false } = {}) {
     const toolbar = this._getTopToolbarElement();
-    this.clearFlashTimeout(this.COMPACT_CHROME_FLASH_ID);
-    this.clearFlashTimeout("has-hover" + this.sidebar.id);
-    if (toolbar) {
-      this.clearFlashTimeout("has-hover" + toolbar.id);
-      window.cancelAnimationFrame(this._removeHoverFrames[toolbar.id]);
-    }
-    window.cancelAnimationFrame(this._removeHoverFrames[this.sidebar.id]);
-
     if (revealed) {
+      this.clearFlashTimeout(this.COMPACT_CHROME_FLASH_ID);
+      this.clearFlashTimeout("has-hover" + this.sidebar.id);
+      if (toolbar) {
+        this.clearFlashTimeout("has-hover" + toolbar.id);
+        window.cancelAnimationFrame(this._removeHoverFrames[toolbar.id]);
+      }
+      window.cancelAnimationFrame(this._removeHoverFrames[this.sidebar.id]);
+
       this._compactChromeRevealed = true;
       this._edgeRevealActive = true;
       this._topToolbarEdgeRevealActive = true;
@@ -1271,6 +1562,7 @@ window.gZenCompactModeManager = {
       if (toolbar) {
         this._setElementExpandAttribute(toolbar, true, "zen-has-hover");
       }
+      this._syncEdgeHitTargets();
       return;
     }
 
@@ -1302,10 +1594,18 @@ window.gZenCompactModeManager = {
       if (toolbar) {
         this._setElementExpandAttribute(toolbar, false, "zen-has-hover");
       }
+      this._syncEdgeHitTargets();
     };
 
     if (immediate) {
+      this.clearFlashTimeout(this.COMPACT_CHROME_FLASH_ID);
       hideBoth();
+      return;
+    }
+
+    // Already waiting to hide — do NOT re-arm the timer. Re-arming on every
+    // out-of-zone pointermove was the main "stuck open for seconds" bug.
+    if (this._flashTimeouts[this.COMPACT_CHROME_FLASH_ID]) {
       return;
     }
 
@@ -1314,8 +1614,10 @@ window.gZenCompactModeManager = {
     document.documentElement.setAttribute(this.COMPACT_CHROME_ATTR, "true");
     this._flashTimeouts[this.COMPACT_CHROME_FLASH_ID] = setTimeout(() => {
       window.requestAnimationFrame(() => {
-        // Re-check locks at fire time so we still never desync.
+        this._flashTimeouts[this.COMPACT_CHROME_FLASH_ID] = null;
+        // Re-check locks / live hover at fire time so we never desync.
         if (
+          this._isPointerOverCompactChromeUI() ||
           this.sidebar?.hasAttribute("zen-user-show") ||
           this.sidebar?.hasAttribute("zen-has-empty-tab") ||
           this.sidebar?.hasAttribute("has-popup-menu") ||
@@ -1324,17 +1626,31 @@ window.gZenCompactModeManager = {
           toolbar?.hasAttribute("zen-compact-mode-active")
         ) {
           this._setCompactChromeRevealed(true);
-          this._flashTimeouts[this.COMPACT_CHROME_FLASH_ID] = null;
           return;
         }
         hideBoth();
-        this._flashTimeouts[this.COMPACT_CHROME_FLASH_ID] = null;
       });
     }, this.hideAfterHoverDuration);
   },
 
   _isPointerOnTopToolbarEdge(clientY) {
-    return clientY <= this.EDGE_REVEAL_THRESHOLD;
+    return clientY <= this.EDGE_HIT_SIZE;
+  },
+
+  _isPointerOnSidebarEdge(clientX, clientY) {
+    const threshold = this.EDGE_HIT_SIZE;
+    const onEdgeX = this.sidebarIsOnRight
+      ? window.innerWidth - clientX <= threshold
+      : clientX <= threshold;
+    if (!onEdgeX) {
+      return false;
+    }
+    // Vertical range uses cached toolbox bounds (invalidated on resize /
+    // compact toggle / side / width changes), not per-event layout reads.
+    const bounds = this._getSidebarVerticalBounds();
+    return (
+      clientY >= bounds.top - threshold && clientY <= bounds.bottom + threshold
+    );
   },
 
   _isPointerInTopToolbarHandoffZone(clientX, clientY) {
@@ -1343,18 +1659,20 @@ window.gZenCompactModeManager = {
       return false;
     }
     const threshold = this.EDGE_REVEAL_THRESHOLD;
-    if (
-      clientY >
-      (toolbar.hasAttribute("zen-has-hover")
-        ? toolbar.getBoundingClientRect().bottom + threshold
-        : threshold * 5)
-    ) {
+    // While hidden, only the thin hit strip counts — not a tall 40px band
+    // that kept chrome "in zone" from stale pointer coords.
+    const maxY = toolbar.hasAttribute("zen-has-hover")
+      ? toolbar.getBoundingClientRect().bottom + threshold
+      : this.EDGE_HIT_SIZE;
+    if (clientY > maxY) {
       return false;
     }
     const rect = toolbar.getBoundingClientRect();
-    return (
-      clientX >= rect.left - threshold && clientX <= rect.right + threshold
-    );
+    // Hidden toolbar collapses to height 0; use full window width then.
+    const left = rect.width > 1 ? rect.left - threshold : 0;
+    const right =
+      rect.width > 1 ? rect.right + threshold : window.innerWidth;
+    return clientX >= left && clientX <= right;
   },
 
   /**
@@ -1366,6 +1684,14 @@ window.gZenCompactModeManager = {
       return true;
     }
     if (this._isPointerOnSidebarEdge(clientX, clientY)) {
+      return true;
+    }
+    // Chrome hit-zones sit above remote content; treat them as in-zone even
+    // when geometric edge checks are slightly off due to DPI/rounding.
+    if (
+      this._sidebarHitTarget?.matches(":hover") ||
+      this._toolbarHitTarget?.matches(":hover")
+    ) {
       return true;
     }
     if (!this._compactChromeRevealed) {
@@ -1475,26 +1801,11 @@ window.gZenCompactModeManager = {
           toolbar,
           this.hideAfterHoverDuration,
           "has-hover" + toolbar.id,
-          "zen-has-hover"
+          "zen-has-hover",
+          { rearm: false }
         );
       }
     }
-  },
-
-  _isPointerOnSidebarEdge(clientX, clientY) {
-    const threshold = this.EDGE_REVEAL_THRESHOLD;
-    const onEdgeX = this.sidebarIsOnRight
-      ? window.innerWidth - clientX <= threshold
-      : clientX <= threshold;
-    if (!onEdgeX) {
-      return false;
-    }
-    // Vertical range uses cached toolbox bounds (invalidated on resize /
-    // compact toggle / side / width changes), not per-event layout reads.
-    const bounds = this._getSidebarVerticalBounds();
-    return (
-      clientY >= bounds.top - threshold && clientY <= bounds.bottom + threshold
-    );
   },
 
   _isPointerInSidebarHandoffZone(clientX, clientY) {
@@ -1562,7 +1873,8 @@ window.gZenCompactModeManager = {
           this.sidebar,
           this.hideAfterHoverDuration,
           "has-hover" + this.sidebar.id,
-          "zen-has-hover"
+          "zen-has-hover",
+          { rearm: false }
         );
       }
     }
@@ -1608,6 +1920,12 @@ window.gZenCompactModeManager = {
       ) {
         gBrowser.tabpanels.setAttribute("has-toolbar-hovered", "true");
       }
+      if (
+        attr === "zen-has-hover" &&
+        (isToolbar || element === this.sidebar)
+      ) {
+        this._syncEdgeHitTargets();
+      }
     } else {
       if (attr === "zen-has-hover") {
         if (element === this._outsideTrackedElement) {
@@ -1625,6 +1943,12 @@ window.gZenCompactModeManager = {
         )
       ) {
         gBrowser.tabpanels.removeAttribute("has-toolbar-hovered");
+      }
+      if (
+        attr === "zen-has-hover" &&
+        (isToolbar || element === this.sidebar)
+      ) {
+        this._syncEdgeHitTargets();
       }
     }
   },
@@ -1721,12 +2045,18 @@ window.gZenCompactModeManager = {
           }
         }
 
+        // Moving into a Compact Mode hit-zone or the other L-chrome piece is
+        // not a leave — cancel early before the delayed check.
+        if (this._isCompactChromeRelatedTarget(event.relatedTarget)) {
+          return;
+        }
+
         // See bug https://bugzilla.mozilla.org/show_bug.cgi?id=1979340 and issue https://github.com/zen-browser/desktop/issues/7746.
         // If we want the toolbars to be draggable, we need to make sure to check the hover state after a short delay.
         // This is because the mouse is left to be handled natively so firefox thinks the mouse left the window for a split second.
         setTimeout(() => {
           // Let's double check if the mouse is still hovering over the element, see the bug above.
-          if (event.target.matches(":hover")) {
+          if (event.target.matches(":hover") || this._isPointerOverCompactChromeUI()) {
             return;
           }
 
@@ -1757,13 +2087,6 @@ window.gZenCompactModeManager = {
               target === this._getTopToolbarElement())
           ) {
             // Only hide when the pointer has left the entire L-chrome unit.
-            const other =
-              target === this.sidebar
-                ? this._getTopToolbarElement()
-                : this.sidebar;
-            if (other?.matches(":hover")) {
-              return;
-            }
             this._setCompactChromeRevealed(false);
             return;
           }
@@ -1781,11 +2104,15 @@ window.gZenCompactModeManager = {
               target,
               this.hoverableElements[i].keepHoverDuration,
               "has-hover" + target.id,
-              "zen-has-hover"
+              "zen-has-hover",
+              { rearm: false }
             );
           } else {
             this._removeHoverFrames[target.id] = window.requestAnimationFrame(
-              () => this._setElementExpandAttribute(target, false)
+              () => {
+                this._setElementExpandAttribute(target, false);
+                this._syncEdgeHitTargets();
+              }
             );
           }
         }, this.HOVER_HACK_DELAY);
@@ -1839,7 +2166,8 @@ window.gZenCompactModeManager = {
               target,
               this.hideAfterHoverDuration,
               "has-hover" + target.id,
-              "zen-has-hover"
+              "zen-has-hover",
+              { rearm: false }
             );
           }
           document.addEventListener(
