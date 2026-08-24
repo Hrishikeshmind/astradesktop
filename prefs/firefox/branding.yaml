@@ -6,10 +6,11 @@
 - name: app.support.baseURL
   value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title="
 
-# Captive-portal canonical page content still referenced Mozilla SUMO.
-- name: captivedetect.canonicalContent
-  value: '<meta http-equiv="refresh" content="0;url=https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title=Captive%20portal"/>'
-
 # detectportal.firefox.com is kept intentionally: it is Mozilla-operated
 # connectivity-check infrastructure with no user-visible branding. Replacing
 # it would require Astra-hosted captive-portal detection endpoints.
+
+# generate_204 expects empty canonical content; a non-empty string causes
+# false-positive captive portal notifications on normal networks.
+- name: captivedetect.canonicalContent
+  value: ""

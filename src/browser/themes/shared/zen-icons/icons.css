@@ -88,12 +88,20 @@
   }
 }
 
+/*
+ * History / Bookmarks / Open Tabs launcher. Use the library glyph so it
+ * stays distinct from Compact Mode (#zen-toggle-compact-mode → sidebar.svg).
+ * Toolbarbutton [checked] supplies the open/active highlight.
+ */
 #sidebar-button {
-  list-style-image: url("sidebars-right.svg") !important;
+  list-style-image: url("library.svg") !important;
 }
 
-#sidebar-button:-moz-locale-dir(ltr):not([positionend]),
-#sidebar-button:-moz-locale-dir(rtl)[positionend],
+#sidebar-button[checked],
+#sidebar-button[open] {
+  list-style-image: url("library.svg") !important;
+}
+
 #zen-toggle-compact-mode {
   list-style-image: url("sidebar.svg") !important;
 

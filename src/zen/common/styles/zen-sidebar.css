@@ -12,20 +12,29 @@
      * collapse the flanking #tabbrowser-tabbox flex gaps
      * (2 × --zen-element-separation) so the panel and content read as
      * adjacent (~2px optical seam) rather than a 13px gutter.
-     * visual = 2*8 + hit + 2*margin ≈ 2 when margin = -(separation + 3px). */
+     * visual = 2*8 + hit + 2*margin ≈ 2 when margin = -(separation + 3px).
+     * !important keeps this symmetric collapse if other rules set only one
+     * logical margin side (which previously produced a broken vertical line). */
     --zen-sidebar-panel-splitter-hit: 8px;
     box-sizing: border-box;
     width: var(--zen-sidebar-panel-splitter-hit) !important;
     min-width: var(--zen-sidebar-panel-splitter-hit) !important;
     max-width: var(--zen-sidebar-panel-splitter-hit) !important;
+    border: none !important;
     border-inline-width: 0 !important;
-    margin-inline: calc(-1 * var(--zen-element-separation) - 3px);
+    outline: none !important;
+    background: transparent !important;
+    margin-inline: calc(-1 * var(--zen-element-separation) - 3px) !important;
   }
 
   & #sidebar-box {
     border-radius: var(--zen-native-inner-radius);
     box-shadow: var(--zen-big-shadow);
     overflow: hidden;
+    /* Single soft card edge — no extra ring that would double with the
+     * content card shadow and read as a hard / broken vertical separator. */
+    border: none;
+    outline: none;
     /* Firefox revamp adds a 6px block-end padding which showed as a stray
      * light "tray" under the panel inside the rounded card (Marionette:
      * box h=686.8 vs inner #sidebar h=680.8, pb=6px). The card is the
@@ -40,6 +49,7 @@
    * inner browser to fill it edge-to-edge. */
   & #sidebar {
     border-radius: var(--zen-native-inner-radius);
+    border: none;
     outline: none;
     box-shadow: none;
   }
