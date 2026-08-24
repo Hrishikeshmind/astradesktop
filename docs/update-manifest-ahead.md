@@ -168,12 +168,33 @@ When `paused=1`:
 - `build.yml` release job guard fails before touching the `updates` branch
 - Scheduled twilight (`twilight-release-schedule.yml`) skips via `publish-gate`
 
+**Critical:** Pausing publish does **not** automatically clear live Pages
+manifests. A stale `update.xml` that still lists a complete MAR will keep
+offering that update to every older buildID — even when the MAR is unsigned,
+wrong-channel, or otherwise unapplyable. That is the “~106 MB update forever”
+failure mode.
+
+While paused (or whenever no real newer cut should be offered), publish an
+**empty** AUS document so clients report up-to-date:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+</updates>
+```
+
+Use `scripts/publish_empty_aus_manifests.py --root <updates-branch-checkout>`
+against the GitHub Pages `updates` branch, then commit + push that branch.
+Firefox treats empty `<updates/>` as “no update available”.
+
 The 2026-08-21 emergency also **disabled** the GitHub workflow
 “Astra Nova Scheduled Releases” (`gh workflow disable twilight-release-schedule.yml`).
 Re-enable only after pause is cleared: `gh workflow enable twilight-release-schedule.yml`.
 
 Clear pause by setting `paused=0` (keep the file as the switch). Do not delete
 the file; the gate treats a missing file as “not paused”.
+Do **not** un-pause until empty-or-correct live XML is in place and Part 4
+apply→restart smoke has passed on a new-key installer.
 
 Staged/canary percentage rollout (Balrog-style throttling) is **not**
 implemented on GitHub Pages. Pages serves one static `update.xml`. The pause

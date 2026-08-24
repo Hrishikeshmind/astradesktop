@@ -145,6 +145,15 @@ window.gZenCompactModeManager = {
       "zen-mouse-tracker:exited"
     );
 
+    // Last content tab closed → leave Compact Mode (empty browser feels broken
+    // with chrome still forced hidden). Covers Only Sidebar / Sidebar+Top /
+    // Collapsed via the shared preference setter.
+    this._onTabCloseForEmptyBrowser = () => {
+      // TabClose fires before the tab leaves gBrowser.tabs; defer one tick.
+      queueMicrotask(() => this.maybeDisableCompactForEmptyBrowser());
+    };
+    window.addEventListener("TabClose", this._onTabCloseForEmptyBrowser);
+
     window.addEventListener(
       "unload",
       () => {
@@ -156,6 +165,10 @@ window.gZenCompactModeManager = {
         Services.prefs.removeObserver(
           "zen.tabs.vertical.right-side",
           tabIsRightObserver
+        );
+        window.removeEventListener(
+          "TabClose",
+          this._onTabCloseForEmptyBrowser
         );
         this._teardownEdgeRevealListener();
         this._teardownEdgeHitTargets();
@@ -210,6 +223,7 @@ window.gZenCompactModeManager = {
       this.preference = this._wasInCompactMode;
       this._syncAutohideSidebarAttribute();
       this._syncEdgeHitTargets();
+      this.maybeDisableCompactForEmptyBrowser();
     });
   },
 
@@ -309,6 +323,50 @@ window.gZenCompactModeManager = {
     const isEmpty = tab ? tab.hasAttribute("zen-empty-tab") : true;
     this.sidebar.toggleAttribute("zen-has-empty-tab", isEmpty);
     document.documentElement.setAttribute("zen-has-empty-tab", isEmpty);
+    if (isEmpty) {
+      this.maybeDisableCompactForEmptyBrowser();
+    }
+  },
+
+  /**
+   * True when any non-empty content tab remains (pinned / essentials count).
+   * Glance overlays and the workspace empty tab do not count.
+   */
+  hasContentTabs() {
+    const tabs = gBrowser?.tabs;
+    if (!tabs?.length) {
+      return false;
+    }
+    for (const tab of tabs) {
+      if (
+        tab.closing ||
+        tab.hasAttribute("zen-empty-tab") ||
+        tab.hasAttribute("zen-glance-tab") ||
+        tab.hasAttribute("glance-id")
+      ) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  },
+
+  /**
+   * When the last content tab is gone, turn Compact Mode off so the empty
+   * browser restores normal chrome (all three layout modes).
+   */
+  maybeDisableCompactForEmptyBrowser() {
+    if (!this.preference) {
+      return;
+    }
+    if (gZenWorkspaces?._isClosingWindow) {
+      return;
+    }
+    if (this.hasContentTabs()) {
+      return;
+    }
+    this.log("Disabling Compact Mode: no content tabs remain");
+    this.preference = false;
   },
 
   /** Root flag consumed by zen-sidebar.css for revamp-panel z-index. */

@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,6 +27,8 @@ DEFAULT_LIVE_XML = [
     "https://hrishikeshmind.github.io/astradesktop/updates/browser/Linux_aarch64-gcc3/release/update.xml",
 ]
 
+PATCH_RE = re.compile(r"<patch\s", re.I)
+
 
 def is_paused(path: Path = PAUSE_FILE) -> tuple[bool, str]:
     if not path.is_file():
@@ -39,6 +43,37 @@ def is_paused(path: Path = PAUSE_FILE) -> tuple[bool, str]:
         elif line.startswith("reason="):
             reason = line.split("=", 1)[1].strip()
     return paused, reason
+
+
+def live_xml_offers_update(url: str, timeout: float = 30.0) -> bool | None:
+    """Return True if live XML contains a <patch>, False if empty/no-patch, None on fetch error."""
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+    except OSError as exc:
+        print(f"WARN: could not fetch {url}: {exc}", file=sys.stderr)
+        return None
+    return bool(PATCH_RE.search(body))
+
+
+def assert_live_aus_empty_while_paused(live_urls: list[str]) -> int:
+    """While paused, fail if any live release XML still offers a MAR patch."""
+    failures = 0
+    for url in live_urls:
+        offers = live_xml_offers_update(url)
+        if offers is None:
+            continue
+        if offers:
+            print(
+                f"FAIL: publish is paused but live AUS still offers an update: {url}\n"
+                "  Clear with: python scripts/publish_empty_aus_manifests.py "
+                "--root <updates-branch-checkout>",
+                file=sys.stderr,
+            )
+            failures += 1
+        else:
+            print(f"OK empty AUS (paused): {url}")
+    return failures
 
 
 def find_mars(search_roots: list[Path]) -> list[Path]:
@@ -97,12 +132,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exit 2 if paused, 0 otherwise. Skip MAR/buildID checks.",
     )
+    parser.add_argument(
+        "--assert-empty-aus-while-paused",
+        action="store_true",
+        help="If paused, also fail when live update.xml still contains a <patch> "
+        "(stale false-update offers). Uses --live-xml or defaults.",
+    )
     args = parser.parse_args(argv)
 
     paused, reason = is_paused()
+    live = args.live_xml or DEFAULT_LIVE_XML
+
     if args.check_pause_only:
         if paused:
             print(f"publish paused: {reason or 'see .astra/publish-paused'}", file=sys.stderr)
+            if args.assert_empty_aus_while_paused:
+                if assert_live_aus_empty_while_paused(live):
+                    return 1
             return 2
         print("publish not paused")
         return 0
@@ -116,7 +162,13 @@ def main(argv: list[str] | None = None) -> int:
             f"FAIL: publish paused ({reason or 'see .astra/publish-paused'})",
             file=sys.stderr,
         )
+        if args.assert_empty_aus_while_paused:
+            assert_live_aus_empty_while_paused(live)
         return 2
+
+    if paused and args.assert_empty_aus_while_paused:
+        if assert_live_aus_empty_while_paused(live):
+            return 1
 
     expected = mar_channel_id(args.brand)
     search_roots = args.search or ["."]
@@ -156,7 +208,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"FAIL: {mar} is a stub ({info.size} bytes)", file=sys.stderr)
             failures += 1
 
-    live = args.live_xml or DEFAULT_LIVE_XML
     try:
         prev, _known = assert_newer(args.new_buildid, live)
         print(f"OK buildID {args.new_buildid} > {prev}")

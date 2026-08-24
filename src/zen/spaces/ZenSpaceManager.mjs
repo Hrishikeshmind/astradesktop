@@ -3376,6 +3376,9 @@ class nsZenWorkspaces {
       isEmpty
     );
     document.documentElement.setAttribute("zen-has-empty-tab", isEmpty);
+    if (isEmpty) {
+      gZenCompactModeManager.maybeDisableCompactForEmptyBrowser();
+    }
   }
 
   async onLocationChange(event) {

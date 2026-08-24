@@ -18,6 +18,7 @@ from mar_create_from_filelist import create_mar  # noqa: E402
 from mar_sign_openssl import sign_mar, verify_mar_signature  # noqa: E402
 from verify_mar_product_info import main as verify_main  # noqa: E402
 from verify_mar_product_info import parse_mar_product_info  # noqa: E402
+from publish_empty_aus_manifests import EMPTY_XML, main as empty_aus_main  # noqa: E402
 
 
 class ChannelSSotTests(unittest.TestCase):
@@ -193,6 +194,30 @@ class MarSignatureTests(unittest.TestCase):
             if backup.is_file():
                 with self.assertRaises(ValueError):
                     verify_mar_signature(mar, backup)
+
+
+class EmptyAusManifestTests(unittest.TestCase):
+    def test_writes_empty_release_xml(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            rc = empty_aus_main(["--root", str(root), "--create"])
+            self.assertEqual(rc, 0)
+            xml = root / "browser" / "WINNT_x86_64-msvc-x64" / "release" / "update.xml"
+            self.assertTrue(xml.is_file())
+            text = xml.read_text(encoding="utf-8")
+            self.assertEqual(text, EMPTY_XML)
+            self.assertNotIn("<patch", text)
+            twilight = root / "browser" / "WINNT_x86_64-msvc-x64" / "twilight" / "update.xml"
+            self.assertFalse(twilight.exists())
+
+    def test_include_twilight(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            rc = empty_aus_main(["--root", str(root), "--include-twilight", "--create"])
+            self.assertEqual(rc, 0)
+            twilight = root / "browser" / "Linux_x86_64-gcc3" / "twilight" / "update.xml"
+            self.assertTrue(twilight.is_file())
+            self.assertNotIn("<patch", twilight.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

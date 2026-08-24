@@ -336,6 +336,7 @@ menuseparator {
     z-index: 1000;
     padding: var(--zen-toast-padding);
     border-radius: 10px;
+    color: var(--zen-toast-text-color, #fff);
     background: linear-gradient(to bottom, var(--zen-primary-color) -40%, color-mix(in srgb, var(--zen-primary-color), #0f0f0f 20%));
     box-shadow: light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.4)) 0 0 22px 2px;
     border: none;
@@ -356,6 +357,7 @@ menuseparator {
 
     & label {
       margin: 0 4px;
+      color: var(--zen-toast-text-color, #fff);
 
       & span {
         background: light-dark(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1));

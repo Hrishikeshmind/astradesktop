@@ -11,7 +11,7 @@
       "buildID": "20260816124354",
       "version": "1.19.8b",
       "platform": "all-pages",
-      "note": "Currently live GitHub Pages update.xml (MAR channel firefox-mozilla-central — broken)"
+      "note": "WAS live GitHub Pages update.xml (MAR channel firefox-mozilla-central, unsigned ~106MB). Cleared to empty <updates/> on 2026-08-24 while publish-paused so AUS no longer offers it."
     },
     {
       "buildID": "20260819052941",
