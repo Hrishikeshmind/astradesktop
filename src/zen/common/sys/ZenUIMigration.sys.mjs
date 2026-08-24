@@ -190,7 +190,8 @@ class nsZenUIMigration {
 
   _migrateV9() {
     // Firefox 153 defaulted the sidebar launcher to include "aichat".
-    // Astra keeps the customize checkbox but unchecks it for stock lists.
+    // Astra removes it from stock lists; Customize sidebar no longer offers
+    // the checkbox (dedicated toolbar button instead).
     const kTools = "sidebar.main.tools";
     if (!Services.prefs.prefHasUserValue(kTools)) {
       return;

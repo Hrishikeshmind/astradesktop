@@ -142,7 +142,7 @@ index 60c31f4c04a552bccc83a64829bc632a9f85a7c7..8a4476db814d2cd691dca297d61de486
              <moz-checkbox
                type="checkbox"
                id="position"
-@@ -269,7 +181,7 @@ export class SidebarCustomize extends SidebarPage {
+@@ -269,9 +181,12 @@ export class SidebarCustomize extends SidebarPage {
                data-l10n-id=${document.dir == "rtl" ? "sidebar-show-on-the-left" : "sidebar-show-on-the-right"}
                @change=${this.reversePosition}
                ?checked=${!this.isPositionStart}
@@ -151,7 +151,12 @@ index 60c31f4c04a552bccc83a64829bc632a9f85a7c7..8a4476db814d2cd691dca297d61de486
            </moz-fieldset>
            <moz-fieldset class="customize-group tools" data-l10n-id="sidebar-customize-firefox-tools-header2">
              ${this.getWindow()
-@@ -320,37 +232,6 @@ export class SidebarCustomize extends SidebarPage {
+               .SidebarController.getTools()
++              // Astra: AI chatbot is toggled via the dedicated toolbar button,
++              // not from Customize sidebar.
++              .filter(tool => tool.view !== "viewGenaiChatSidebar")
+               .map(tool => this.toolInputTemplate(tool))}
+@@ -320,37 +235,6 @@ export class SidebarCustomize extends SidebarPage {
      `;
    }
  
