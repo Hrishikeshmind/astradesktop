@@ -64,7 +64,11 @@ jobs:
 
       - name: Fail closed if Pages publish is paused
         if: ${{ inputs.create_release }}
-        run: python3 scripts/ci_guard_update_publish.py --brand "${{ inputs.update_branch }}" --check-pause-only
+        run: |
+          python3 scripts/ci_guard_update_publish.py \
+            --brand "${{ inputs.update_branch }}" \
+            --check-pause-only \
+            --assert-empty-aus-while-paused
 
       - id: get
         shell: bash -xe {0}
@@ -659,22 +663,50 @@ jobs:
             exit 1
           fi
 
-      - name: Commit
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 🚀 Update update manifests
-          commit_user_name: Astra Browser Robot
-          commit_user_email: astra-browser-auto@users.noreply.github.com
-          repository: ./updates-server
-          branch: updates
-          file_pattern: updates/**
+      - name: Validate staged update.xml against signed MARs
+        env:
+          RELEASE_BRANCH: ${{ inputs.update_branch }}
+        run: |
+          set -euo pipefail
+          NEW_BUILDID="${{ needs.buildid.outputs.buildids }}"
+          # Hash/size in update.xml must match the *signed* MAR on disk.
+          # Catches XML generated before signing (false hash → endless download fail).
+          args=(
+            --brand "${RELEASE_BRANCH}"
+            --expected-buildid "${NEW_BUILDID}"
+            --xml-root updates-server/updates
+            --require-win-linux
+          )
+          for pair in \
+            "windows.mar=windows.mar" \
+            "windows-arm64.mar=windows-arm64.mar" \
+            "linux.mar=linux.mar" \
+            "linux-aarch64.mar=linux-aarch64.mar" \
+            "macos.mar=macos.mar"
+          do
+            name="${pair%%=*}"
+            # Artifacts land as either a file or a directory named after the artifact.
+            if [[ -f "./${name}" ]]; then
+              args+=(--mar "${name}=./${name}")
+            elif [[ -f "./${name}/${name}" ]]; then
+              args+=(--mar "${name}=./${name}/${name}")
+            elif [[ -d "./${name}" ]]; then
+              found="$(find "./${name}" -type f -name '*.mar' | head -1 || true)"
+              if [[ -n "${found}" ]]; then
+                args+=(--mar "${name}=${found}")
+              fi
+            fi
+          done
+          python3 scripts/validate_update_xml.py "${args[@]}"
 
       - name: Generate Release Notes
         env:
           RELEASE_BRANCH: ${{ inputs.update_branch }}
         run: bash .github/workflows/src/generate_release_notes.sh
 
-        # If we are on Twilight, we want to just update the Twilight tag's release
+        # Publish GitHub Release *assets* before Pages update.xml.
+        # Clients resolve MAR URLs from AUS; offering XML that points at a
+        # not-yet-uploaded asset causes download failures / false loops.
       - name: Update Twilight tag
         if: ${{ inputs.update_branch == 'twilight' }}
         uses: softprops/action-gh-release@v2.2.2
@@ -737,6 +769,56 @@ jobs:
             ./windows-arm64.mar/*
             ./macos.mar/*
             ./zen.macos-universal.dmg/*
+
+      - name: Assert release MAR URLs are fetchable
+        env:
+          RELEASE_BRANCH: ${{ inputs.update_branch }}
+          RELEASE_VERSION: ${{ needs.build-data.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Probe every MAR URL referenced by staged XML before flipping Pages.
+          mapfile -t urls < <(
+            grep -RhoE 'URL="https://[^"]+\.mar"' updates-server/updates/browser \
+              | sed -E 's/^URL="//; s/"$//' \
+              | sort -u
+          )
+          if [[ ${#urls[@]} -eq 0 ]]; then
+            echo "::error::No MAR URLs found in staged update.xml"
+            exit 1
+          fi
+          fail=0
+          for url in "${urls[@]}"; do
+            echo "HEAD ${url}"
+            ok=0
+            for attempt in 1 2 3 4 5 6; do
+              code="$(curl -sS -o /dev/null -w '%{http_code}' -L --head "${url}" || true)"
+              if [[ "${code}" == "200" ]]; then
+                ok=1
+                break
+              fi
+              echo "  attempt ${attempt}: HTTP ${code}; waiting for GitHub CDN..."
+              sleep 10
+            done
+            if [[ "${ok}" -ne 1 ]]; then
+              echo "::error::MAR not reachable after retries: ${url}"
+              fail=1
+            else
+              echo "  OK ${url}"
+            fi
+          done
+          if [[ "${fail}" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: Commit Pages update.xml (after MARs are live)
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 🚀 Update update manifests
+          commit_user_name: Astra Browser Robot
+          commit_user_email: astra-browser-auto@users.noreply.github.com
+          repository: ./updates-server
+          branch: updates
+          file_pattern: updates/**
 
   post-publish-header-check:
     if: ${{ always() && !cancelled() && needs.release.result == 'success' }}

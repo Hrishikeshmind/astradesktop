@@ -19,6 +19,8 @@ from mar_sign_openssl import sign_mar, verify_mar_signature  # noqa: E402
 from verify_mar_product_info import main as verify_main  # noqa: E402
 from verify_mar_product_info import parse_mar_product_info  # noqa: E402
 from publish_empty_aus_manifests import EMPTY_XML, main as empty_aus_main  # noqa: E402
+from validate_update_xml import main as validate_xml_main  # noqa: E402
+from validate_update_xml import sha512_file  # noqa: E402
 
 
 class ChannelSSotTests(unittest.TestCase):
@@ -218,6 +220,82 @@ class EmptyAusManifestTests(unittest.TestCase):
             twilight = root / "browser" / "Linux_x86_64-gcc3" / "twilight" / "update.xml"
             self.assertTrue(twilight.is_file())
             self.assertNotIn("<patch", twilight.read_text(encoding="utf-8"))
+
+
+class ValidateUpdateXmlTests(unittest.TestCase):
+    def test_rejects_empty_xml(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw) / "updates"
+            xml = root / "browser" / "WINNT_x86_64-msvc-x64" / "release" / "update.xml"
+            xml.parent.mkdir(parents=True)
+            xml.write_text(EMPTY_XML, encoding="utf-8")
+            rc = validate_xml_main(
+                [
+                    "--brand",
+                    "release",
+                    "--xml-root",
+                    str(root),
+                    "--mar",
+                    "windows.mar=/dev/null",
+                ]
+            )
+            self.assertEqual(rc, 1)
+
+    def test_rejects_stale_hash_after_sign(self):
+        """XML hashed before signing must not pass validation."""
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            work = td / "app"
+            work.mkdir()
+            (work / "hello.txt").write_text("astra", encoding="utf-8")
+            unsigned = td / "unsigned.mar"
+            create_mar(unsigned, work, ["hello.txt"], "release", "1.19.9b")
+            stale_hash = sha512_file(unsigned)
+            stale_size = unsigned.stat().st_size
+
+            key = ROOT / "build" / "signing" / "private" / "astra_mar_signing_primary.key"
+            crt = ROOT / "build" / "signing" / "release_primary.crt"
+            if not key.is_file():
+                self.skipTest("primary private key not on this machine")
+            signed = td / "windows.mar"
+            signed.write_bytes(unsigned.read_bytes())
+            sign_mar(signed, key, crt)
+            self.assertNotEqual(sha512_file(signed), stale_hash)
+            self.assertNotEqual(signed.stat().st_size, stale_size)
+
+            root = td / "aus"
+            for plat, mar_name in (
+                ("WINNT_x86_64-msvc-x64", "windows.mar"),
+                ("Linux_x86_64-gcc3", "linux.mar"),
+            ):
+                d = root / "browser" / plat / "release"
+                d.mkdir(parents=True)
+                (d / "update.xml").write_text(
+                    f"""<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260824120000" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/{mar_name}" hashFunction="sha512" hashValue="{stale_hash}" size="{stale_size}"/>
+  </update>
+</updates>
+""",
+                    encoding="utf-8",
+                )
+            linux = td / "linux.mar"
+            linux.write_bytes(signed.read_bytes())
+            rc = validate_xml_main(
+                [
+                    "--brand",
+                    "release",
+                    "--expected-buildid",
+                    "20260824120000",
+                    "--xml-root",
+                    str(root),
+                    f"--mar=windows.mar={signed}",
+                    f"--mar=linux.mar={linux}",
+                    "--require-win-linux",
+                ]
+            )
+            self.assertEqual(rc, 1)
 
 
 if __name__ == "__main__":

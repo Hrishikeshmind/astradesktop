@@ -209,7 +209,12 @@ emits `type="complete"` only).
 1. **Header check (every release, ubuntu):**
    `scripts/post_publish_mar_header_check.py` fetches live `update.xml` and the
    first 64KiB of the MAR, asserts channel == SSOT and `numSignatures >= 1`.
-2. **Apply→restart (required for a human “it works” claim, and for CI when a
+   Empty XML is OK while `.astra/publish-paused` is set; pass `--require-patch`
+   after a real publish.
+2. **Staged XML vs MAR (every release, before Pages commit):**
+   `scripts/validate_update_xml.py` asserts hash/size/buildID/channel/signature
+   on the artifacts about to be published.
+3. **Apply→restart (required for a human “it works” claim, and for CI when a
    previous Windows zip is available):**
    `scripts/smoke_update_apply.py` — existing install at the **previous**
    buildID, not a fresh install. Sets `app.update.url.override` (not only
@@ -224,6 +229,61 @@ Fresh-install tests do **not** exercise apply.
 - Astra: `astra.updates.log-to-file` (default true) appends JSON lines to
   `ProfD/astra-update-status.log` (`version`, `buildID`, active update state).
   Beta users can send that file. Pref is in `prefs/zen/updates.yaml`.
+
+## Publish a real update (runbook)
+
+Do **not** start this until Part 4 apply→restart smoke has passed on a
+new-key installer (see MAR signatures above). Until then keep
+`.astra/publish-paused` at `paused=1` and live Pages on empty `<updates/>`.
+
+### Preconditions
+
+1. Live Pages serves empty `<updates/>` on every platform (or a prior good cut).
+2. `python scripts/ci_guard_update_publish.py --brand release --check-pause-only --assert-empty-aus-while-paused` exits `2` while paused with empty AUS, or `0` when unpaused.
+3. GitHub secret `ZEN_SIGNING_PRIVATE_KEY_PEM_BASE64` matches
+   `build/signing/release_primary.der`.
+4. `.astra/channel.env` still maps `release=release` (never widen accepted IDs).
+
+### Un-pause + ship
+
+1. Set `.astra/publish-paused` to `paused=0` (keep the file). Commit on `dev`/`stable` as appropriate.
+2. Re-enable scheduled twilight only if intended:
+   `gh workflow enable twilight-release-schedule.yml`
+3. Run the release workflow with `create_release=true` and
+   `update_branch=release` from the correct source branch (`stable` for release).
+4. CI will, in order:
+   - Fail closed if still paused / non-monotonic buildID / wrong MAR channel / unsigned MAR
+   - Sign MARs (or verify already-signed) and **refresh update.xml hash/size**
+   - `scripts/validate_update_xml.py` — staged XML must match signed MAR bytes
+   - Upload GitHub Release assets (**MARs first**)
+   - HEAD-check every MAR URL in staged XML
+   - Commit `updates` branch (Pages) **only after** MARs are fetchable
+   - `scripts/post_publish_mar_header_check.py` on live Pages
+5. Manually: `scripts/smoke_update_apply.py` from a **previous** buildID install.
+6. Append the new buildID to `.astra/published-builds.json` and
+   `.astra/last-published-buildid`.
+
+### Pause again (halt offers without disabling the client)
+
+1. Set `paused=1` in `.astra/publish-paused`.
+2. Checkout the `updates` branch and run:
+   `python scripts/publish_empty_aus_manifests.py --root . --include-twilight`
+3. Commit + push the `updates` branch so Pages serves empty `<updates/>`.
+4. Confirm with the live URLs under
+   `https://hrishikeshmind.github.io/astradesktop/updates/browser/.../update.xml`.
+
+Never leave `paused=1` while live XML still contains a `<patch>` — that is the
+false “update available forever” failure mode.
+
+### Atomicity contract
+
+| Step | Safe if it fails mid-way? |
+| --- | --- |
+| Build + sign MAR, no Pages change | Yes — users keep empty/prior AUS |
+| GitHub Release uploaded, Pages not yet updated | Yes — no offer yet |
+| Pages updated | Offer is live; MAR URL must already 200 |
+
+Never publish Pages XML that points at a MAR that is not yet a release asset.
 
 ## Manual verification checklist (every Windows release)
 

@@ -111,6 +111,12 @@ async function main() {
   }
 
   const marSize = statSync(args.mar).size
+  if (marSize < 10 * 1024 * 1024) {
+    console.error(
+      `Refusing stub MAR (${marSize} bytes). Complete packs are tens of MiB.`,
+    )
+    process.exit(1)
+  }
   const hashValue = await sha512File(args.mar)
   const buildID = readBuildId(args['obj-dir'], args['mar-source'])
   const marFile = marNameForArch(args.arch)
@@ -118,6 +124,9 @@ async function main() {
   const downloadTag = args.channel === 'twilight' ? 'twilight-1' : args.version
   const completeMarURL = `https://github.com/${args.repo}/releases/download/${downloadTag}/${marFile}`
 
+  // IMPORTANT: If this MAR is later signed, hash/size MUST be refreshed
+  // (scripts/mar_sign.sh calls mar_sign_openssl.py --refresh-xml). CI also
+  // runs scripts/validate_update_xml.py before Pages publish.
   const xml = buildUpdateXml({
     version: args.version,
     platformVersion: args['ff-version'],
@@ -135,6 +144,9 @@ async function main() {
     console.log(`Wrote ${xmlPath}`)
     console.log(`  mar=${marSize} bytes buildID=${buildID}`)
     console.log(`  URL=${completeMarURL}`)
+    console.log(
+      '  note: re-hash after signing (mar_sign.sh refresh) before Pages publish',
+    )
   }
 }
 

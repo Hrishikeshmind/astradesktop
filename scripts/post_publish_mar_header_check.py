@@ -4,6 +4,9 @@
 Cheap check for the two bugs that broke updates: wrong MAR channel and
 unsigned MARs (CERT_VERIFY_ERROR 19). Does not replace the apply→restart
 smoke in scripts/smoke_update_apply.py.
+
+When publish is paused and live XML is empty <updates/>, exits 0 (that is
+the correct paused state). Pass --require-patch to fail on empty XML.
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 from astra_channel import mar_channel_id  # noqa: E402
+from ci_guard_update_publish import is_paused  # noqa: E402
 from verify_mar_product_info import parse_mar_product_info  # noqa: E402
 
 DEFAULT_TARGETS = {
@@ -47,15 +51,31 @@ def fetch(url: str, max_bytes: int | None = None) -> bytes:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--brand", required=True)
+    parser.add_argument(
+        "--require-patch",
+        action="store_true",
+        help="Fail when live XML has no <patch> (default: empty OK if paused)",
+    )
     args = parser.parse_args()
     expected = mar_channel_id(args.brand)
+    paused, reason = is_paused()
     failures = 0
     for xml_url in DEFAULT_TARGETS.get(args.brand, DEFAULT_TARGETS["release"]):
         xml = fetch(xml_url).decode("utf-8", errors="replace")
         print(f"--- {xml_url} ---")
         print(xml[:600])
         if "<patch " not in xml:
-            print(f"FAIL: {xml_url} has no patch", file=sys.stderr)
+            if args.require_patch or not paused:
+                print(f"FAIL: {xml_url} has no patch", file=sys.stderr)
+                failures += 1
+            else:
+                print(f"OK empty AUS while paused ({reason or 'publish-paused'})")
+            continue
+        if paused:
+            print(
+                f"FAIL: publish is paused but {xml_url} still offers a patch",
+                file=sys.stderr,
+            )
             failures += 1
             continue
         m = re.search(r'URL="([^"]+\.mar)"', xml)
