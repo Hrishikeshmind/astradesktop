@@ -66,17 +66,23 @@
 - name: zen.tab-unloader.auto-unload-inactive
   value: true
 
+# Inactive background tabs (including the active space — Spaces is off by
+# default). 8 minutes is short enough for 8GB laptops without surprising
+# people who bounce between a few sites.
 - name: zen.tab-unloader.timeout-minutes
-  value: 10
+  value: 8
 
 - name: zen.tab-unloader.aggressiveness
   value: balanced
 
+# Start the high-pressure path inside a typical 10–30 tab Indian session,
+# not after 50 tabs when the machine is already swapping.
 - name: zen.tab-unloader.high-tab-threshold
-  value: 50
+  value: 22
 
+# Small batches: remaining tabs are picked up by the 60s scheduler.
 - name: zen.tab-unloader.max-batch
-  value: 12
+  value: 8
 
 - name: zen.performance.measure-workspaces
   value: false

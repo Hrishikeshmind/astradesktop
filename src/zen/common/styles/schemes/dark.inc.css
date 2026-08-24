@@ -5,4 +5,4 @@
 color-scheme: dark;
 --zen-urlbar-outline-offset: -2px;
 /* Slightly richer glass: keep depth without crushing contrast */
---zen-urlbar-filter: blur(44px) saturate(118%) brightness(28%) contrast(105%);
+--zen-urlbar-filter: blur(16px) saturate(118%) brightness(28%) contrast(105%);

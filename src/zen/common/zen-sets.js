@@ -408,7 +408,14 @@ document.addEventListener(
     /* Astra - Tab Loading Pill Indicator */
     window.addEventListener("TabAttrModified", (event) => {
       try {
-        const tab = event.target;
+        const changed = event.detail?.changed;
+        if (
+          Array.isArray(changed) &&
+          !changed.includes("busy") &&
+          !changed.includes("pending")
+        ) {
+          return;
+        }
         const wrapper = document.getElementById("zen-appcontent-wrapper");
         if (!wrapper) return;
         const selectedTab = gBrowser.selectedTab;

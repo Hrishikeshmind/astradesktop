@@ -67,6 +67,12 @@ class nsZenWorkspaces {
   };
   #scheduledTabContainerUpdate = null;
   #autoUnloadTimer = null;
+  #autoUnloadInterval = null;
+  #autoUnloadWarmupTimer = null;
+  #cachedResidentMB = 0;
+  #residentCheckedAt = 0;
+  /** Resident MB at which we treat the session as RAM-constrained (8GB laptops). */
+  MEMORY_PRESSURE_MB = 1800;
 
   bookmarkMenus = [
     "PlacesToolbar",
@@ -147,7 +153,7 @@ class nsZenWorkspaces {
       this,
       "autoUnloadTimeoutMinutes",
       "zen.tab-unloader.timeout-minutes",
-      10
+      8
     );
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -159,13 +165,13 @@ class nsZenWorkspaces {
       this,
       "autoUnloadHighTabThreshold",
       "zen.tab-unloader.high-tab-threshold",
-      80
+      22
     );
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
       "autoUnloadBatchLimit",
       "zen.tab-unloader.max-batch",
-      20
+      8
     );
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -910,6 +916,7 @@ class nsZenWorkspaces {
       );
 
       this.updateWorkspacesChangeContextMenu();
+      this.#startAutoUnloadScheduler();
 
       window.addEventListener(
         "unload",
@@ -921,6 +928,14 @@ class nsZenWorkspaces {
           if (this.#autoUnloadTimer) {
             clearTimeout(this.#autoUnloadTimer);
             this.#autoUnloadTimer = null;
+          }
+          if (this.#autoUnloadInterval) {
+            clearInterval(this.#autoUnloadInterval);
+            this.#autoUnloadInterval = null;
+          }
+          if (this.#autoUnloadWarmupTimer) {
+            clearTimeout(this.#autoUnloadWarmupTimer);
+            this.#autoUnloadWarmupTimer = null;
           }
         },
         { once: true }
@@ -3439,6 +3454,39 @@ class nsZenWorkspaces {
     this.#scheduleAutoUnloadInactiveTabs();
   }
 
+  #startAutoUnloadScheduler() {
+    if (this.#autoUnloadInterval || !this.shouldAutoUnloadInactiveTabs) {
+      return;
+    }
+    // Idle sessions (WhatsApp Web + 20 news tabs) never fire TabSelect.
+    // Sweep once a minute so mid-range RAM does not sit fully loaded.
+    this.#autoUnloadInterval = setInterval(() => {
+      this.#scheduleAutoUnloadInactiveTabs();
+    }, 60 * 1000);
+    // Let session restore and first paint settle before the first sweep.
+    this.#autoUnloadWarmupTimer = setTimeout(() => {
+      this.#autoUnloadWarmupTimer = null;
+      this.#scheduleAutoUnloadInactiveTabs();
+    }, 15000);
+  }
+
+  #getResidentMB() {
+    const now = Date.now();
+    if (this.#residentCheckedAt && now - this.#residentCheckedAt < 30000) {
+      return this.#cachedResidentMB;
+    }
+    try {
+      const mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
+        Ci.nsIMemoryReporterManager
+      );
+      this.#cachedResidentMB = mgr.resident / (1024 * 1024);
+      this.#residentCheckedAt = now;
+    } catch {
+      return this.#cachedResidentMB || 0;
+    }
+    return this.#cachedResidentMB;
+  }
+
   #scheduleAutoUnloadInactiveTabs() {
     if (!this.shouldAutoUnloadInactiveTabs) {
       return;
@@ -3458,10 +3506,13 @@ class nsZenWorkspaces {
     if ((!this.shouldAutoUnloadInactiveTabs && !force) || this.#inChangingWorkspace) {
       return 0;
     }
-    const timeoutMinutes = Math.max(1, this.autoUnloadTimeoutMinutes || 10);
+    const timeoutMinutes = Math.max(1, this.autoUnloadTimeoutMinutes || 8);
     const tabThreshold = Math.max(0, this.autoUnloadHighTabThreshold || 0);
     const totalTabCount = this.allStoredTabs.length;
-    const isHighPressure = tabThreshold > 0 && totalTabCount >= tabThreshold;
+    const residentMB = this.#getResidentMB();
+    const isHighPressure =
+      (tabThreshold > 0 && totalTabCount >= tabThreshold) ||
+      residentMB >= this.MEMORY_PRESSURE_MB;
     const aggressiveness = this.autoUnloadAggressiveness || "balanced";
     let effectiveTimeoutMinutes = timeoutMinutes;
     if (aggressiveness === "conservative" && !force) {
@@ -3476,6 +3527,9 @@ class nsZenWorkspaces {
     const activeWorkspaceId = this.activeWorkspace;
     const selectedTab = gBrowser.selectedTab;
 
+    // Spaces is off by default in Astra: almost every tab lives in the
+    // active workspace. Skipping that workspace made auto-unload a no-op
+    // for typical Indian profiles (10–30 tabs, one space).
     const eligibleTabs = this.allStoredTabs.filter(tab => {
       if (!tab || tab === selectedTab || tab.closing) {
         return false;
@@ -3491,9 +3545,6 @@ class nsZenWorkspaces {
       if (tab.hasAttribute("pictureinpicture") || tab.hasAttribute("soundplaying")) {
         return false;
       }
-      if (tab.getAttribute("zen-workspace-id") === activeWorkspaceId) {
-        return false;
-      }
       const browser = tab.linkedBrowser;
       if (
         window.webrtcUI.browserHasStreams(browser) ||
@@ -3504,7 +3555,28 @@ class nsZenWorkspaces {
       return true;
     });
 
+    const keepAlive = force
+      ? 0
+      : aggressiveness === "aggressive"
+        ? 1
+        : aggressiveness === "conservative"
+          ? 4
+          : 2;
+    const keepSet = new Set();
+    if (keepAlive > 0 && activeWorkspaceId) {
+      const recentInActive = eligibleTabs
+        .filter(tab => tab.getAttribute("zen-workspace-id") === activeWorkspaceId)
+        .sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))
+        .slice(0, keepAlive);
+      for (const tab of recentInActive) {
+        keepSet.add(tab);
+      }
+    }
+
     let tabsToUnload = eligibleTabs.filter(tab => {
+      if (keepSet.has(tab)) {
+        return false;
+      }
       if (force) {
         return true;
       }
@@ -3513,7 +3585,9 @@ class nsZenWorkspaces {
 
     if (!tabsToUnload.length && isHighPressure && !force) {
       const urgentCutoff = Date.now() - 2 * 60 * 1000;
-      tabsToUnload = eligibleTabs.filter(tab => (tab.lastAccessed || 0) <= urgentCutoff);
+      tabsToUnload = eligibleTabs.filter(
+        tab => !keepSet.has(tab) && (tab.lastAccessed || 0) <= urgentCutoff
+      );
     }
 
     if (!tabsToUnload.length) {
@@ -3521,15 +3595,16 @@ class nsZenWorkspaces {
     }
     tabsToUnload.sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
 
-    let batchLimit = Math.max(1, this.autoUnloadBatchLimit || 20);
+    // Small batches avoid a parent-process hitch on 8GB iGPUs. Remaining
+    // tabs are picked up by the 60s scheduler.
+    let batchLimit = Math.max(1, this.autoUnloadBatchLimit || 8);
     if (aggressiveness === "conservative") {
-      batchLimit = Math.min(batchLimit, 12);
-    } else if ((aggressiveness === "aggressive" || isHighPressure) && !force) {
-      batchLimit = Math.max(batchLimit, 30);
+      batchLimit = Math.min(batchLimit, 6);
+    } else if (aggressiveness === "aggressive" || isHighPressure) {
+      batchLimit = Math.min(Math.max(batchLimit, 8), 10);
     } else {
-      batchLimit = Math.min(batchLimit, 20);
+      batchLimit = Math.min(batchLimit, 8);
     }
-    batchLimit = Math.min(80, batchLimit);
     const batch = tabsToUnload.slice(0, batchLimit);
     await gBrowser.explicitUnloadTabs(batch);
     return batch.length;

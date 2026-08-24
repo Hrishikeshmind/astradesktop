@@ -81,7 +81,7 @@
       min-height: var(--zen-toolbar-height, 38px);
       max-height: none;
       background: var(--zen-compact-toolbar-overlay-bg) !important;
-      backdrop-filter: blur(18px) saturate(120%);
+      backdrop-filter: blur(10px);
       border-bottom-left-radius: var(--zen-native-inner-radius);
       box-shadow: var(--zen-compact-toolbar-overlay-drop);
       border: 1px solid var(--zen-compact-toolbar-overlay-border);
@@ -188,7 +188,7 @@
           /* Opaque theme-tinted floor so icons stay readable on light OR dark
            * page content. Overrides Transparent Mode glass tint on this strip. */
           background: var(--zen-compact-toolbar-overlay-bg) !important;
-          backdrop-filter: blur(18px) saturate(120%) !important;
+          backdrop-filter: blur(10px) !important;
           border-bottom: 1px solid var(--zen-compact-toolbar-overlay-border) !important;
           box-shadow: var(--zen-compact-toolbar-overlay-drop) !important;
 
@@ -214,7 +214,7 @@
               rgba(226, 228, 233, 0.96),
               rgba(36, 36, 40, 0.96)
             ) !important;
-            backdrop-filter: blur(22px) saturate(130%) !important;
+            backdrop-filter: blur(12px) !important;
           }
         }
       }

@@ -52,8 +52,6 @@
   value: -1
 - name: browser.sessionhistory.max_entries
   value: 50
-- name: image.mem.max_decoded_image_kb
-  value: 98304
 - name: media.memory_cache_max_size
   value: 32768
 - name: browser.sessionstore.max_tabs_undo
@@ -65,9 +63,25 @@
 - name: image.mem.decode_bytes_at_a_time
   value: 65536
 
-# Astra: Session save less frequently (faster UI)
+# Astra: Session save less frequently (less parent-process I/O while browsing)
 - name: browser.sessionstore.interval
-  value: 15000
+  value: 30000
+
+- name: browser.sessionstore.restore_tabs_lazily
+  value: true
+
+# Warm the next tab's process without pre-spawning a crowd on 8GB RAM.
+- name: browser.tabs.remote.warmup.enabled
+  value: true
+- name: browser.tabs.remote.warmup.maxTabs
+  value: 2
+
+- name: browser.newtab.preload
+  value: true
+
+# Decoded-image cap: 64 MB. 96 MB was comfortable on 16GB, tight on 8GB.
+- name: image.mem.max_decoded_image_kb
+  value: 65536
 
 # Astra: DNS over HTTPS - faster + secure connectivity
 - name: network.trr.mode

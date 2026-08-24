@@ -11,6 +11,10 @@
 - name: browser.sessionstore.restore_pinned_tabs_on_demand
   value: true
 
+# Restore background tabs lazily so cold start paints chrome first.
+- name: browser.sessionstore.restore_on_demand
+  value: true
+
 # Astra: Tab hover previews use extra RAM
 - name: browser.tabs.hoverPreview.enabled
   value: false

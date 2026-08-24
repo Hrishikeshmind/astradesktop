@@ -1,0 +1,174 @@
+/* Astra — quiet-luxury chrome polish
+ *
+ * Cheap on mid-range iGPUs: no extra backdrop-filter, no large box-shadows.
+ * Loaded last so these refinements win the cascade without fighting layout.
+ */
+
+:root {
+  --astra-tab-selected-fill: light-dark(
+    color-mix(in srgb, var(--zen-primary-color) 10%, var(--zen-surface-raised) 90%),
+    color-mix(in srgb, var(--zen-primary-color) 16%, var(--zen-surface-raised) 84%)
+  );
+  --astra-tab-hover-fill: light-dark(rgba(28, 24, 20, 0.055), rgba(255, 255, 255, 0.07));
+  --astra-tab-accent: color-mix(in srgb, var(--zen-primary-color) 72%, light-dark(#1a1814, #fff));
+  --astra-focus-ring: 2px solid var(--focus-outline-color, var(--color-accent-primary));
+}
+
+/* --------------------------------------------------------------------------
+   Vertical tabs — selected / hover / pending
+   -------------------------------------------------------------------------- */
+
+#navigator-toolbox[zen-sidebar-expanded="true"]
+  .zen-workspace-tabs-section:not(.zen-current-workspace-indicator):not(.zen-essentials-container)
+  .tabbrowser-tab {
+  & .tab-background {
+    transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  &:hover:not([visuallyselected]) .tab-background {
+    background-color: var(--astra-tab-hover-fill) !important;
+  }
+
+  &[visuallyselected] > .tab-stack > .tab-background,
+  &[multiselected] > .tab-stack > .tab-background {
+    background-color: var(--astra-tab-selected-fill) !important;
+    box-shadow: inset 2px 0 0 var(--astra-tab-accent);
+  }
+
+  &[pending] .tab-label-container {
+    opacity: 0.62;
+  }
+}
+
+:root[zen-right-side="true"]
+  #navigator-toolbox[zen-sidebar-expanded="true"]
+  .zen-workspace-tabs-section:not(.zen-current-workspace-indicator):not(.zen-essentials-container)
+  .tabbrowser-tab:is([visuallyselected], [multiselected])
+  > .tab-stack
+  > .tab-background {
+  box-shadow: inset -2px 0 0 var(--astra-tab-accent);
+}
+
+:root:not([zen-sidebar-expanded="true"])
+  #tabbrowser-tabs
+  .tabbrowser-tab[visuallyselected]
+  .tab-background {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--astra-tab-accent) 45%, transparent);
+}
+
+.tabbrowser-tab:focus-visible > .tab-stack > .tab-background {
+  outline: var(--astra-focus-ring);
+  outline-offset: -2px;
+}
+
+/* --------------------------------------------------------------------------
+   Toolbar / urlbar / buttons
+   -------------------------------------------------------------------------- */
+
+#nav-bar .toolbarbutton-1:not([disabled]):focus-visible,
+#zen-sidebar-top-buttons .toolbarbutton-1:not([disabled]):focus-visible,
+#zen-sidebar-foot-buttons toolbarbutton:not([disabled]):focus-visible {
+  outline: var(--astra-focus-ring);
+  outline-offset: 1px;
+}
+
+#urlbar:not([breakout-extend]):hover .urlbar-background {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 8%, transparent);
+}
+
+#urlbar[focused="true"]:not([breakout-extend]) > .urlbar-background {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--zen-primary-color) 42%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Panels + popups
+   -------------------------------------------------------------------------- */
+
+@media (-moz-platform: windows) {
+  menupopup,
+  panel {
+    --panel-border-radius: 10px;
+  }
+}
+
+@media not (-moz-windows-mica-popups) {
+  panel[type="arrow"]:not(#feature-callout)::part(content) {
+    box-shadow:
+      light-dark(rgba(40, 32, 24, 0.08), rgba(0, 0, 0, 0.38)) 0 1px 2px,
+      light-dark(rgba(40, 32, 24, 0.1), rgba(0, 0, 0, 0.32)) 0 8px 24px;
+  }
+}
+
+.subviewbutton:not([disabled]):hover {
+  border-radius: var(--arrowpanel-menuitem-border-radius, 6px);
+}
+
+/* --------------------------------------------------------------------------
+   Compact Mode — snappier, cheaper
+   -------------------------------------------------------------------------- */
+
+:root[zen-compact-mode="true"]:not([customizing]):not([inDOMFullscreen="true"]) {
+  --zen-compact-toolbar-overlay-drop: light-dark(
+    0 3px 12px rgba(0, 0, 0, 0.14),
+    0 4px 14px rgba(0, 0, 0, 0.5)
+  );
+}
+
+:root[zen-compact-mode="true"]:not([customizing]):not([inDOMFullscreen="true"])
+  #navigator-toolbox:not([animate="true"]) {
+  transition:
+    left 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    right 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.16s ease,
+    background-color 0.12s ease;
+}
+
+:root[zen-compact-mode="true"]:not([customizing]):not([inDOMFullscreen="true"]):not(
+    :has(
+      #navigator-toolbox:is(
+        [zen-has-hover],
+        [zen-user-show],
+        [flash-popup],
+        [has-popup-menu],
+        [movingtab],
+        [zen-compact-mode-active],
+        [astra-compact-panel-lock]
+      )
+    )
+  )
+  #browser::after {
+  width: 3px;
+  opacity: 0.55;
+  box-shadow: 0 0 6px color-mix(in srgb, var(--zen-primary-color) 35%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[zen-compact-mode="true"] #navigator-toolbox:not([animate="true"]) {
+    transition-duration: 0.01ms !important;
+  }
+
+  #navigator-toolbox[zen-sidebar-expanded="true"]
+    .zen-workspace-tabs-section
+    .tabbrowser-tab
+    .tab-background {
+    transition: none !important;
+  }
+
+  #urlbar[breakout-extend][animate-searchmode="true"]::before {
+    animation: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Empty / pending states
+   -------------------------------------------------------------------------- */
+
+#zen-tabbox-wrapper[zen-empty-state] .browserSidebarContainer,
+:root[zen-has-empty-tab="true"] .browserSidebarContainer {
+  box-shadow: var(--zen-big-shadow);
+}
+
+.zen-workspace-tabs-section[zen-empty-state] {
+  min-height: 8px;
+}

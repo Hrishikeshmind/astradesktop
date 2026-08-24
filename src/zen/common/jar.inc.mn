@@ -103,6 +103,7 @@
         content/browser/zen-styles/astra-sidebar.css                            (../../zen/common/styles/astra-sidebar.css)
         content/browser/zen-styles/astra-workspaces.css                         (../../zen/common/styles/astra-workspaces.css)
         content/browser/zen-styles/astra-compact.css                            (../../zen/common/styles/astra-compact.css)
+        content/browser/zen-styles/astra-polish.css                             (../../zen/common/styles/astra-polish.css)
         content/browser/zen-styles/astra-patches.css                            (../../zen/common/styles/astra-patches.css)
         content/browser/zen-styles/astra-transparent-mode.css                   (../../zen/common/styles/astra-transparent-mode.css)
         content/browser/zen-styles/astra-app-hub.css                            (../../zen/common/styles/astra-app-hub.css)

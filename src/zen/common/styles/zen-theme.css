@@ -174,7 +174,7 @@
     color-mix(in oklch, var(--toolbox-textcolor) 12%, transparent)
   );
 
-  --zen-toolbar-element-bg-hover: light-dark(rgba(28, 24, 20, 0.07), rgba(255, 255, 255, 0.09));
+  --zen-toolbar-element-bg-hover: light-dark(rgba(28, 24, 20, 0.06), rgba(255, 255, 255, 0.08));
 
   /* Toolbar */
   --tab-selected-color-scheme: inherit !important;
@@ -280,8 +280,8 @@
   --panel-separator-color: color-mix(in srgb, currentColor 12%, transparent) !important;
 
   --zen-big-shadow: light-dark(
-    rgba(40, 32, 24, 0.12) 0px 2px 10px,
-    rgba(0, 0, 0, 0.36) 0px 4px 14px
+    rgba(40, 32, 24, 0.10) 0px 1px 8px,
+    rgba(0, 0, 0, 0.34) 0px 3px 12px
   );
   --zen-active-tab-scale: 0.985;
 

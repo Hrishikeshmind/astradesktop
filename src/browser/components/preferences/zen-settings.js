@@ -1533,7 +1533,7 @@ Preferences.addAll([
   {
     id: "zen.tab-unloader.timeout-minutes",
     type: "int",
-    default: 10,
+    default: 8,
   },
   {
     id: "zen.tab-unloader.aggressiveness",
@@ -1543,12 +1543,12 @@ Preferences.addAll([
   {
     id: "zen.tab-unloader.high-tab-threshold",
     type: "int",
-    default: 80,
+    default: 22,
   },
   {
     id: "zen.tab-unloader.max-batch",
     type: "int",
-    default: 20,
+    default: 8,
   },
   {
     id: "zen.pinned-tab-manager.restore-pinned-tabs-to-pinned-url",
@@ -1678,7 +1678,7 @@ Preferences.addAll([
   {
     id: "zen.tab-unloader.auto-unload-inactive",
     type: "bool",
-    default: false,
+    default: true,
   },
   {
     id: "zen.energy-saver.mode",

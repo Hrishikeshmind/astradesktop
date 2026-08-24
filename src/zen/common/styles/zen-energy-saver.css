@@ -16,6 +16,9 @@
   transition-duration: var(--panelui-subview-transition-duration, 150ms) !important;
 }
 
-:root[astra-energy-saver="true"] .zen-toolbar-background {
+:root[astra-energy-saver="true"] .zen-toolbar-background,
+:root[astra-energy-saver="true"] #zen-appcontent-navbar-wrapper,
+:root[astra-energy-saver="true"] #navigator-toolbox,
+:root[astra-energy-saver="true"] .urlbar-background {
   backdrop-filter: none !important;
 }

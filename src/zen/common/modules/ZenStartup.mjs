@@ -222,15 +222,24 @@ class ZenStartup {
   }
 
   #ramSaverIdleObserver = {
-    observe: (subject, topic) => {
+    observe: (_subject, topic) => {
       if (topic !== "idle") {
         return;
+      }
+      // Prefer discarding idle tabs over a full GC — minimizeMemoryUsage
+      // pauses every content process and hitches the next interaction.
+      try {
+        window.gZenWorkspaces?.runSmartTabSuspension?.();
+      } catch {
+        // ignore
       }
       try {
         const mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
           Ci.nsIMemoryReporterManager
         );
-        mgr.minimizeMemoryUsage(() => {});
+        if (mgr.resident / (1024 * 1024) >= 1800) {
+          mgr.minimizeMemoryUsage(() => {});
+        }
       } catch {
         // ignore
       }
@@ -400,8 +409,13 @@ class ZenStartup {
         return;
       }
 
+      let layoutRaf = 0;
       const ensureLayout = () => {
-        requestAnimationFrame(() => {
+        if (layoutRaf) {
+          return;
+        }
+        layoutRaf = requestAnimationFrame(() => {
+          layoutRaf = 0;
           gZenCompactModeManager.ensureRevampPanelLayout?.();
         });
       };
@@ -430,7 +444,7 @@ class ZenStartup {
         const tabsObserver = new MutationObserver(ensureLayout);
         tabsObserver.observe(tabsRoot, {
           childList: true,
-          subtree: true,
+          subtree: false,
         });
         this.#compactRevampPanelObservers.push(tabsObserver);
       }

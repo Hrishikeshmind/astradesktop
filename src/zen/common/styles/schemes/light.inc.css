@@ -5,4 +5,4 @@
 color-scheme: light;
 --zen-urlbar-outline-offset: 0px;
 /* Soft luminous glass — readable, not washed out */
---zen-urlbar-filter: blur(44px) saturate(108%) brightness(82%) contrast(102%);
+--zen-urlbar-filter: blur(16px) saturate(108%) brightness(82%) contrast(102%);
