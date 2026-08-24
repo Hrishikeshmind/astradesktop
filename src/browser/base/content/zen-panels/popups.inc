@@ -51,7 +51,7 @@
 <menupopup id="zenWorkspaceMoreActions">
   <menuitem id="context_zenPeekWorkspace"
             data-l10n-id="astra-space-peek-open"
-            oncommand="gZenWorkspaces.openAstraSpacePeek();"/>
+            command="cmd_zenPeekWorkspace"/>
   <menuitem id="context_zenEditWorkspace" data-l10n-id="zen-workspaces-panel-change-name" command="cmd_zenChangeWorkspaceName"/>
   <menuitem id="context_zenEditWorkspaceIcon" data-l10n-id="zen-workspaces-panel-change-icon" command="cmd_zenChangeWorkspaceIcon"/>
   <menuitem class="zenToolbarThemePicker"
@@ -955,8 +955,7 @@
       <hbox class="zen-app-launcher-grid">
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="irctc"
-          data-url="https://www.irctc.co.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.irctc.co.in');">
+          data-url="https://www.irctc.co.in">
           <label class="zen-app-launcher-item-label" value="IRCTC"/>
         </toolbarbutton>
       </hbox>
@@ -964,50 +963,42 @@
       <hbox class="zen-app-launcher-grid">
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="digilocker"
-          data-url="https://www.digilocker.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.digilocker.gov.in');">
+          data-url="https://www.digilocker.gov.in">
           <label class="zen-app-launcher-item-label" value="DigiLocker"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="income-tax"
-          data-url="https://www.incometax.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.incometax.gov.in');">
+          data-url="https://www.incometax.gov.in">
           <label class="zen-app-launcher-item-label" value="Income Tax"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="gst-portal"
-          data-url="https://www.gst.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.gst.gov.in');">
+          data-url="https://www.gst.gov.in">
           <label class="zen-app-launcher-item-label" value="GST Portal"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="epfo"
-          data-url="https://epfindia.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://epfindia.gov.in');">
+          data-url="https://epfindia.gov.in">
           <label class="zen-app-launcher-item-label" value="EPFO"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="aadhaar"
-          data-url="https://uidai.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://uidai.gov.in');">
+          data-url="https://uidai.gov.in">
           <label class="zen-app-launcher-item-label" value="Aadhaar"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="parivahan"
-          data-url="https://parivahan.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://parivahan.gov.in');">
+          data-url="https://parivahan.gov.in">
           <label class="zen-app-launcher-item-label" value="Parivahan/RTO"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="pan-card"
-          data-url="https://www.pan.utiitsl.com"
-          oncommand="window.gZenIndiaGov.openApp('https://www.pan.utiitsl.com');">
+          data-url="https://www.pan.utiitsl.com">
           <label class="zen-app-launcher-item-label" value="PAN Card"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="passport"
-          data-url="https://www.passportindia.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.passportindia.gov.in');">
+          data-url="https://www.passportindia.gov.in">
           <label class="zen-app-launcher-item-label" value="Passport"/>
         </toolbarbutton>
       </hbox>
@@ -1015,26 +1006,22 @@
       <hbox class="zen-app-launcher-grid">
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="nta"
-          data-url="https://www.nta.ac.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.nta.ac.in');">
+          data-url="https://www.nta.ac.in">
           <label class="zen-app-launcher-item-label" value="NTA"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="cbse"
-          data-url="https://www.cbse.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.cbse.gov.in');">
+          data-url="https://www.cbse.gov.in">
           <label class="zen-app-launcher-item-label" value="CBSE"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="upsc"
-          data-url="https://www.upsc.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.upsc.gov.in');">
+          data-url="https://www.upsc.gov.in">
           <label class="zen-app-launcher-item-label" value="UPSC"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="ssc"
-          data-url="https://ssc.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://ssc.gov.in');">
+          data-url="https://ssc.gov.in">
           <label class="zen-app-launcher-item-label" value="SSC"/>
         </toolbarbutton>
       </hbox>
@@ -1042,14 +1029,12 @@
       <hbox class="zen-app-launcher-grid">
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="ncs"
-          data-url="https://www.ncs.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.ncs.gov.in');">
+          data-url="https://www.ncs.gov.in">
           <label class="zen-app-launcher-item-label" value="NCS Portal"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="epfo"
-          data-url="https://unifiedportal-mem.epfindia.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://unifiedportal-mem.epfindia.gov.in');">
+          data-url="https://unifiedportal-mem.epfindia.gov.in">
           <label class="zen-app-launcher-item-label" value="EPFO UAN"/>
         </toolbarbutton>
       </hbox>
@@ -1057,20 +1042,17 @@
       <hbox class="zen-app-launcher-grid">
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="ayushman"
-          data-url="https://pmjay.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://pmjay.gov.in');">
+          data-url="https://pmjay.gov.in">
           <label class="zen-app-launcher-item-label" value="Ayushman Bharat"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="jan-aushadhi"
-          data-url="https://janaushadhi.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://janaushadhi.gov.in');">
+          data-url="https://janaushadhi.gov.in">
           <label class="zen-app-launcher-item-label" value="Jan Aushadhi"/>
         </toolbarbutton>
         <toolbarbutton class="zen-app-launcher-item"
           data-app-id="cowin"
-          data-url="https://www.cowin.gov.in"
-          oncommand="window.gZenIndiaGov.openApp('https://www.cowin.gov.in');">
+          data-url="https://www.cowin.gov.in">
           <label class="zen-app-launcher-item-label" value="CoWIN"/>
         </toolbarbutton>
       </hbox>

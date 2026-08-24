@@ -1521,7 +1521,7 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
       }
       this.#mouseTimer = setTimeout(() => {
         this.openTabsPopup(event);
-      }, Services.prefs.getIntPref("zen.folders.search.hover-delay"));
+      }, Services.prefs.getIntPref("zen.folders.search.hover-delay", 500));
     });
     labelContainer.addEventListener("mouseleave", () => {
       clearTimeout(this.#mouseTimer);

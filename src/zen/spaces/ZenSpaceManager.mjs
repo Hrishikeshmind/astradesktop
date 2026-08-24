@@ -1272,7 +1272,12 @@ class nsZenWorkspaces {
         );
       }
     } catch (error) {
-      console.warn("[AstraSpaces] integrity pass failed; Spaces remain usable");
+      if (this.#canDebug) {
+        console.warn(
+          "[AstraSpaces] integrity pass failed; Spaces remain usable",
+          error
+        );
+      }
       try {
         this.#clearAnyZombieTabs();
       } catch {
@@ -2563,8 +2568,10 @@ class nsZenWorkspaces {
   ) {
     gZenUIManager.tabsWrapper.style.scrollbarWidth = "none";
     const kGlobalAnimationDuration =
-      Services.prefs.getIntPref("zen.workspaces.switch-animation-duration") /
-      1000;
+      Services.prefs.getIntPref(
+        "zen.workspaces.switch-animation-duration",
+        200
+      ) / 1000;
     this._animatingChange = true;
     const animations = [];
     const workspaces = this.getWorkspaces();

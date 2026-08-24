@@ -25,6 +25,10 @@
 - name: zen.workspaces.swipe-actions
   value: true
 
+# Milliseconds. Used by Space switch animation (getIntPref; must exist as int).
+- name: zen.workspaces.switch-animation-duration
+  value: 200
+
 - name: zen.workspaces.wrap-around-navigation
   value: true
 

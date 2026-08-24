@@ -440,7 +440,10 @@ class nsZenDownloadAnimationElement extends HTMLElement {
 
   #getBoxAnimationDurationMs() {
     return (
-      Services.prefs.getIntPref("zen.downloads.download-animation-duration") +
+      Services.prefs.getIntPref(
+        "zen.downloads.download-animation-duration",
+        1000
+      ) +
       200
     );
   }

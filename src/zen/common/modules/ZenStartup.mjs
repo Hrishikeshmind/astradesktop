@@ -230,11 +230,9 @@ class ZenStartup {
         const mgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(
           Ci.nsIMemoryReporterManager
         );
-        mgr.minimizeMemoryUsage(() => {
-          console.info("[Astra RAM Saver]: Minimized memory usage during idle.");
-        });
-      } catch (e) {
-        console.warn("[Astra RAM Saver]: Failed to minimize memory usage", e);
+        mgr.minimizeMemoryUsage(() => {});
+      } catch {
+        // ignore
       }
     },
   };
@@ -289,13 +287,17 @@ class ZenStartup {
       if (!Services.prefs.getBoolPref("astra.ramsaver.enabled", true)) {
         return;
       }
-      const idleService = Cc["@mozilla.org/user-idle-service;1"].getService(
-        Ci.nsIUserIdleService
-      );
-      idleService.addIdleObserver(this.#ramSaverIdleObserver, 180);
       setInterval(() => this.#checkRamSaverThreshold(), 5 * 60 * 1000);
-    } catch (e) {
-      console.warn("[Astra RAM Saver]: Failed to initialize", e);
+      // Firefox registers nsIUserIdleService as widget/useridleservice, not
+      // user-idle-service. Guard so a missing CID cannot spam the console.
+      const idleFactory = Cc["@mozilla.org/widget/useridleservice;1"];
+      if (!idleFactory) {
+        return;
+      }
+      const idleService = idleFactory.getService(Ci.nsIUserIdleService);
+      idleService.addIdleObserver(this.#ramSaverIdleObserver, 180);
+    } catch {
+      // Interval threshold check still runs when idle service is unavailable.
     }
   }
 

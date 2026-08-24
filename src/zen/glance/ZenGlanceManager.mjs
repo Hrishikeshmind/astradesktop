@@ -40,7 +40,8 @@ class nsZenGlanceManager extends nsZenDOMOperatedFeature {
   });
 
   #GLANCE_ANIMATION_DURATION = Services.prefs.getIntPref(
-    "zen.glance.animation-duration"
+    "zen.glance.animation-duration",
+    350
   );
 
   init() {

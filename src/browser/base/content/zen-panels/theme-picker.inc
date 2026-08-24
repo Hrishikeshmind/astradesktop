@@ -274,8 +274,7 @@
           <label flex="1" data-l10n-id="astra-theme-transparent-mode-label"/>
           <button id="zen-theme-picker-transparent-btn"
                   class="subviewbutton"
-                  data-l10n-id="astra-theme-transparent-off"
-                  oncommand="window.gAstraTransparency?.toggleFromUI?.()"/>
+                  data-l10n-id="astra-theme-transparent-off"/>
         </hbox>
       </vbox>
     </panelview>

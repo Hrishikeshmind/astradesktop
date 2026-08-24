@@ -58,7 +58,7 @@ export class nsZenMenuBar {
     }
 
     parentPopup.addEventListener("popupshowing", () => {
-      const currentScheme = Services.prefs.getIntPref(WINDOW_SCHEME_PREF);
+      const currentScheme = Services.prefs.getIntPref(WINDOW_SCHEME_PREF, 2);
       for (const [type, value] of Object.entries(WINDOW_SCHEME_MAPPING)) {
         let menuItem = menu.querySelector(`menuitem[data-type="${type}"]`);
         if (value === currentScheme) {

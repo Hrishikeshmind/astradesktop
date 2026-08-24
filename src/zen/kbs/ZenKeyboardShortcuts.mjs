@@ -1634,6 +1634,12 @@ window.gZenKeyboardShortcutsManager = {
         if (key.isInternal()) {
           continue;
         }
+        if (!key.getID() || key.isEmpty()) {
+          // Unbound keys (no key/keycode) still live in the shortcuts UI list,
+          // but installing empty <key> nodes makes Gecko warn about missing
+          // layout mappings and can call getElementById("").
+          continue;
+        }
         let child = key.toXHTMLElement(browser);
         keyset.appendChild(child);
       }

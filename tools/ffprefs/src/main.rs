@@ -254,9 +254,15 @@ fn get_value(pref: &Preference) -> String {
     // Other values such as numbers or booleans can be used directly
     // If the value is empty or there are any characters that could be misinterpreted,
     // we should wrap it in double quotes.
+    //
+    // YAML `value: "[]"` deserializes as the string `[]`. Pref files only accept
+    // bool / int / quoted-string — a raw `[]` is a parse error ("unexpected character").
     let letters_inside_value =
         value.chars().any(|c| c.is_alphabetic() || c == '.') && value != "true" && value != "false";
-    if value.is_empty() || value.contains([' ', '\n', '\t', '"']) || letters_inside_value {
+    let needs_quotes = value.is_empty()
+        || value.contains([' ', '\n', '\t', '"', '[', ']', '{', '}', ',', ':'])
+        || letters_inside_value;
+    if needs_quotes {
         format!("\"{}\"", value.replace('"', "\\\""))
     } else {
         value.to_string()

@@ -106,14 +106,14 @@ export class ZenLowBandwidthMode {
     }
     bag[pref] = {
       hasUser: Services.prefs.prefHasUserValue(pref),
-      value: Services.prefs.getIntPref(pref),
+      value: Services.prefs.getIntPref(pref, 0),
     };
     this.#writeBag(bag);
   }
 
   #applyInt(pref, value) {
     this.#snapshotIfNeeded(pref);
-    if (Services.prefs.getIntPref(pref) !== value) {
+    if (Services.prefs.getIntPref(pref, 0) !== value) {
       Services.prefs.setIntPref(pref, value);
     }
   }

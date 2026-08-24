@@ -184,7 +184,7 @@
 
     get elementSeparation() {
       return Math.min(
-        Services.prefs.getIntPref("zen.theme.content-element-separation"),
+        Services.prefs.getIntPref("zen.theme.content-element-separation", 8),
         kZenMaxElementSeparation
       );
     },

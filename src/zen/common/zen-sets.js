@@ -2,8 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-console.log("Astra: zen-sets.js loaded");
-
 const { gZenEnergySaver } = ChromeUtils.importESModule(
   "chrome://browser/content/ZenEnergySaver.mjs"
 );
@@ -244,7 +242,6 @@ function bindAstraCommandHandler(panel, panelName, resolver) {
     const oldHandler = gAstraDelegationState.commandHandlers.get(panel);
     if (oldHandler) {
       panel.removeEventListener("command", oldHandler);
-      console.log(`Astra: removed old ${panelName} command handler`);
     }
 
     const handler = event => {
@@ -265,7 +262,6 @@ function bindAstraCommandHandler(panel, panelName, resolver) {
 
     panel.addEventListener("command", handler);
     gAstraDelegationState.commandHandlers.set(panel, handler);
-    console.log(`Astra: ${panelName} command handler attached`);
   } catch (error) {
     console.error(`Astra: failed to bind ${panelName} handler:`, error);
   }
@@ -282,15 +278,12 @@ function attachAstraPanelDelegation() {
         "India Gov",
         (item, panel) => {
           const url = item.getAttribute("data-url");
-          console.log("Astra: India Gov command detected", { url });
           if (url && window.gZenIndiaGov) {
             window.gZenIndiaGov.openApp(url);
             panel.hidePopup();
           }
         }
       );
-    } else {
-      console.log("Astra: India Gov panel not found during delegation attach");
     }
 
     const tabNotesPanel = document.getElementById("PanelUI-zen-tab-notes");
@@ -300,7 +293,6 @@ function attachAstraPanelDelegation() {
         "Tab Notes",
         (item, panel) => {
           const action = item.getAttribute("data-action");
-          console.log("Astra: Tab Notes command detected", { action });
           if (action === "saveNote") {
             window.gZenTabNotes?.saveNote();
             panel.hidePopup();
@@ -311,8 +303,6 @@ function attachAstraPanelDelegation() {
           }
         }
       );
-    } else {
-      console.log("Astra: Tab Notes panel not found during delegation attach");
     }
   } catch (error) {
     console.error("Astra: attachAstraPanelDelegation failed:", error);
@@ -323,18 +313,15 @@ function bindAstraPopupShowingHook(panelId, panelName) {
   try {
     const panel = document.getElementById(panelId);
     if (!panel) {
-      console.log(`Astra: ${panelName} popup hook skipped (panel missing)`);
       return;
     }
 
     const oldPopupHandler = gAstraDelegationState.popupHandlers.get(panel);
     if (oldPopupHandler) {
       panel.removeEventListener("popupshowing", oldPopupHandler);
-      console.log(`Astra: removed old ${panelName} popupshowing hook`);
     }
 
     const popupHandler = () => {
-      console.log(`Astra: ${panelName} popupshowing -> rebinding delegation`);
       attachAstraPanelDelegation();
       if (panelId === "PanelUI-zen-india-gov") {
         try {
@@ -349,12 +336,10 @@ function bindAstraPopupShowingHook(panelId, panelName) {
     };
     panel.addEventListener("popupshowing", popupHandler);
     gAstraDelegationState.popupHandlers.set(panel, popupHandler);
-    console.log(`Astra: ${panelName} popupshowing hook attached`);
 
     const oldHiddenHandler = gAstraDelegationState.hiddenHandlers.get(panel);
     if (oldHiddenHandler) {
       panel.removeEventListener("popuphidden", oldHiddenHandler);
-      console.log(`Astra: removed old ${panelName} popuphidden hook`);
     }
 
     const hiddenHandler = () => {
@@ -362,12 +347,10 @@ function bindAstraPopupShowingHook(panelId, panelName) {
       if (commandHandler) {
         panel.removeEventListener("command", commandHandler);
         gAstraDelegationState.commandHandlers.delete(panel);
-        console.log(`Astra: ${panelName} command handler cleaned on popuphidden`);
       }
     };
     panel.addEventListener("popuphidden", hiddenHandler);
     gAstraDelegationState.hiddenHandlers.set(panel, hiddenHandler);
-    console.log(`Astra: ${panelName} popuphidden hook attached`);
   } catch (error) {
     console.error(`Astra: failed popupshowing hook for ${panelName}:`, error);
   }
@@ -375,7 +358,6 @@ function bindAstraPopupShowingHook(panelId, panelName) {
 
 function initAstraPanelDelegation() {
   try {
-    console.log("Astra: initializing panel delegation");
     attachAstraPanelDelegation();
     bindAstraPopupShowingHook("PanelUI-zen-india-gov", "India Gov");
     bindAstraPopupShowingHook("PanelUI-zen-tab-notes", "Tab Notes");
@@ -536,7 +518,7 @@ document.addEventListener(
     });
 
     window.gZenStartup?.promiseInitialized?.then(() => {
-      void gZenEnergySaver.init().catch(console.warn);
+      void gZenEnergySaver.init(window).catch(() => {});
       try {
         gZenLowBandwidthMode.init();
       } catch (error) {
@@ -673,6 +655,9 @@ document.addEventListener(
             ) {
               gZenWorkspaces.openWorkspaceCreation(event);
             }
+            break;
+          case "cmd_zenPeekWorkspace":
+            gZenWorkspaces.openAstraSpacePeek();
             break;
           case "cmd_zenCreateSpaceFromPreset": {
             if (

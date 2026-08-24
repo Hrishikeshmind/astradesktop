@@ -72,13 +72,13 @@ export const ZenAstraNTP = {
         }
         return;
       }
-      this.#restoreDefaultNewTab();
+      this._restoreDefaultNewTab();
     } catch (e) {
       console.error("[Astra] NTP layout apply failed:", e);
     }
   },
 
-  #restoreDefaultNewTab() {
+  _restoreDefaultNewTab() {
     try {
       if (typeof lazy.AboutNewTab.resetNewTabURL === "function") {
         if (lazy.AboutNewTab.overridden) {

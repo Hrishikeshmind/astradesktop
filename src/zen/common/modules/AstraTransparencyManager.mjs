@@ -205,6 +205,7 @@ class AstraTransparencyManager {
       return;
     }
     this.#initialized = true;
+    this.#bindThemePickerButton();
 
     this.#prefObserver = () => {
       if (this.#suppressPrefObserver || this.#destroyed) {
@@ -924,7 +925,17 @@ class AstraTransparencyManager {
     }
   }
 
+  #bindThemePickerButton() {
+    const btn = document.getElementById("zen-theme-picker-transparent-btn");
+    if (!btn || btn.dataset.astraCommandBound === "true") {
+      return;
+    }
+    btn.addEventListener("command", () => this.toggleFromUI());
+    btn.dataset.astraCommandBound = "true";
+  }
+
   syncThemePickerButton() {
+    this.#bindThemePickerButton();
     const btn = document.getElementById("zen-theme-picker-transparent-btn");
     if (!btn) {
       return;

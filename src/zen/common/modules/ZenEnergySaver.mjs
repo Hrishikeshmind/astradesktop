@@ -4,6 +4,17 @@
 
 const VALID_MODES = new Set(["auto", "on", "off"]);
 
+function resolveBrowserWindow(preferred) {
+  if (preferred && !preferred.closed) {
+    return preferred;
+  }
+  try {
+    return Services.wm.getMostRecentWindow("navigator:browser");
+  } catch {
+    return null;
+  }
+}
+
 export class ZenEnergySaver {
   #battery = null;
   #isEnergySaverActive = false;
@@ -13,13 +24,20 @@ export class ZenEnergySaver {
   #trackedWindows = new WeakSet();
   #windowCount = 0;
 
-  async init() {
-    this.#trackWindow(window);
+  async init(win) {
+    const targetWin = resolveBrowserWindow(win);
+    if (!targetWin) {
+      return;
+    }
+    this.#trackWindow(targetWin);
 
     // New window while already active: apply attribute locally immediately.
     if (this.#isEnergySaverActive) {
       try {
-        document.documentElement.setAttribute("astra-energy-saver", "true");
+        targetWin.document?.documentElement?.setAttribute(
+          "astra-energy-saver",
+          "true"
+        );
       } catch {
         // ignore
       }
@@ -41,18 +59,18 @@ export class ZenEnergySaver {
       return;
     }
     try {
-      if (!navigator.getBattery) {
+      const nav = targetWin.navigator;
+      if (!nav?.getBattery) {
         this.#reason = mode === "on" ? "manual" : "unavailable";
         return;
       }
-      this.#battery = await navigator.getBattery();
+      this.#battery = await nav.getBattery();
       this.#battery.addEventListener("levelchange", () => this.#onBatteryChange());
       this.#battery.addEventListener("chargingchange", () =>
         this.#onBatteryChange()
       );
       this.#onBatteryChange();
-    } catch (e) {
-      console.warn("[AstraEnergySaver]: Battery API not available", e);
+    } catch {
       if (mode !== "on") {
         this.#reason = "unavailable";
       }
@@ -128,11 +146,23 @@ export class ZenEnergySaver {
         }
       }
     } catch {
-      try {
-        fn(window);
-      } catch {
-        // ignore
+      const fallback = resolveBrowserWindow();
+      if (fallback) {
+        try {
+          fn(fallback);
+        } catch {
+          // ignore
+        }
       }
+    }
+  }
+
+  #showToast(toastId, options) {
+    const win = resolveBrowserWindow();
+    try {
+      win?.gZenUIManager?.showToast?.(toastId, options);
+    } catch {
+      // ignore
     }
   }
 
@@ -214,12 +244,7 @@ export class ZenEnergySaver {
         reason === "manual"
           ? "astra-energy-saver-enabled-manual"
           : "astra-energy-saver-enabled";
-      window.gZenUIManager?.showToast(toastId, { timeout: 4000 });
-      if (typeof level === "number") {
-        console.log(`[AstraEnergySaver]: Enabled at ${level}%`);
-      } else {
-        console.log(`[AstraEnergySaver]: Enabled (${reason})`);
-      }
+      this.#showToast(toastId, { timeout: 4000 });
     }
   }
 
@@ -233,8 +258,7 @@ export class ZenEnergySaver {
         this.#readMode() === "auto"
           ? "astra-energy-saver-disabled"
           : "astra-energy-saver-disabled-manual";
-      window.gZenUIManager?.showToast(toastId, { timeout: 3000 });
-      console.log("[AstraEnergySaver]: Disabled");
+      this.#showToast(toastId, { timeout: 3000 });
     }
   }
 

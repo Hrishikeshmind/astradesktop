@@ -1369,7 +1369,7 @@ window.gZenCompactModeManager = {
       this.shouldBeCompact &&
       !this.isPanelLocked() &&
       !document.documentElement.hasAttribute("zen-compact-animating") &&
-      !window.fullScreen &&
+      window.windowState !== window.STATE_FULLSCREEN &&
       !window.closed;
 
     if (this._sidebarHitTarget) {
