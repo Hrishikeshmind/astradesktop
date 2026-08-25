@@ -63,7 +63,7 @@
     overflow: hidden;
     /* Themed backdrop so the panel never flashes/glares white in dark theme
      * while the AI document is still loading (its <browser> is transparent). */
-    background-color: var(--zen-colors-tertiary);
+    background-color: light-dark(var(--zen-colors-tertiary), var(--zen-surface-raised));
   }
 
   /* Match #sidebar-splitter: invisible ~8px grab target. #zen-tabbox-wrapper

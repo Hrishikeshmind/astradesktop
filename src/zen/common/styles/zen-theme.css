@@ -18,17 +18,34 @@
 
   /*
    * Branding surfaces — premium light/dark language.
-   * Dark: cool charcoal (not flat pure black). Light: soft warm paper (not washed gray / pure white).
+   * Dark: 3-tier warm charcoal elevation (content < chrome < raised).
+   * Light: soft warm paper (not washed gray / pure white).
+   * --zen-branding-dark stays the light-scheme reverse ink so light mode
+   * is untouched; dark content uses --zen-surface-sunken instead.
    */
   --zen-branding-dark: #12141a;
   --zen-branding-paper: #eeeae4;
 
-  --zen-branding-bg: light-dark(var(--zen-branding-paper), var(--zen-branding-dark));
+  --zen-branding-bg: light-dark(var(--zen-branding-paper), #0f1013);
   --zen-branding-bg-reverse: light-dark(var(--zen-branding-dark), var(--zen-branding-paper));
 
-  /* Elevated surfaces for panels / cards (shared hierarchy across schemes) */
-  --zen-surface-raised: light-dark(#f7f5f1, #1a1d25);
-  --zen-surface-sunken: light-dark(#e5e2dc, #0e1015);
+  /*
+   * Dark elevation (light values unchanged):
+   *   sunken  = content / page floor
+   *   chrome  = toolbar, sidebar, tab strip
+   *   raised  = popups, panels, notification bars
+   */
+  --zen-surface-sunken: light-dark(#e5e2dc, #0f1013);
+  --zen-surface-chrome: light-dark(#eeeae4, #1a1c22);
+  --zen-surface-raised: light-dark(#f7f5f1, #22242b);
+
+  /* Dark-mode type ramp. Light falls back to existing chrome ink. */
+  --zen-text-primary: light-dark(var(--zen-branding-dark), #e4e5e9);
+  --zen-text-secondary: light-dark(#5c5954, #8a8d97);
+  --zen-text-tertiary: light-dark(#8a8680, #6b6e78);
+
+  /* Warm amber — dark-mode accent only. Do not use as a fill. */
+  --zen-colors-accent: light-dark(var(--zen-primary-color), #f0a868);
 
   /** Zen colors are generated automatically from the primary color */
   --zen-colors-primary: light-dark(
@@ -54,7 +71,7 @@
   );
   --zen-colors-border: light-dark(
     color-mix(in srgb, var(--zen-colors-secondary) 42%, rgba(40, 36, 32, 0.12)),
-    color-mix(in srgb, var(--zen-colors-secondary) 18%, rgb(62, 66, 78))
+    #2a2c34
   );
   --zen-colors-border-contrast: light-dark(
     color-mix(in srgb, var(--zen-colors-secondary) 8%, rgba(40, 36, 32, 0.08) 92%),
@@ -88,10 +105,10 @@
    */
   --zen-toast-text-color: #ffffff;
 
-  --zen-dialog-background: light-dark(#f7f5f1, #1c1f27);
+  --zen-dialog-background: light-dark(#f7f5f1, #22242b);
   --zen-urlbar-background: light-dark(
     color-mix(in srgb, var(--zen-primary-color) 2.5%, #f4f2ee 97.5%),
-    color-mix(in srgb, var(--zen-primary-color) 4%, rgb(22, 24, 30) 96%)
+    color-mix(in srgb, var(--zen-primary-color) 4%, #0f1013 96%)
   );
 
   --zen-secondary-btn-color: var(--zen-colors-primary-foreground);
@@ -164,7 +181,7 @@
   --in-content-page-background: var(--zen-colors-tertiary) !important;
   --zen-in-content-dialog-background: light-dark(
     var(--zen-colors-tertiary),
-    var(--zen-branding-bg)
+    var(--zen-surface-raised)
   );
 
   --zen-button-padding: 0.6rem 1.2rem;
@@ -217,7 +234,7 @@
 
   /* Other colors */
   --urlbar-box-active-bgcolor: var(--toolbarbutton-hover-background) !important;
-  --zen-input-border-color: light-dark(rgb(210, 205, 198), rgb(58, 62, 74));
+  --zen-input-border-color: light-dark(rgb(210, 205, 198), #2e3038);
   --urlbar-box-hover-bgcolor: var(--toolbarbutton-hover-background) !important;
   --input-text-background-color: light-dark(rgba(255, 255, 255, 0.35), rgba(0, 0, 0, 0.22)) !important;
   --toolbar-field-focus-background-color: light-dark(
@@ -230,9 +247,10 @@
   --zen-hidden-toolbar-transition-duration: 0.15s;
   --zen-hidden-toolbar-transition: var(--zen-hidden-toolbar-transition-duration) ease-in-out;
 
-  /* XUL */
-  --zen-main-browser-background: light-dark(#e6e3de, #16181e);
-  --zen-main-browser-background-toolbar: var(--zen-main-browser-background);
+  /* XUL — window floor is chrome (sidebar is transparent over it).
+   * Content <browser> uses --zen-surface-sunken via zen-browser-container.css. */
+  --zen-main-browser-background: light-dark(#e6e3de, #1a1c22);
+  --zen-main-browser-background-toolbar: light-dark(#e6e3de, #1a1c22);
 
   --browser-area-z-index-toolbox: 2 !important;
   --attention-dot-color: transparent !important;
@@ -247,7 +265,7 @@
   --tab-close-button-padding: 4px !important;
 
   --input-border-color: var(--zen-input-border-color) !important;
-  --zen-themed-toolbar-bg-transparent: light-dark(var(--zen-branding-bg), #14161c);
+  --zen-themed-toolbar-bg-transparent: light-dark(var(--zen-branding-bg), #1a1c22);
 
   --zen-workspace-indicator-height: 44px;
 
@@ -275,27 +293,28 @@
   }
 
   --toolbar-field-background-color: var(--zen-colors-input-bg) !important;
-  --arrowpanel-background: light-dark(var(--zen-surface-raised), #1e2129) !important;
+  --arrowpanel-background: var(--zen-surface-raised) !important;
+  --arrowpanel-color: light-dark(CanvasText, var(--zen-text-primary)) !important;
 
   --panel-separator-color: color-mix(in srgb, currentColor 12%, transparent) !important;
 
   --zen-big-shadow: light-dark(
     rgba(40, 32, 24, 0.10) 0px 1px 8px,
     rgba(0, 0, 0, 0.34) 0px 3px 12px
-  );
+  ),
+    0 0 0 1px light-dark(transparent, var(--zen-colors-border));
   --zen-active-tab-scale: 0.985;
 
   /* Define tab hover background color */
   --tab-hover-background-color: var(--toolbarbutton-hover-background);
 
   /* Sidebar Notifications */
-  --zen-sidebar-notification-bg: color-mix(
-    in srgb,
-    var(--zen-primary-color) 5%,
-    light-dark(white, black)
+  --zen-sidebar-notification-bg: light-dark(
+    color-mix(in srgb, var(--zen-primary-color) 5%, white),
+    var(--zen-surface-raised)
   );
   --zen-sidebar-notification-shadow: 0 0 6px light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
-  --zen-sidebar-notification-outline: 1px solid light-dark(transparent, rgba(255, 255, 255, 0.1));
+  --zen-sidebar-notification-outline: 1px solid light-dark(transparent, var(--zen-colors-border));
 
   --zen-sidebar-themed-icon-fill: light-dark(color-mix(in srgb, var(--zen-primary-color) 50%, black), color-mix(in srgb, var(--zen-colors-primary) 15%, #ebebeb));
 
@@ -324,6 +343,38 @@
   @media (-moz-platform: windows) {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
+}
+
+/*
+ * notification-message / infobar adopt zen-theme.css into the shadow.
+ * Firefox default dark infobar is rgb(66,65,77) (~#42414d) — the flat
+ * mid-gray. Paint the elevated plane instead; keep light's mix.
+ */
+:host(.infobar),
+:host(notification-message) {
+  --info-bar-background-color: light-dark(
+    color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%),
+    var(--zen-surface-raised)
+  ) !important;
+  --info-bar-text-color: light-dark(
+    var(--color-gray-100, CanvasText),
+    var(--zen-text-primary)
+  );
+  background-color: var(--info-bar-background-color) !important;
+  color: var(--info-bar-text-color);
+  border-color: light-dark(var(--arrowpanel-border-color, transparent), var(--zen-colors-border));
+
+  --message-bar-background-color: var(--info-bar-background-color);
+  --message-bar-text-color: var(--info-bar-text-color);
+}
+
+:host(.infobar) .text-link,
+:host(notification-message) .text-link {
+  color: light-dark(var(--link-color, LinkText), var(--zen-colors-accent));
+}
+
+::slotted(.text-link) {
+  color: light-dark(var(--link-color, LinkText), var(--zen-colors-accent));
 }
 
 #main-window[windowtype="navigator:browser"]:not([chromehidden~='toolbar']) {

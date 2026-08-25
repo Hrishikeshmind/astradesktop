@@ -778,13 +778,23 @@ toolbaritem[id$="-browser-action"] {
     z-index: 9999;
 
     & notification-message {
-      background: color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%);
-      backdrop-filter: blur(10px);
-      border: 1px solid var(--arrowpanel-border-color);
+      background: light-dark(
+        color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%),
+        var(--zen-surface-raised)
+      );
+      color: light-dark(CanvasText, var(--zen-text-primary));
+      backdrop-filter: light-dark(blur(10px), none);
+      border: 1px solid light-dark(var(--arrowpanel-border-color), var(--zen-colors-border));
       border-radius: var(--zen-border-radius);
 
       &::before {
         display: none;
+      }
+
+      & .notification-button,
+      & .text-link,
+      & button[data-l10n-id="captive-portal-network-login-button"] {
+        color: light-dark(var(--link-color, LinkText), var(--zen-colors-accent));
       }
     }
   }

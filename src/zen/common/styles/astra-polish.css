@@ -10,7 +10,11 @@
     color-mix(in srgb, var(--zen-primary-color) 16%, var(--zen-surface-raised) 84%)
   );
   --astra-tab-hover-fill: light-dark(rgba(28, 24, 20, 0.055), rgba(255, 255, 255, 0.07));
-  --astra-tab-accent: color-mix(in srgb, var(--zen-primary-color) 72%, light-dark(#1a1814, #fff));
+  /* Dark: warm amber indicator only. Light keeps the existing accent mix. */
+  --astra-tab-accent: light-dark(
+    color-mix(in srgb, var(--zen-primary-color) 72%, #1a1814),
+    var(--zen-colors-accent)
+  );
   --astra-focus-ring: 2px solid var(--focus-outline-color, var(--color-accent-primary));
 }
 
@@ -101,6 +105,12 @@
 
 .subviewbutton:not([disabled]):hover {
   border-radius: var(--arrowpanel-menuitem-border-radius, 6px);
+}
+
+/* Toolbar / content plane separator (dark hairline; transparent in light). */
+:root:not([inDOMFullscreen="true"]):not([zen-compact-mode="true"])
+  #zen-appcontent-navbar-wrapper {
+  box-shadow: 0 1px 0 light-dark(transparent, var(--zen-colors-border));
 }
 
 /* --------------------------------------------------------------------------

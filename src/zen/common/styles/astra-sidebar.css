@@ -23,11 +23,12 @@
  * keeps its own float path; zen-no-padding still disables the shadow.
  * ========================================================================== */
 :root {
-  /* Soft depth only — no 1px ring (that reads as the hard cut we're removing).
-   * light-dark keeps weight readable on both chrome schemes. */
+  /* Soft depth plus a 1px hairline in dark so chrome/content planes separate.
+   * Light keeps a transparent ring so layout is unchanged. */
   --zen-big-shadow:
     light-dark(rgba(40, 32, 24, 0.09), rgba(0, 0, 0, 0.38)) 0 1px 2px,
-    light-dark(rgba(40, 32, 24, 0.07), rgba(0, 0, 0, 0.26)) 0 6px 16px;
+    light-dark(rgba(40, 32, 24, 0.07), rgba(0, 0, 0, 0.26)) 0 6px 16px,
+    0 0 0 1px light-dark(transparent, var(--zen-colors-border));
 }
 
 /* Sidebar navigation follows Zen stock: the native #nav-bar Back/Forward/

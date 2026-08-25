@@ -2,19 +2,25 @@ diff --git a/toolkit/content/widgets/infobar.css b/toolkit/content/widgets/infob
 index fa0bb5fca4a669981d5c22fcba137c874dea8241..97fecbb9957dd733107e1bfe2aac90c7dc0a7f78 100644
 --- a/toolkit/content/widgets/infobar.css
 +++ b/toolkit/content/widgets/infobar.css
-@@ -102,3 +102,18 @@ strong {
+@@ -102,3 +102,27 @@ strong {
  :host([type="system"]) .content {
    margin-inline-start: 0;
  }
 +
 +/**
-+ * Zen Override
++ * Zen Override — dark uses the elevated chrome plane, not Firefox's
++ * flat rgb(66,65,77) infobar gray. Light stays transparent so the
++ * document-level mix in zen-single-components.css still shows.
 + */
 +:host(.infobar) {
-+  --info-bar-background-color: transparent !important;
++  --info-bar-background-color: light-dark(transparent, var(--zen-surface-raised)) !important;
++  --info-bar-text-color: light-dark(
++    var(--color-gray-100, CanvasText),
++    var(--zen-text-primary)
++  );
 +  margin: 0;
 +  border: 0;
-+  border-top: 1px solid var(--arrowpanel-border-color);
++  border-top: 1px solid light-dark(var(--arrowpanel-border-color), var(--zen-colors-border));
 +
 +  &::before {
 +    border-start-start-radius: 0px;

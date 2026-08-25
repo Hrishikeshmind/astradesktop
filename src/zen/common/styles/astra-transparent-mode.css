@@ -35,20 +35,20 @@
   ) !important;
   --astra-glass-tint: light-dark(
     rgba(255, 255, 255, 0.55),
-    rgba(18, 18, 26, 0.42)
+    color-mix(in srgb, var(--zen-surface-chrome, #1a1c22) 72%, transparent)
   );
   --astra-glass-tint-strong: light-dark(
     rgba(255, 255, 255, 0.78),
-    rgba(18, 18, 26, 0.62)
+    color-mix(in srgb, var(--zen-surface-chrome, #1a1c22) 88%, transparent)
   );
   --astra-glass-highlight: light-dark(
     rgba(0, 0, 0, 0.08),
     rgba(255, 255, 255, 0.1)
   );
-  --astra-glass-floor: light-dark(#eef1f7, #12141c);
+  --astra-glass-floor: light-dark(#eef1f7, var(--zen-surface-sunken, #0f1013));
   --astra-glass-floor-translucent: light-dark(
     color-mix(in srgb, #eef1f7 42%, transparent),
-    color-mix(in srgb, #12141c 38%, transparent)
+    color-mix(in srgb, var(--zen-surface-sunken, #0f1013) 82%, transparent)
   );
   --astra-glass-radial-glow: light-dark(
     rgba(255, 255, 255, 0.55),
@@ -72,11 +72,11 @@
   );
   --astra-glass-panel: light-dark(
     rgba(255, 255, 255, 0.86),
-    rgba(20, 20, 30, 0.78)
+    color-mix(in srgb, var(--zen-surface-raised, #22242b) 94%, transparent)
   );
   --astra-glass-panel-strong: light-dark(
     rgba(255, 255, 255, 0.9),
-    rgba(20, 20, 30, 0.82)
+    color-mix(in srgb, var(--zen-surface-raised, #22242b) 96%, transparent)
   );
   --astra-glass-urlbar: light-dark(
     rgba(255, 255, 255, 0.62),

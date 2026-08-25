@@ -1596,7 +1596,8 @@ export class nsZenThemePicker extends nsZenMultiWindowFeature {
 
   getToolbarModifiedBaseRaw() {
     const opacity = this.#allowTransparencyOnSidebar ? 0.6 : 1;
-    return this.isDarkMode ? [23, 23, 26, opacity] : [240, 240, 244, opacity];
+    // Dark chrome plane (#1a1c22). Light unchanged.
+    return this.isDarkMode ? [26, 28, 34, opacity] : [240, 240, 244, opacity];
   }
 
   getToolbarModifiedBase() {
@@ -1705,7 +1706,7 @@ export class nsZenThemePicker extends nsZenMultiWindowFeature {
         if (this.canBeTransparent) {
           return this.isDarkMode ? "rgba(0, 0, 0, 0.4)" : "transparent";
         }
-        return this.isDarkMode ? "#131313" : "#e9e9e9";
+        return this.isDarkMode ? "#1a1c22" : "#e9e9e9";
       };
       return forToolbar ? this.getToolbarModifiedBase() : getBrowserBg();
     } else if (themedColors.length === 1) {
@@ -1859,9 +1860,8 @@ export class nsZenThemePicker extends nsZenMultiWindowFeature {
   }
 
   getToolbarColor(isDarkMode = false) {
-    const opacity = 0.8;
-    let baseColor = isDarkMode ? [255, 255, 255, opacity] : [0, 0, 0, opacity]; // Default toolbar
-    return baseColor;
+    // Dark chrome ink is --zen-text-primary (#e4e5e9). Light unchanged.
+    return isDarkMode ? [228, 229, 233, 1] : [0, 0, 0, 0.8];
   }
 
   get browserBackgroundElement() {
