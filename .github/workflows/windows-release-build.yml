@@ -83,6 +83,9 @@ jobs:
         run: |
           npm ci
 
+      - name: Validate patch files
+        run: npm run validate:patches
+
       - name: Load Surfer CI setup
         run: npm run surfer -- ci --brand ${{ inputs['release-branch'] }} --display-version ${{ inputs['build-version'] }}
 

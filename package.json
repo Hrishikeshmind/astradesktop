@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "lint-staged": {
+    "*.patch": "python scripts/validate_patches.py",
     "!(*.xpi)": "node -e \"process.exit(0)\""
   },
   "type": "module",
