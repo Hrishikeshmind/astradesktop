@@ -1,0 +1,134 @@
+diff --git a/browser/base/content/browser-captivePortal.js b/browser/base/content/browser-captivePortal.js
+index 4f332f0..09ba614 100644
+--- a/browser/base/content/browser-captivePortal.js
++++ b/browser/base/content/browser-captivePortal.js
+@@ -29,6 +29,15 @@ var CaptivePortalWatcher = {
+   // Stores the time at which the banner was displayed
+   _bannerDisplayTime: Date.now(),
+ 
++  // True while appendNotification is in flight. The DOM getter is not enough
++  // to make _showNotification idempotent because appendNotification is async
++  // and the first await happens before value="captive-portal-detected" is set.
++  _notificationPending: false,
++
++  // User dismissed the bar with X. Stay dismissed until the portal is actually
++  // gone so polling / repeated "captive-portal-login" topics cannot restack it.
++  _userDismissed: false,
++
+   get _captivePortalNotification() {
+     return gNotificationBox.getNotificationWithValue(
+       this.PORTAL_NOTIFICATION_VALUE
+@@ -241,7 +250,8 @@ var CaptivePortalWatcher = {
+ 
+   _captivePortalGone(aSuccess) {
+     this._cancelDelayedCaptivePortal();
+-    this._removeNotification();
++    this._userDismissed = false;
++    this._removeAllPortalNotifications();
+ 
+     let durationInSeconds = Math.round(
+       (Date.now() - this._bannerDisplayTime) / 1000
+@@ -317,10 +327,20 @@ var CaptivePortalWatcher = {
+   },
+ 
+   _showNotification() {
+-    if (this._captivePortalNotification) {
++    if (this._userDismissed) {
++      return;
++    }
++
++    if (
++      this._notificationPending ||
++      this._captivePortalNotification ||
++      this._portalNotificationsInDOM().length
++    ) {
+       return;
+     }
+ 
++    this._notificationPending = true;
++
+     Glean.networking.captivePortalBannerDisplayed.add(1);
+     this._bannerDisplayTime = Date.now();
+ 
+@@ -344,6 +364,7 @@ var CaptivePortalWatcher = {
+ 
+     let closeHandler = aEventName => {
+       if (aEventName == "dismissed") {
++        this._userDismissed = true;
+         let durationInSeconds = Math.round(
+           (Date.now() - this._bannerDisplayTime) / 1000
+         );
+@@ -351,6 +372,7 @@ var CaptivePortalWatcher = {
+         Glean.networking.captivePortalBannerDisplayTime.dismiss.add(
+           durationInSeconds
+         );
++        this._removeAllPortalNotifications();
+       }
+ 
+       if (aEventName != "removed") {
+@@ -359,25 +381,51 @@ var CaptivePortalWatcher = {
+       gBrowser.tabContainer.removeEventListener("TabSelect", this);
+     };
+ 
+-    this._notificationPromise = gNotificationBox.appendNotification(
+-      this.PORTAL_NOTIFICATION_VALUE,
+-      {
+-        label: message,
+-        priority: gNotificationBox.PRIORITY_INFO_MEDIUM,
+-        eventCallback: closeHandler,
+-      },
+-      buttons
+-    );
++    this._notificationPromise = gNotificationBox
++      .appendNotification(
++        this.PORTAL_NOTIFICATION_VALUE,
++        {
++          label: message,
++          priority: gNotificationBox.PRIORITY_INFO_MEDIUM,
++          eventCallback: closeHandler,
++        },
++        buttons
++      )
++      .then(notification => {
++        if (this._userDismissed && notification?.parentNode) {
++          gNotificationBox.removeNotification(notification, true);
++        }
++        return notification;
++      })
++      .finally(() => {
++        this._notificationPending = false;
++      });
+ 
+     gBrowser.tabContainer.addEventListener("TabSelect", this);
+   },
+ 
+-  _removeNotification() {
+-    let n = this._captivePortalNotification;
+-    if (!n || !n.parentNode) {
+-      return;
++  _portalNotificationsInDOM() {
++    if (!gNotificationBox._stack) {
++      return [];
++    }
++    return [
++      ...gNotificationBox.stack.querySelectorAll(
++        `notification-message[value="${this.PORTAL_NOTIFICATION_VALUE}"]`
++      ),
++    ];
++  },
++
++  _removeAllPortalNotifications() {
++    this._notificationPending = false;
++    for (let n of this._portalNotificationsInDOM()) {
++      if (n.parentNode) {
++        gNotificationBox.removeNotification(n, true);
++      }
+     }
+-    n.close();
++  },
++
++  _removeNotification() {
++    this._removeAllPortalNotifications();
+   },
+ 
+   ensureCaptivePortalTab() {

@@ -1,0 +1,20 @@
+diff --git a/toolkit/components/captivedetect/CaptiveDetect.sys.mjs b/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
+index 72d9a3a..2e017b6 100644
+--- a/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
++++ b/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
+@@ -412,6 +412,15 @@ CaptivePortalDetector.prototype = {
+   },
+ 
+   _startLogin: function _startLogin() {
++    // Retries and repeated detections on the same in-flight request used to
++    // emit captive-portal-login more than once (Bug 1558023). The frontend
++    // notification is now idempotent, but the detector should also only
++    // announce a given request once.
++    if (this._runningRequest?.hasOwnProperty("eventId")) {
++      this._loginObserver.attach();
++      return;
++    }
++
+     let id = this._allocateRequestId();
+     let details = {
+       type: kOpenCaptivePortalLoginEvent,

@@ -4,6 +4,7 @@
 
 BROWSER_CHROME_MANIFESTS += [
     "boosts/browser.toml",
+    "captive_portal/browser.toml",
     "compact_mode/browser.toml",
     "container_essentials/browser.toml",
     "folders/browser.toml",
