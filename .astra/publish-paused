@@ -1,5 +1,5 @@
-paused=1
-reason=Emergency freeze: wait for new MAR signing keypair to be embedded in updater, signed MARs verified, and Part 4 apply->restart smoke on a new-key installer. Do not auto-publish to Pages. Live AUS must serve empty <updates/> until that cut (scripts/publish_empty_aus_manifests.py). 20260819052941 fleet needs one manual reinstall after that cut.
+paused=0
+reason=First new-key release cut. Win/Linux MARs signed on runs #129/#134; Part 4 apply->restart smoke passed on a new-key installer. Old 20260819052941 fleet gets one-time manual redownload (not silent update). Live AUS may offer this cut after CI publishes Pages.
 paused_at=2026-08-21T16:55:00Z
-updated_at=2026-08-24T10:30:00Z
-empty_aus_required=1
+updated_at=2026-08-25T09:30:00Z
+empty_aus_required=0
