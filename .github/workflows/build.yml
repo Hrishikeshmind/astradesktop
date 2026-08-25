@@ -594,15 +594,11 @@ jobs:
             exit 1
           fi
           sudo apt-get update
-          sudo apt-get install -y libnss3-tools openssl
-          SIGNMAR="$(find . -type f \( -name signmar -o -name signmar.exe \) | head -1 || true)"
-          if [[ -z "${SIGNMAR}" ]]; then
-            echo "::error::signmar binary not found in downloaded artifacts"
-            find . -iname '*signmar*' -o -iname 'signmar' | head -50 || true
-            exit 1
-          fi
-          chmod +x "${SIGNMAR}"
-          export SIGNMAR
+          sudo apt-get install -y openssl
+          # Signing and verification are OpenSSL RSA-PKCS1-SHA384
+          # (scripts/mar_sign_openssl.py). Do not pick Windows signmar.exe from
+          # artifacts — that binary is not executable on the Ubuntu runner and
+          # run #134 failed there with exit 126 after OpenSSL had already signed.
           bash scripts/mar_sign.sh -s
           bash scripts/mar_verify.sh
 

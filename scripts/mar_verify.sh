@@ -7,10 +7,14 @@
 #
 # Run this AFTER `scripts/mar_sign.sh -s` and BEFORE publishing a release.
 # It confirms that every MAR we are about to ship is present, non-empty,
-# signed with the cert whose public half lives at build/signing/public_key.der,
+# signed with the cert whose public half lives at build/signing/release_primary.der
+# (OpenSSL RSA-PKCS1-SHA384, same path as mar_sign.sh / the updater),
 # and that the accompanying update.xml manifest reflects the signed file's
 # current sha512 / size. Exits non-zero on the first verification failure so
 # CI halts before we overwrite a good release with a broken one.
+#
+# Do not use NSS signmar -v here. CI signs with OpenSSL; a Windows signmar.exe
+# pulled from artifacts is not executable on Ubuntu (run #134, exit 126).
 
 set -euo pipefail
 
@@ -19,8 +23,8 @@ PUBLIC_KEY_DER="$CERT_PATH_DIR/release_primary.der"
 if [ ! -f "$PUBLIC_KEY_DER" ]; then
   PUBLIC_KEY_DER="$CERT_PATH_DIR/public_key.der"
 fi
-VERIFY_NSS_DIR="$CERT_PATH_DIR/nss_verify"
 LINUX_EXTRACT_DIR="$CERT_PATH_DIR/extracted_linux"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LINUX_ARCHIVE=""
 for _candidate in \
   "astra.linux-x86_64.tar.xz/astra.linux-x86_64.tar.xz" \
@@ -45,20 +49,14 @@ ok() {
 }
 
 cleanup_verify_db() {
-  rm -rf "$VERIFY_NSS_DIR"
   rm -rf "$LINUX_EXTRACT_DIR"
 }
 trap cleanup_verify_db EXIT
 
-if [ -z "${SIGNMAR:-}" ]; then
-  echo "Error: SIGNMAR environment variable is not set." >&2
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: python3 is required to verify MAR signatures." >&2
   exit 1
 fi
-if [ ! -f "$SIGNMAR" ]; then
-  echo "Error: signmar not found at $SIGNMAR." >&2
-  exit 1
-fi
-chmod +x "$SIGNMAR"
 
 if [ ! -f "$PUBLIC_KEY_DER" ]; then
   echo "Error: $PUBLIC_KEY_DER not found. Run 'mar_sign.sh -g' first." >&2
@@ -70,17 +68,6 @@ if [ -z "$EXPECTED_MAR_CHANNEL" ]; then
   echo "Error: could not resolve MAR channel for brand '$RELEASE_BRANCH' from .astra/channel.env" >&2
   exit 1
 fi
-
-# Build a throwaway NSS database that trusts only the signing cert, so
-# signmar -v can verify signatures without the private key being present.
-setup_verify_db() {
-  rm -rf "$VERIFY_NSS_DIR"
-  mkdir -p "$VERIFY_NSS_DIR"
-  local pass="$VERIFY_NSS_DIR/password.txt"
-  : > "$pass"
-  certutil -N -d "$VERIFY_NSS_DIR" -f "$pass"
-  certutil -A -d "$VERIFY_NSS_DIR" -n "mar_sig" -t "CT,C,C" -i "$PUBLIC_KEY_DER"
-}
 
 # Each entry: "<mar_path>|<manifest_dir>|<platform_label>"
 declare -a pairs=(
@@ -113,27 +100,38 @@ size_file() {
   wc -c < "$1" | tr -d ' '
 }
 
+mar_header() {
+  local mar="$1"
+  python3 - "$SCRIPT_DIR" "$mar" <<'PY'
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[1])
+from verify_mar_product_info import parse_mar_product_info
+
+info = parse_mar_product_info(Path(sys.argv[2]))
+print(f"{info.num_signatures}\t{info.channel_id}")
+PY
+}
+
 verify_signature() {
   local mar="$1"
-  if "$SIGNMAR" -d "$VERIFY_NSS_DIR" -n "mar_sig" -v "$mar" >/dev/null 2>&1; then
+  if python3 "$SCRIPT_DIR/verify_mar_product_info.py" \
+      "$mar" --assert-signed --verify-cert "$PUBLIC_KEY_DER"; then
     ok "Signature valid: $mar"
   else
     fail "Signature INVALID (or missing) for $mar"
   fi
 }
 
-# Cache signmar -T output per MAR so we only pay for it once per file.
-mar_info() {
-  local mar="$1"
-  "$SIGNMAR" -T "$mar" 2>&1
-}
-
 verify_signature_count() {
   local mar="$1"
-  local info count
-  info=$(mar_info "$mar")
-  # signmar -T prints one "Signature block found with 1 signature" line per signature block.
-  count=$(echo "$info" | grep -cE '^[[:space:]]*Signature block found with [0-9]+ signature' || true)
+  local header count
+  header=$(mar_header "$mar") || {
+    fail "$mar: could not parse MAR header"
+    return
+  }
+  count="${header%%$'\t'*}"
   if [ "$count" != "1" ]; then
     fail "$mar has $count signatures, expected exactly 1"
   else
@@ -143,15 +141,12 @@ verify_signature_count() {
 
 verify_mar_channel() {
   local mar="$1"
-  local info channel
-  info=$(mar_info "$mar")
-  # Accept either "MAR channel name:" or "MAR channel ID:" — the label
-  # has drifted between Mozilla releases.
-  channel=$(echo "$info" \
-    | grep -iE 'MAR channel (name|id)[[:space:]]*:' \
-    | head -1 \
-    | sed -E 's/.*MAR channel (name|id)[[:space:]]*:[[:space:]]*//I' \
-    | tr -d '[:space:]')
+  local header channel
+  header=$(mar_header "$mar") || {
+    fail "$mar: could not parse MAR header"
+    return
+  }
+  channel="${header#*$'\t'}"
   if [ -z "$channel" ]; then
     fail "$mar: could not read MAR channel from product info block"
     return
@@ -262,7 +257,6 @@ verify_manifest() {
   done <<< "$xmls"
 }
 
-setup_verify_db
 verify_update_settings
 
 for entry in "${pairs[@]}"; do
