@@ -791,6 +791,8 @@ jobs:
       - name: Generate Release Notes
         env:
           RELEASE_BRANCH: ${{ inputs.update_branch }}
+          RELEASE_VERSION: ${{ needs.build-data.outputs.version }}
+          SKIP_MACOS: ${{ inputs.skip_macos }}
         run: bash .github/workflows/src/generate_release_notes.sh
 
         # Publish GitHub Release *assets* before Pages update.xml.

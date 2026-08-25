@@ -1,79 +1,103 @@
 #!/usr/bin/env bash
-RELEASE_NOTES_URL="https://raw.githubusercontent.com/zen-browser/www/refs/heads/main/src/release-notes/stable.json"
+# Generate GitHub Release notes for Astra. Never fetch Zen Browser changelogs.
+set -euo pipefail
 
-if [ "$RELEASE_BRANCH" = "release" ]; then
-  RELEASE_TYPE="Stable"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+cd "$REPO_ROOT"
 
-  echo "Fetching release notes from GitHub..."
-  RELEASE_NOTES_JSON=$(curl -s --retry 5 --retry-delay 5 "$RELEASE_NOTES_URL")
+OUT="${RELEASE_NOTES_OUT:-release_notes.md}"
+RELEASE_BRANCH="${RELEASE_BRANCH:-release}"
+REPO="${GITHUB_REPOSITORY:-Hrishikeshmind/astradesktop}"
+MANUAL_NOTES="${RELEASE_NOTES_FILE:-}"
 
-  if [ -z "$RELEASE_NOTES_JSON" ]; then
-    echo "Error: Failed to fetch release notes from GitHub"
-    exit 1
+if [[ -z "$MANUAL_NOTES" ]]; then
+  if [[ -f "$REPO_ROOT/docs/release-notes.md" ]]; then
+    MANUAL_NOTES="$REPO_ROOT/docs/release-notes.md"
+  elif [[ -f "$REPO_ROOT/CHANGELOG.md" ]]; then
+    MANUAL_NOTES="$REPO_ROOT/CHANGELOG.md"
   fi
+fi
 
-  LATEST_RELEASE=$(echo "$RELEASE_NOTES_JSON" | jq -r 'last')
-  EXTRA_NOTES=$(echo "$LATEST_RELEASE" | jq -r '.extra // ""')
-else
+pick_python() {
+  local c
+  for c in python3 python py; do
+    if command -v "$c" >/dev/null 2>&1; then
+      if "$c" -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)" >/dev/null 2>&1; then
+        printf '%s\n' "$c"
+        return 0
+      fi
+    fi
+  done
+  echo "Error: Python 3.9+ not found (python3/python/py)." >&2
+  exit 1
+}
+
+read_surfer() {
+  "$(pick_python)" - "$REPO_ROOT/surfer.json" "$RELEASE_BRANCH" <<'PY'
+import json, sys
+path, brand = sys.argv[1], sys.argv[2]
+cfg = json.loads(open(path, encoding="utf-8").read())
+display = cfg["brands"][brand]["release"]["displayVersion"]
+ff = cfg["version"]["version"]
+print(f"{display}\t{ff}")
+PY
+}
+
+SURFER_LINE="$(read_surfer)"
+SURFER_VERSION="${SURFER_LINE%%$'\t'*}"
+FIREFOX_VERSION="${SURFER_LINE#*$'\t'}"
+VERSION="${RELEASE_VERSION:-$SURFER_VERSION}"
+
+if [[ "$RELEASE_BRANCH" == "twilight" ]]; then
   RELEASE_TYPE="Twilight"
+  PRODUCT="Astra Nova"
+else
+  RELEASE_TYPE="Stable"
+  PRODUCT="Astra Browser"
 fi
 
 {
-  echo "# Astra ${RELEASE_TYPE} Release"
+  echo "# ${PRODUCT} ${VERSION}"
+  echo
+  echo "${PRODUCT} **${VERSION}** (${RELEASE_TYPE}), based on Firefox **${FIREFOX_VERSION}**."
+  echo
 
-  if [ "$RELEASE_TYPE" = "Twilight" ]; then
-    echo
+  if [[ "$RELEASE_TYPE" == "Twilight" ]]; then
     echo "> [!NOTE]"
-    echo "> You're currently in Astra Nova (beta) mode, this means you're downloading the latest experimental features and updates."
+    echo "> You're currently on Astra Nova (beta): latest experimental Astra features."
     echo ">"
-    echo "> If you encounter any issues, please report them on the [issues page](https://github.com/Hrishikeshmind/astradesktop/issues)."
+    echo "> If you encounter issues, please report them on the [issues page](https://github.com/${REPO}/issues)."
+    echo
   fi
 
-  if [ "$RELEASE_TYPE" = "Stable" ]; then
-    echo "${EXTRA_NOTES}"
-
-    if echo "$LATEST_RELEASE" | jq -e '.security != null and .security != ""' > /dev/null; then
-      echo
-      echo "## Security"
-      echo "$LATEST_RELEASE" | jq -r 'if (.security | type) == "string" then "- " + .security else .security[] | "- " + . end'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.features // []) | length > 0' > /dev/null; then
-      echo
-      echo "## New Features"
-      echo "$LATEST_RELEASE" | jq -r '.features[] | "- " + .'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.fixes // []) | length > 0' > /dev/null; then
-      echo
-      echo "## Fixes"
-      echo "$LATEST_RELEASE" | jq -r '.fixes[] | if type=="object" then "- " + .description + " ([#" + (.issue|tostring) + "](" + "https://github.com/Hrishikeshmind/astradesktop/issues/" + (.issue|tostring) + "))" else "- " + . end'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.breakingChanges // []) | length > 0' > /dev/null; then
-      echo
-      echo "## Breaking Changes"
-      echo "$LATEST_RELEASE" | jq -r '.breakingChanges[] | if type=="string" then "- " + . else "- " + .description + " [Learn more](" + .link + ")" end'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.themeChanges // []) | length > 0' > /dev/null; then
-      echo
-      echo "## Theme Changes"
-      echo "$LATEST_RELEASE" | jq -r '.themeChanges[] | "- " + .'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.changes // []) | length > 0' > /dev/null; then
-      echo
-      echo "## Changes"
-      echo "$LATEST_RELEASE" | jq -r '.changes[] | "- " + .'
-    fi
-
-    if echo "$LATEST_RELEASE" | jq -e '(.knownIssues // []) | length > 0' > /dev/null; then
-      echo
-      echo "## Known Issues"
-      echo "$LATEST_RELEASE" | jq -r '.knownIssues[] | "- " + .'
-    fi
+  if [[ -n "${MANUAL_NOTES}" && -s "${MANUAL_NOTES}" ]]; then
+    cat "${MANUAL_NOTES}"
+    echo
+  else
+    echo "A curated changelog is not published for this tag. See the"
+    echo "[commit history](https://github.com/${REPO}/commits) for source changes."
+    echo
   fi
-} > "release_notes.md"
 
-echo "Release notes generated: release_notes.md"
+  if [[ "${SKIP_MACOS:-}" == "true" ]]; then
+    echo "This cut publishes **Windows and Linux**. macOS is not included."
+    echo
+  fi
+
+  echo "- Issues: https://github.com/${REPO}/issues"
+  echo "- Downloads: this GitHub Release"
+} > "${OUT}"
+
+# Fail closed if Zen changelog text leaked in (or the file is empty).
+if [[ ! -s "${OUT}" ]]; then
+  echo "Error: ${OUT} is empty" >&2
+  exit 1
+fi
+if grep -Eiq 'zen-browser|Zen Browser' "${OUT}"; then
+  echo "Error: ${OUT} contains Zen Browser content; refusing to publish" >&2
+  cat "${OUT}" >&2
+  exit 1
+fi
+
+echo "Release notes generated: ${OUT}"
+cat "${OUT}"
