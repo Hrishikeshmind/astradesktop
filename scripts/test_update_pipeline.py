@@ -19,8 +19,14 @@ from mar_sign_openssl import sign_mar, verify_mar_signature  # noqa: E402
 from verify_mar_product_info import main as verify_main  # noqa: E402
 from verify_mar_product_info import parse_mar_product_info  # noqa: E402
 from publish_empty_aus_manifests import EMPTY_XML, main as empty_aus_main  # noqa: E402
+from rewrite_update_xml_patch_urls import (  # noqa: E402
+    canonical_mar_url,
+    main as rewrite_urls_main,
+    mar_name_for_platform,
+    rewrite_text,
+)
 from validate_update_xml import main as validate_xml_main  # noqa: E402
-from validate_update_xml import sha512_file  # noqa: E402
+from validate_update_xml import patch_url_from_xml, sha512_file  # noqa: E402
 
 
 class ChannelSSotTests(unittest.TestCase):
@@ -296,6 +302,141 @@ class ValidateUpdateXmlTests(unittest.TestCase):
                 ]
             )
             self.assertEqual(rc, 1)
+
+    def test_patch_url_is_not_details_url(self):
+        """Run #136: naive URL= regex captured detailsURL (generic releases page)."""
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260824120000" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/windows.mar" hashFunction="sha512" hashValue="abc" size="1"/>
+  </update>
+</updates>
+"""
+        url = patch_url_from_xml(xml)
+        self.assertEqual(
+            url,
+            "https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/windows.mar",
+        )
+        self.assertNotEqual(
+            url, "https://github.com/Hrishikeshmind/astradesktop/releases"
+        )
+
+    def test_skips_empty_darwin_when_macos_mar_not_mapped(self):
+        import io
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw) / "updates"
+            darwin = root / "browser" / "Darwin_aarch64-gcc3" / "release"
+            darwin.mkdir(parents=True)
+            (darwin / "update.xml").write_text(EMPTY_XML, encoding="utf-8")
+            win = root / "browser" / "WINNT_x86_64-msvc-x64" / "release"
+            win.mkdir(parents=True)
+            (win / "update.xml").write_text(EMPTY_XML, encoding="utf-8")
+            stdout = io.StringIO()
+            stderr = io.StringIO()
+            with patch("sys.stdout", stdout), patch("sys.stderr", stderr):
+                rc = validate_xml_main(
+                    [
+                        "--brand",
+                        "release",
+                        "--xml-root",
+                        str(root),
+                        "--mar",
+                        "windows.mar=/dev/null",
+                    ]
+                )
+            self.assertEqual(rc, 1)
+            self.assertIn("SKIP Darwin", stdout.getvalue())
+            self.assertNotIn("Darwin_", stderr.getvalue())
+
+
+class RewritePatchUrlTests(unittest.TestCase):
+    def test_platform_mar_names(self):
+        self.assertEqual(mar_name_for_platform("WINNT_x86_64-msvc-x64"), "windows.mar")
+        self.assertEqual(
+            mar_name_for_platform("WINNT_aarch64-msvc-aarch64"), "windows-arm64.mar"
+        )
+        self.assertEqual(mar_name_for_platform("Linux_x86_64-gcc3"), "linux.mar")
+        self.assertEqual(
+            mar_name_for_platform("Linux_aarch64-gcc3"), "linux-aarch64.mar"
+        )
+        self.assertEqual(mar_name_for_platform("Darwin_x86_64-gcc3"), "macos.mar")
+
+    def test_rewrites_generic_releases_page_to_asset_url(self):
+        xml = """<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260824120000" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases" hashFunction="sha512" hashValue="abc" size="1"/>
+  </update>
+</updates>
+"""
+        want = canonical_mar_url(
+            "Hrishikeshmind/astradesktop", "1.19.9b", "windows.mar"
+        )
+        updated, did = rewrite_text(xml, want)
+        self.assertTrue(did)
+        self.assertEqual(patch_url_from_xml(updated), want)
+        self.assertIn(
+            'detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases"',
+            updated,
+        )
+
+    def test_rewrite_cli_win_linux_and_skip_darwin(self):
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw) / "updates"
+            for plat in ("WINNT_x86_64-msvc-x64", "Linux_x86_64-gcc3"):
+                d = root / "browser" / plat / "release"
+                d.mkdir(parents=True)
+                (d / "update.xml").write_text(
+                    """<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260824120000" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases" hashFunction="sha512" hashValue="abc" size="1"/>
+  </update>
+</updates>
+""",
+                    encoding="utf-8",
+                )
+            darwin = root / "browser" / "Darwin_aarch64-gcc3" / "release"
+            darwin.mkdir(parents=True)
+            (darwin / "update.xml").write_text(EMPTY_XML, encoding="utf-8")
+            rc = rewrite_urls_main(
+                [
+                    "--xml-root",
+                    str(root),
+                    "--repo",
+                    "Hrishikeshmind/astradesktop",
+                    "--tag",
+                    "1.19.9b",
+                    "--channel",
+                    "release",
+                    "--skip-darwin",
+                ]
+            )
+            self.assertEqual(rc, 0)
+            win = (
+                root
+                / "browser"
+                / "WINNT_x86_64-msvc-x64"
+                / "release"
+                / "update.xml"
+            ).read_text(encoding="utf-8")
+            linux = (
+                root / "browser" / "Linux_x86_64-gcc3" / "release" / "update.xml"
+            ).read_text(encoding="utf-8")
+            self.assertEqual(
+                patch_url_from_xml(win),
+                "https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/windows.mar",
+            )
+            self.assertEqual(
+                patch_url_from_xml(linux),
+                "https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/linux.mar",
+            )
+            self.assertNotIn(
+                "<patch",
+                (darwin / "update.xml").read_text(encoding="utf-8"),
+            )
 
 
 class FindMarsSkipsArtifactDirectories(unittest.TestCase):

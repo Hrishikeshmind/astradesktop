@@ -40,8 +40,13 @@ from verify_mar_product_info import parse_mar_product_info  # noqa: E402
 BUILDID_RE = re.compile(r'buildID="([0-9]{14})"')
 HASH_RE = re.compile(r'hashValue="([0-9a-fA-F]+)"')
 SIZE_RE = re.compile(r'\ssize="(\d+)"')
-URL_RE = re.compile(r'URL="([^"]+)"')
+# Must not match detailsURL="https://github.com/.../releases" which sits on
+# <update> before <patch>. Run #136 failed with "URL does not end in .mar"
+# because the naive URL="..." regex captured detailsURL first.
+PATCH_URL_RE = re.compile(r'<patch\b[^>]*\bURL="([^"]+)"', re.I | re.S)
 PATCH_RE = re.compile(r"<patch\s", re.I)
+# Kept as an alias so tests/callers that imported URL_RE still parse patch URLs.
+URL_RE = PATCH_URL_RE
 
 
 def sha512_file(path: Path) -> str:
@@ -72,6 +77,16 @@ def mar_name_from_url(url: str) -> str | None:
     return base if base.endswith(".mar") else None
 
 
+def patch_url_from_xml(text: str) -> str | None:
+    """Return the <patch URL> value, never detailsURL on <update>."""
+    match = PATCH_URL_RE.search(text)
+    return match.group(1) if match else None
+
+
+def is_darwin_xml(path: Path) -> bool:
+    return "/Darwin_" in str(path).replace("\\", "/")
+
+
 def validate_one_xml(
     xml_path: Path,
     mar_map: dict[str, Path],
@@ -96,18 +111,20 @@ def validate_one_xml(
 
     hash_m = HASH_RE.search(text)
     size_m = SIZE_RE.search(text)
-    url_m = URL_RE.search(text)
-    if not hash_m or not size_m or not url_m:
+    url = patch_url_from_xml(text)
+    if not hash_m or not size_m or not url:
         errors.append(f"{xml_path}: missing hashValue, size, or URL on <patch>")
         return errors
 
-    url = url_m.group(1)
     mar_name = mar_name_from_url(url)
     if not mar_name:
         errors.append(f"{xml_path}: URL does not end in .mar: {url}")
         return errors
-    if require_github_release_url and "github.com/" not in url:
-        errors.append(f"{xml_path}: MAR URL is not a GitHub release asset: {url}")
+    if require_github_release_url:
+        if "github.com/" not in url or "/releases/download/" not in url:
+            errors.append(
+                f"{xml_path}: MAR URL is not a GitHub release asset download: {url}"
+            )
 
     mar_path = mar_map.get(mar_name)
     if mar_path is None:
@@ -222,15 +239,15 @@ def main(argv: list[str] | None = None) -> int:
     failures = 0
     checked_win = 0
     checked_linux = 0
+    darwin_mar_mapped = any(
+        name.startswith("macos") and name.endswith(".mar") for name in mar_map
+    )
     for xml in xmls:
-        # Skip Darwin if no matching MAR was provided (macOS optional in CI).
-        sample = xml.read_text(encoding="utf-8", errors="replace")
-        url_m = URL_RE.search(sample)
-        if url_m:
-            name = mar_name_from_url(url_m.group(1))
-            if name and name not in mar_map and "Darwin_" in str(xml):
-                print(f"SKIP Darwin (no local MAR mapped): {xml}")
-                continue
+        # skip_macos leaves empty Darwin stubs on the updates branch. Those
+        # must not fail the job when no macOS MAR was produced this run.
+        if is_darwin_xml(xml) and not darwin_mar_mapped:
+            print(f"SKIP Darwin (no local MAR mapped): {xml}")
+            continue
         errs = validate_one_xml(
             xml,
             mar_map,

@@ -230,7 +230,8 @@ verify_manifest() {
     local xhash xsize xurl
     xhash=$(grep -oP 'hashValue="\K[^"]+' "$xml" | head -1 || true)
     xsize=$(grep -oP 'size="\K[^"]+' "$xml" | head -1 || true)
-    xurl=$(grep -oP 'URL="\K[^"]+' "$xml" | head -1 || true)
+    # Match <patch URL>, never detailsURL on <update>.
+    xurl=$(grep -oP '<patch[^>]*\bURL="\K[^"]+' "$xml" | head -1 || true)
     if [ -z "$xhash" ] || [ -z "$xsize" ]; then
       fail "$label: $xml is missing hashValue or size"
       continue

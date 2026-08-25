@@ -724,6 +724,30 @@ jobs:
             exit 1
           fi
 
+      - name: Point patch URLs at GitHub Release MAR assets
+        env:
+          RELEASE_BRANCH: ${{ inputs.update_branch }}
+          RELEASE_VERSION: ${{ needs.build-data.outputs.version }}
+        run: |
+          set -euo pipefail
+          # Asset URLs are deterministic from tag + filename; the GitHub Release
+          # does not need to exist yet. Never leave <patch URL> as the generic
+          # github.com/<repo>/releases page (that is detailsURL, not the MAR).
+          TAG="${RELEASE_VERSION}"
+          if [[ "${RELEASE_BRANCH}" == "twilight" ]]; then
+            TAG="twilight-1"
+          fi
+          extra=()
+          if [[ "${{ inputs.skip_macos }}" == "true" ]]; then
+            extra+=(--skip-darwin)
+          fi
+          python3 scripts/rewrite_update_xml_patch_urls.py \
+            --xml-root updates-server/updates \
+            --repo "${GITHUB_REPOSITORY}" \
+            --tag "${TAG}" \
+            --channel "${RELEASE_BRANCH}" \
+            ${extra[@]+"${extra[@]}"}
+
       - name: Validate staged update.xml against signed MARs
         env:
           RELEASE_BRANCH: ${{ inputs.update_branch }}
