@@ -322,7 +322,7 @@ class nsZenMods extends nsZenPreloadedFeature {
     return result;
   }
 
-  #composeModApiUrl(modId) {
+  #composeModApiUrl(_modId) {
     // keeping theme here as it would require changes to CI to change the name
     return null;
   }

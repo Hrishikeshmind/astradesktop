@@ -346,7 +346,7 @@ export function validateSpaceState({
   }
 
   // When tabs are still restoring, do not plan orphan moves yet.
-  const deferOrphans = notReadyTabs.length > 0;
+  const deferOrphans = !!notReadyTabs.length;
   const repairPlan = buildRepairPlan({
     spaces: validSpaces,
     activeSpaceId,
@@ -484,7 +484,7 @@ export function buildRepairPlan({
 
   return {
     actions,
-    needsRepair: actions.length > 0,
+    needsRepair: !!actions.length,
     counts: {
       orphanTabs: orphanTabs.length,
       invalidFolders: invalidFolders.length,

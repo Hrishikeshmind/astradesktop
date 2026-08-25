@@ -2,8 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
-
 const PREF_ENABLED = "astra.theme.transparent.enabled";
 const PREF_MODE = "astra.theme.transparent.mode";
 const PREF_V2_OWNED = "astra.theme.transparent.v2-native-owned";
@@ -521,12 +519,6 @@ class AstraTransparencyManager {
     return this.#match("(prefers-reduced-transparency)");
   }
 
-  #isEnergySaver() {
-    return (
-      document.documentElement?.getAttribute("astra-energy-saver") === "true"
-    );
-  }
-
   #micaMediaActive() {
     // Capability hint only — never proof of visible DWM glass.
     return this.#match("(-moz-windows-mica)");
@@ -853,7 +845,6 @@ class AstraTransparencyManager {
     }
     if (this.#isReducedTransparency()) {
       this.#fallbackFromHealth("reduced-transparency");
-      return;
     }
 
     // MQ is a capability hint, not proof DWM failed. Never tear down native
@@ -885,19 +876,19 @@ class AstraTransparencyManager {
     switch (kind) {
       case "disabled":
       case "opaque":
-        console.info("[AstraTransparency] Transparent Mode disabled");
+        console.warn("[AstraTransparency] Transparent Mode disabled");
         break;
       case "native-acrylic-requested":
-        console.info("[AstraTransparency] native Acrylic requested");
+        console.warn("[AstraTransparency] native Acrylic requested");
         break;
       case "native-mica-requested":
-        console.info("[AstraTransparency] native Mica requested");
+        console.warn("[AstraTransparency] native Mica requested");
         break;
       case "native-mica-alt-requested":
-        console.info("[AstraTransparency] native Mica Alt requested");
+        console.warn("[AstraTransparency] native Mica Alt requested");
         break;
       case "astra-glass":
-        console.info(
+        console.warn(
           `[AstraTransparency] native backdrop unavailable; Astra Glass active` +
             (reason ? ` (${reason})` : "")
         );
@@ -910,14 +901,14 @@ class AstraTransparencyManager {
           this.#lastApplyStage === "delayed-startup" ||
           this.#lastApplyStage === "startup-ready"
         ) {
-          console.info(
+          console.warn(
             "[AstraTransparency] window lifecycle reapply completed"
           );
         }
         break;
       default:
         if (reason && kind.includes("health")) {
-          console.info(
+          console.warn(
             `[AstraTransparency] opaque chrome conflict recovered (${reason})`
           );
         }
@@ -974,6 +965,8 @@ class AstraTransparencyManager {
 
 window.gAstraTransparency = new AstraTransparencyManager();
 
+// Diagnostic snapshot for about:support / QA; not a lazy module import.
+// eslint-disable-next-line mozilla/reject-lazy-imports-into-globals
 Object.defineProperty(window, "gAstraTransparencyDiagnostics", {
   configurable: true,
   enumerable: true,

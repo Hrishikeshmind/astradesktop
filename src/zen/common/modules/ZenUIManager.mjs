@@ -257,12 +257,7 @@ window.gZenUIManager = {
       },
     ];
     for (const gate of gates) {
-      let enabled = false;
-      try {
-        enabled = Services.prefs.getBoolPref(gate.pref, false);
-      } catch {
-        enabled = false;
-      }
+      const enabled = Services.prefs.getBoolPref(gate.pref, false);
       const el = document.getElementById(gate.id);
       if (el) {
         if (!enabled) {

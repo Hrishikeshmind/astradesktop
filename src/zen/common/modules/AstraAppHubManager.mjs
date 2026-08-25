@@ -22,7 +22,6 @@ const {
 );
 
 let resolveAppIcon;
-let getPackagedIconURL;
 let pickCustomIconAsDataURI;
 let deleteCustomIcons;
 let resolvePlacesFaviconURL;
@@ -32,7 +31,6 @@ let migrateLegacyIconFileName;
 try {
   ({
     resolveAppIcon,
-    getPackagedIconURL,
     pickCustomIconAsDataURI,
     deleteCustomIcons,
     resolvePlacesFaviconURL,
@@ -61,7 +59,6 @@ try {
     accent: 0,
     iconSource: "monogram",
   });
-  getPackagedIconURL = () => null;
   pickCustomIconAsDataURI = async () => null;
   deleteCustomIcons = async () => {};
   resolvePlacesFaviconURL = async () => null;
@@ -238,43 +235,6 @@ function normalizeSearchQuery(value) {
     .replace(/\s+/g, " ");
 }
 
-function formatRelativeTime(ts) {
-  const time = Number(ts);
-  if (!Number.isFinite(time) || time <= 0) {
-    return "";
-  }
-  const diffMs = Date.now() - time;
-  if (diffMs < 0) {
-    return "";
-  }
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) {
-    return "Just now";
-  }
-  if (mins < 60) {
-    return `${mins} min ago`;
-  }
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) {
-    return hours === 1 ? "1 hour ago" : `${hours} hours ago`;
-  }
-  const days = Math.floor(hours / 24);
-  if (days === 1) {
-    return "Yesterday";
-  }
-  if (days < 7) {
-    return `${days} days ago`;
-  }
-  try {
-    return new Date(time).toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "";
-  }
-}
-
 function hostnameFromUrl(url) {
   try {
     return new URL(url).hostname.toLowerCase();
@@ -321,7 +281,7 @@ function clearChildren(node) {
     return;
   }
   while (node.firstChild) {
-    node.removeChild(node.firstChild);
+    node.firstChild.remove();
   }
 }
 
@@ -588,20 +548,6 @@ class AstraAppHubManager {
         // ignore
       }
     });
-  }
-
-  #normalizeCompatArgs(eventOrOptions) {
-    if (
-      eventOrOptions &&
-      typeof eventOrOptions === "object" &&
-      Object.getPrototypeOf(eventOrOptions) === Object.prototype &&
-      (Object.prototype.hasOwnProperty.call(eventOrOptions, "event") ||
-        Object.prototype.hasOwnProperty.call(eventOrOptions, "source") ||
-        Object.prototype.hasOwnProperty.call(eventOrOptions, "restoreFocus"))
-    ) {
-      return eventOrOptions;
-    }
-    return { event: eventOrOptions || null, source: "compat" };
   }
 
   get panel() {
@@ -1559,8 +1505,8 @@ class AstraAppHubManager {
       "astra-app-hub-overflow-menu",
     ]) {
       const el = document.getElementById(id);
-      if (el?.parentNode) {
-        el.parentNode.removeChild(el);
+      if (el) {
+        el.remove();
       }
     }
     this.#boundCtxPopupHidden = null;
@@ -2722,33 +2668,6 @@ class AstraAppHubManager {
     list.appendChild(section);
   }
 
-  #appendRecentList(list, recentEntries, appMap) {
-    // Legacy row layout kept for customize / browse modes.
-    const section = document.createXULElement("vbox");
-    section.classList.add("astra-app-hub-section", "astra-app-hub-recent-section");
-    section.setAttribute("data-category-id", SECTION_RECENT);
-    section.setAttribute("data-special", "true");
-
-    const header = this.#createRichSectionHeader({
-      icon: "history",
-      title: "Recent",
-      titleL10n: "astra-app-hub-recent",
-    });
-    section.appendChild(header);
-
-    const rows = document.createXULElement("vbox");
-    rows.classList.add("astra-app-hub-recent-list");
-    for (const entry of recentEntries.slice(0, 6)) {
-      const app = appMap.get(entry.id);
-      if (!app) {
-        continue;
-      }
-      rows.appendChild(this.#createRecentRow(app, entry.lastOpened));
-    }
-    section.appendChild(rows);
-    list.appendChild(section);
-  }
-
   /**
    * Launchpad Recent section — chip row from real usage history only.
    */
@@ -3053,58 +2972,6 @@ class AstraAppHubManager {
     label.setAttribute("crop", "end");
     button.appendChild(label);
     return button;
-  }
-
-  #createRecentRow(app, lastOpened) {
-    const row = document.createXULElement("toolbarbutton");
-    row.classList.add("astra-app-hub-recent-row", "astra-app-hub-item");
-    row.setAttribute("data-app-id", app.id);
-    row.setAttribute("data-url", app.url);
-    row.setAttribute("tooltiptext", `${app.name} — Opens in new tab`);
-    row.setAttribute("aria-label", app.name);
-
-    const iconInfo = resolveAppIcon(app);
-    const stack = document.createXULElement("stack");
-    stack.classList.add(
-      "zen-app-launcher-item-icon-stack",
-      "astra-app-hub-item-icon-stack",
-      "astra-app-hub-recent-icon-stack"
-    );
-    stack.setAttribute("aria-hidden", "true");
-    const mono = document.createXULElement("label");
-    mono.classList.add(
-      "zen-app-launcher-item-monogram",
-      "astra-app-hub-item-monogram"
-    );
-    mono.setAttribute(
-      "value",
-      iconInfo.monogram || iconInfo.text || app.monogram || "?"
-    );
-    mono.setAttribute("data-accent", String(iconInfo?.accent ?? 0));
-    stack.appendChild(mono);
-    if (
-      iconInfo.type === "image" &&
-      iconInfo.src &&
-      !String(iconInfo.src).startsWith("http:") &&
-      !String(iconInfo.src).startsWith("https:") &&
-      !String(iconInfo.src).startsWith("//")
-    ) {
-      this.#appendSafeIconImage(stack, String(iconInfo.src));
-    }
-    row.appendChild(stack);
-
-    const name = document.createXULElement("label");
-    name.classList.add("astra-app-hub-recent-name");
-    name.setAttribute("flex", "1");
-    name.setAttribute("crop", "end");
-    name.setAttribute("value", app.name);
-    row.appendChild(name);
-
-    const when = document.createXULElement("label");
-    when.classList.add("astra-app-hub-recent-when");
-    when.setAttribute("value", formatRelativeTime(lastOpened));
-    row.appendChild(when);
-    return row;
   }
 
   #createAddAppTile() {
@@ -3478,20 +3345,6 @@ class AstraAppHubManager {
     }
 
     return button;
-  }
-
-  #appendMonogram(parent, app, iconInfo) {
-    const mono = document.createXULElement("label");
-    mono.classList.add("astra-app-hub-item-monogram");
-    mono.setAttribute(
-      "data-accent",
-      String(iconInfo?.accent ?? 0)
-    );
-    mono.setAttribute(
-      "value",
-      iconInfo?.monogram || iconInfo?.text || app?.monogram || "?"
-    );
-    parent.appendChild(mono);
   }
 
   /**
@@ -4136,7 +3989,6 @@ class AstraAppHubManager {
     let matchCount = 0;
     for (const section of list.querySelectorAll(".astra-app-hub-section")) {
       let sectionMatch = false;
-      const catId = section.getAttribute("data-category-id");
       const catLabel =
         section
           .querySelector(".astra-app-hub-section-label")
@@ -4952,17 +4804,6 @@ class AstraAppHubManager {
       l10nId,
       EDITOR_ERROR_FALLBACKS[l10nId] || "Could not save this app."
     );
-  }
-
-  /** @deprecated use #setEditorErrorL10n */
-  #setEditorError(message) {
-    const errEl = document.getElementById("astra-app-hub-editor-error");
-    if (!errEl) {
-      return;
-    }
-    errEl.removeAttribute("data-l10n-id");
-    errEl.hidden = !message;
-    errEl.setAttribute("value", message || "");
   }
 
   async #saveEditor() {

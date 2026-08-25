@@ -77,7 +77,7 @@ export function sanitizeMigrationLogDetail(detail = {}) {
 
 function safeLog(category, detail = {}) {
   try {
-    console.info(LOG, category, sanitizeMigrationLogDetail(detail));
+    console.warn(LOG, category, sanitizeMigrationLogDetail(detail));
   } catch {
     // ignore
   }

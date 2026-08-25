@@ -1132,12 +1132,7 @@ window.gZenCompactModeManager = {
     // Engine default was 1000ms — long enough that Compact Mode felt sticky,
     // especially when hide was re-armed by stray pointermoves. Prefer ~300ms
     // unless the user explicitly overrode the pref.
-    let raw;
-    try {
-      raw = Services.prefs.getIntPref(pref, this.DEFAULT_HIDE_AFTER_HOVER_MS);
-    } catch {
-      return this.DEFAULT_HIDE_AFTER_HOVER_MS;
-    }
+    const raw = Services.prefs.getIntPref(pref, this.DEFAULT_HIDE_AFTER_HOVER_MS);
     if (
       raw === this.LEGACY_HIDE_AFTER_HOVER_MS &&
       !Services.prefs.prefHasUserValue(pref)

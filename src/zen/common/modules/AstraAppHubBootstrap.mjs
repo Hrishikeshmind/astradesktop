@@ -91,7 +91,7 @@ class AstraAppHubBootstrap {
       openApp: (appOrUrl, options) => this.openApp(appOrUrl, options),
     };
     window.gAstraAppHubDiagnostics = this.#createDiagnostics();
-    console.log(`${LOG_PREFIX} bootstrap loaded`);
+    console.warn(`${LOG_PREFIX} bootstrap loaded`);
     this.#observeEnabledPref();
     this.#applyEnabledState();
     // Command node may arrive after preload — re-apply once chrome is ready.
@@ -266,7 +266,7 @@ class AstraAppHubBootstrap {
     this.#applyMode();
     if (this.#advancedReady && !this.#loggedReady) {
       this.#loggedReady = true;
-      console.log(`${LOG_PREFIX} advanced manager ready`);
+      console.warn(`${LOG_PREFIX} advanced manager ready`);
     }
   }
 
@@ -488,7 +488,8 @@ class AstraAppHubBootstrap {
 
   async toggle(eventOrOptions, win = window) {
     if (win && win !== window && win.gAstraAppHubBootstrap) {
-      return win.gAstraAppHubBootstrap.toggle(eventOrOptions, win);
+      await win.gAstraAppHubBootstrap.toggle(eventOrOptions, win);
+      return;
     }
     if (!this.#isEnabled()) {
       return;
@@ -548,7 +549,8 @@ class AstraAppHubBootstrap {
 
   async open(eventOrOptions, win = window) {
     if (win && win !== window && win.gAstraAppHubBootstrap) {
-      return win.gAstraAppHubBootstrap.open(eventOrOptions, win);
+      await win.gAstraAppHubBootstrap.open(eventOrOptions, win);
+      return;
     }
     if (!this.#isEnabled()) {
       return;
@@ -683,7 +685,8 @@ class AstraAppHubBootstrap {
     }
     if (this.#advancedReady && this.#manager?.openApp) {
       try {
-        return this.#manager.openApp(appOrUrl, options);
+        this.#manager.openApp(appOrUrl, options);
+        return;
       } catch (error) {
         this.markManagerFailed(error, "openApp");
       }

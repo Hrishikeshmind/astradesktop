@@ -383,9 +383,6 @@ export class nsZenThemePicker extends nsZenMultiWindowFeature {
   }
 
   refreshVisibleColorPages() {
-    const pagesWrapper = document.getElementById(
-      "PanelUI-zen-gradient-generator-color-pages"
-    );
     const stageAllowedPacks = this.getStageAllowedPacks();
     if (!stageAllowedPacks.has(this.#selectedPack)) {
       this.#selectedPack = "all";
@@ -446,7 +443,7 @@ export class nsZenThemePicker extends nsZenMultiWindowFeature {
     if (!leftButton || !rightButton) {
       return;
     }
-    const hasPages = this.#visibleColorPages.length > 0;
+    const hasPages = !!this.#visibleColorPages.length;
     leftButton.disabled = !hasPages || this.#colorPage <= 0;
     rightButton.disabled =
       !hasPages || this.#colorPage >= this.#visibleColorPages.length - 1;

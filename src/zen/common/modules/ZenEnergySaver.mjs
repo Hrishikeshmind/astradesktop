@@ -234,7 +234,7 @@ export class ZenEnergySaver {
     }
   }
 
-  #enableEnergySaver({ reason = "manual", level, silent = false } = {}) {
+  #enableEnergySaver({ reason = "manual", silent = false } = {}) {
     const wasActive = this.#isEnergySaverActive;
     this.#isEnergySaverActive = true;
     this.#reason = reason;

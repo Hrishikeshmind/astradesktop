@@ -253,7 +253,7 @@ export class AstraSpaceOverview {
       return;
     }
     while (list.firstChild) {
-      list.removeChild(list.firstChild);
+      list.firstChild.remove();
     }
   }
 

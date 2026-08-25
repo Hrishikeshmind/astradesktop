@@ -60,8 +60,22 @@ on:
         type: "boolean"
 
 jobs:
+  # Fail in seconds on corrupt patch hunks. Do not wait for Firefox download,
+  # npm ci, or the self-hosted runner. workflow_dispatch has no branch-protection
+  # required-status-check against pr-test, so this job is the Release gate.
+  validate-patches:
+    name: Validate patch files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate patch hunks
+        run: python3 scripts/validate_patches.py
+
   buildid:
     name: Generate build ID
+    needs: [validate-patches]
     runs-on: ubuntu-latest
     outputs:
       buildids: ${{ steps.get.outputs.bid }}
@@ -141,6 +155,7 @@ jobs:
 
   start-self-host:
     runs-on: ubuntu-latest
+    needs: [validate-patches]
     steps:
       - name: Download aws-cli
         if: ${{ inputs.create_release && inputs.update_branch == 'release' }}

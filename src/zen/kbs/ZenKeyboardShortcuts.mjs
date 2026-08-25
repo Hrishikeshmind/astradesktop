@@ -1466,7 +1466,9 @@ class nsZenKeyboardShortcutsVersioner {
     }
     if (version < 31) {
       const idx = data.findIndex(s => s.getID?.() === "zen-open-india-services");
-      if (idx !== -1) data.splice(idx, 1);
+      if (idx !== -1) {
+        data.splice(idx, 1);
+      }
     }
 
     return data;

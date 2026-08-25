@@ -42,6 +42,10 @@ export default [
   "gZenViewSplitter",
 
   "gZenSpaceRoutingManager",
+  "gZenTabNotes",
+  "gZenIndiaGov",
+  "SidebarController",
+  "openTrustedLinkIn",
 
   "Ci",
   "Cu",

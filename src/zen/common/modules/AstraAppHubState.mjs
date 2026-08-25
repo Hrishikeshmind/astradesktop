@@ -1346,14 +1346,12 @@ class AstraAppHubStateStore {
         }
         used.add(id);
         // Drop non-portable icon payloads and stale iconSource claims on import.
-        const {
-          icon: _dropIcon,
-          customIconData: _dropCustom,
-          cachedFaviconData: _dropCached,
-          iconSource: _dropSource,
-          iconUpdatedAt: _dropUpdated,
-          ...rest
-        } = app;
+        const rest = { ...app };
+        delete rest.icon;
+        delete rest.customIconData;
+        delete rest.cachedFaviconData;
+        delete rest.iconSource;
+        delete rest.iconUpdatedAt;
         prepared.push({
           ...rest,
           id,

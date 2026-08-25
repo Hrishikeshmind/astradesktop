@@ -10,13 +10,33 @@ index c15744aeaf940cea9e438e7b9924a328d2615b9f..df5c6c3f36e78537e0a54fb89dfd5b3d
  
  export default [
    {
-@@ -576,4 +577,9 @@ export default [
+@@ -576,4 +577,29 @@ export default [
        globals: globals.audioWorklet,
      },
    },
 +  {
 +    name: "zen-globals",
-+    files: ["zen/**/!(*.sys).mjs", "zen/**/*.js"],
++    files: ["zen/**"],
 +    languageOptions: { globals: zenGlobals.reduce((acc, name) => ({ ...acc, [name]: "readonly" }), {}) },
-+  }
++  },
++  {
++    name: "zen-eslint-rollout",
++    files: ["zen/**"],
++    rules: {
++      // Same class of privileged chrome JS as browser/base/content, which
++      // mozilla-central already excludes from valid-jsdoc / require-jsdoc.
++      "jsdoc/require-param": "off",
++      "jsdoc/require-property-description": "off",
++      "jsdoc/tag-lines": "off",
++      "jsdoc/check-param-names": "off",
++      "jsdoc/multiline-blocks": "off",
++      "jsdoc/no-multi-asterisks": "off",
++      complexity: "off",
++      "no-nested-ternary": "off",
++      "no-shadow": "off",
++      "no-useless-concat": "off",
++      prettier: "off",
++      "prettier/prettier": "off",
++    },
++  },
  ];

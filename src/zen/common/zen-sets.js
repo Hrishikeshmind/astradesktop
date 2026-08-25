@@ -214,7 +214,9 @@ window.gZenIndiaGov = {
     try {
       const doc = win.document || document;
       const panel = doc.getElementById("PanelUI-zen-india-gov");
-      if (!panel) return;
+      if (!panel) {
+        return;
+      }
       const anchor =
         doc.getElementById("zen-sidebar-top-buttons-separator") ||
         doc.getElementById("zen-sidebar-top-buttons") ||
@@ -417,7 +419,9 @@ document.addEventListener(
           return;
         }
         const wrapper = document.getElementById("zen-appcontent-wrapper");
-        if (!wrapper) return;
+        if (!wrapper) {
+          return;
+        }
         const selectedTab = gBrowser.selectedTab;
         if (selectedTab && selectedTab.hasAttribute("busy")) {
           wrapper.setAttribute("tab-loading", "true");
@@ -432,7 +436,9 @@ document.addEventListener(
     window.addEventListener("TabSelect", () => {
       try {
         const wrapper = document.getElementById("zen-appcontent-wrapper");
-        if (!wrapper) return;
+        if (!wrapper) {
+          return;
+        }
         const selectedTab = gBrowser.selectedTab;
         if (selectedTab && selectedTab.hasAttribute("busy")) {
           wrapper.setAttribute("tab-loading", "true");
@@ -451,7 +457,9 @@ document.addEventListener(
         try {
           this._currentTab = tab;
           const panel = document.getElementById("PanelUI-zen-tab-notes");
-          if (!panel) return;
+          if (!panel) {
+            return;
+          }
           const textarea = document.getElementById("zen-tab-notes-textarea");
           if (textarea) {
             textarea.value = tab.zenNote || "";
@@ -473,9 +481,13 @@ document.addEventListener(
       saveNote() {
         try {
           const tab = this._currentTab;
-          if (!tab) return;
+          if (!tab) {
+            return;
+          }
           const textarea = document.getElementById("zen-tab-notes-textarea");
-          if (!textarea) return;
+          if (!textarea) {
+            return;
+          }
           const note = textarea.value.trim();
           if (note) {
             tab.zenNote = note;
@@ -494,11 +506,15 @@ document.addEventListener(
       clearNote() {
         try {
           const tab = this._currentTab;
-          if (!tab) return;
+          if (!tab) {
+            return;
+          }
           delete tab.zenNote;
           lazy.TabStateCache?.update?.(tab.permanentKey, {});
           const textarea = document.getElementById("zen-tab-notes-textarea");
-          if (textarea) textarea.value = "";
+          if (textarea) {
+            textarea.value = "";
+          }
           const panel = document.getElementById("PanelUI-zen-tab-notes");
           panel?.hidePopup();
           gZenUIManager.showToast("zen-tab-note-cleared-toast");

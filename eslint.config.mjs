@@ -453,6 +453,24 @@ let config = [
   },
   ...wrapPathsInConfig(rollouts),
   globalIgnoresPath(["src/zen/tests/"]),
+  {
+    name: "zen-eslint-rollout",
+    files: ["src/zen/**", "engine/zen/**"],
+    rules: {
+      "jsdoc/require-param": "off",
+      "jsdoc/require-property-description": "off",
+      "jsdoc/tag-lines": "off",
+      "jsdoc/check-param-names": "off",
+      "jsdoc/multiline-blocks": "off",
+      "jsdoc/no-multi-asterisks": "off",
+      complexity: "off",
+      "no-nested-ternary": "off",
+      "no-shadow": "off",
+      "no-useless-concat": "off",
+      prettier: "off",
+      "prettier/prettier": "off",
+    },
+  },
 ];
 
 // The various places we get our globals from use true/false rather than

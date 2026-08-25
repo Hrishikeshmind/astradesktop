@@ -51,7 +51,6 @@ class nsZenWorkspaces {
 
   #hasInitialized = false;
   #astraIntegrityGeneration = 0;
-  #astraIntegrityRan = false;
   #astraSessionRestoreComplete = false;
 
   #canDebug = Services.prefs.getBoolPref("zen.workspaces.debug", false);
@@ -1261,7 +1260,6 @@ class nsZenWorkspaces {
       if (result?.deferred) {
         return;
       }
-      this.#astraIntegrityRan = true;
       if (result?.repaired) {
         window.dispatchEvent(
           new CustomEvent("AstraSpaceIntegrityRepaired", {
@@ -2096,7 +2094,6 @@ class nsZenWorkspaces {
           ? container.firstChild
           : container.lastChild;
 
-        const previousWorkspaceID = tab.getAttribute("zen-workspace-id");
         if (tab.group?.hasAttribute("split-view-group")) {
           gBrowser.zenHandleTabMove(tab.group, () => {
             for (const subTab of tab.group.tabs) {
@@ -3234,51 +3231,11 @@ class nsZenWorkspaces {
   }
 
   updateShouldHideSeparator(
-    arrowScrollbox,
-    pinnedContainer,
-    fromTabSelection = false
+    _arrowScrollbox,
+    _pinnedContainer,
+    _fromTabSelection = false
   ) {
-    return; // Astra: disabled
-    const visibleTabsFound = () => {
-      let count = 0;
-      for (const child of arrowScrollbox.children) {
-        if (
-          !child.hasAttribute("hidden") &&
-          !child.closing &&
-          !child.hasAttribute("zen-empty-tab")
-        ) {
-          count++;
-          if (count > 1) {
-            // Early return
-            return true;
-          }
-        }
-      }
-      return false;
-    };
-
-    // <= 2 because we have the empty tab and the new tab button
-    const shouldHideSeparator = fromTabSelection
-      ? pinnedContainer.hasAttribute("hide-separator")
-      : !visibleTabsFound();
-    const workspaceElement = pinnedContainer.closest("zen-workspace");
-    workspaceElement?.toggleAttribute("zen-empty-state", shouldHideSeparator);
-    if (shouldHideSeparator) {
-      pinnedContainer.setAttribute("hide-separator", "true");
-    } else {
-      const workspaceID = pinnedContainer.getAttribute("zen-workspace-id");
-      const tabs = this.#unpinnedTabsInWorkspace(workspaceID);
-      const closableTabs = this.#getClosableTabs(tabs);
-      const button = pinnedContainer.querySelector(
-        ".zen-workspace-close-unpinned-tabs-button"
-      );
-      if (tabs.length === closableTabs.length) {
-        button.setAttribute("can-close", "true");
-      } else {
-        button.removeAttribute("can-close");
-      }
-      pinnedContainer.removeAttribute("hide-separator");
-    }
+    // Astra: separator hide is disabled.
   }
 
   onPinnedTabsResize(entries, forAnimation = false) {

@@ -449,6 +449,7 @@
     );
   }
 
+  // eslint-disable-next-line no-unused-vars -- reserved for welcome locale picker
   function setRequestedLocale(localeList) {
     try {
       Services.prefs.setStringPref("intl.locale.requested", localeList);

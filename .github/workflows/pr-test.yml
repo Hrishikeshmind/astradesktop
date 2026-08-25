@@ -15,7 +15,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-patches:
+    name: Validate patch files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate patch hunks
+        run: python3 scripts/validate_patches.py
+
   pr-test:
+    needs: [validate-patches]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -30,9 +41,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Validate patch files
-        run: npm run validate:patches
 
       - name: Restore Surfer engine cache
         id: surfer-engine-cache
