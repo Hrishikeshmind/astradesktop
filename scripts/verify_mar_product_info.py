@@ -63,6 +63,8 @@ def _cstr(buf: bytes) -> str:
 
 
 def parse_mar_product_info(path: Path) -> MarProductInfo:
+    if not path.is_file():
+        raise ValueError(f"{path} is not a MAR file (got a directory or missing path)")
     data = path.read_bytes()
     if len(data) < 24 or data[:4] != MAR_ID:
         raise ValueError(f"{path} is not a MAR1 file")

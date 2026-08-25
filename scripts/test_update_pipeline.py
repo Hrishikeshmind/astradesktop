@@ -298,5 +298,25 @@ class ValidateUpdateXmlTests(unittest.TestCase):
             self.assertEqual(rc, 1)
 
 
+class FindMarsSkipsArtifactDirectories(unittest.TestCase):
+    def test_rglob_does_not_return_directories_named_mar(self):
+        from ci_guard_update_publish import find_mars
+
+        with tempfile.TemporaryDirectory() as raw:
+            td = Path(raw)
+            artifact_dir = td / "windows-arm64.mar"
+            artifact_dir.mkdir()
+            mar_file = artifact_dir / "windows-arm64.mar"
+            mar_file.write_bytes(b"MAR1" + b"\x00" * 64)
+            (td / "windows.mar").mkdir()
+            (td / "windows.mar" / "windows.mar").write_bytes(b"MAR1" + b"\x00" * 64)
+            found = find_mars([td, artifact_dir])
+            resolved = {p.resolve() for p in found}
+            self.assertIn(mar_file.resolve(), resolved)
+            self.assertNotIn(artifact_dir.resolve(), resolved)
+            for path in found:
+                self.assertTrue(path.is_file(), msg=f"expected file, got {path}")
+
+
 if __name__ == "__main__":
     unittest.main()

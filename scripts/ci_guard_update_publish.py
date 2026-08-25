@@ -91,7 +91,12 @@ def find_mars(search_roots: list[Path]) -> list[Path]:
             continue
         if not root.is_dir():
             continue
+        # download-artifact names directories after the artifact (windows.mar/),
+        # and Path.rglob("*.mar") matches those directories as well as the MAR
+        # file inside. Run #136 crashed with IsADirectoryError on windows-arm64.mar.
         for path in root.rglob("*.mar"):
+            if not path.is_file():
+                continue
             if path.name in names and path.stat().st_size > 0:
                 found.append(path)
     # De-dupe while preserving order
