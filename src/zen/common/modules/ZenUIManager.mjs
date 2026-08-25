@@ -1977,10 +1977,11 @@ window.gZenVerticalTabsManager = {
         !canHideTabBarPref &&
         ((!this.isWindowsStyledButtons && !isRightSide) ||
           (this.isWindowsStyledButtons && isRightSide));
-      if (
-        (!isSingleToolbar && isCompactMode && !captionsShouldStayOnSidebar) ||
-        !isSidebarExpanded
-      ) {
+      // Compact Mode still parks the strip on #nav-bar. Collapsed (non-compact)
+      // keeps it in the toolbox rail so vertical-tabs.css can stack the icons
+      // in a column — moving it to #nav-bar left the 38px row locked in the
+      // top-left corner over the narrow rail.
+      if (!isSingleToolbar && isCompactMode && !captionsShouldStayOnSidebar) {
         navBar.prepend(topButtons);
       }
 

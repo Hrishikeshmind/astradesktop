@@ -817,10 +817,20 @@
     }
   }
 
+  /* Collapsed rail: stack the top icon strip (Compact / App Hub / Suraksha)
+   * like #zen-sidebar-foot-buttons. zen-omnibox.css locks this toolbar to
+   * --zen-toolbar-height + flex row; width-shrink alone cannot wrap XUL
+   * hbox children, so column + height unlock must be explicit. */
   & #zen-sidebar-top-buttons {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
     justify-content: center;
+    align-items: center;
+    min-height: unset !important;
     max-height: unset !important;
     height: fit-content !important;
+    overflow: visible;
   }
 
   & #titlebar {
@@ -828,7 +838,24 @@
   }
 
   & #zen-sidebar-top-buttons-customization-target {
+    display: flex;
     flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: auto;
+    min-height: unset;
+    gap: 5px;
+  }
+
+  & #zen-sidebar-top-buttons-customization-target
+    > :is(toolbarbutton, toolbaritem) {
+    width: var(--tab-collapsed-background-width);
+    min-width: unset;
+    max-width: none;
+    margin-inline: var(--tab-inner-inline-margin, 0);
+    justify-content: center;
   }
 
   & #zen-sidebar-foot-buttons {
