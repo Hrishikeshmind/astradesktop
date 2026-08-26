@@ -817,10 +817,10 @@
     }
   }
 
-  /* Collapsed rail: stack the top icon strip (Compact / App Hub / Suraksha)
-   * like #zen-sidebar-foot-buttons. zen-omnibox.css locks this toolbar to
-   * --zen-toolbar-height + flex row; width-shrink alone cannot wrap XUL
-   * hbox children, so column + height unlock must be explicit. */
+  /* Collapsed rail: stack the top icon strip (Compact / App Hub / Suraksha /
+   * AI Sidebar) like #zen-sidebar-foot-buttons. zen-omnibox.css locks this
+   * toolbar to --zen-toolbar-height + flex row; width-shrink alone cannot
+   * wrap XUL hbox children, so column + height unlock must be explicit. */
   & #zen-sidebar-top-buttons {
     display: flex;
     flex-direction: column;

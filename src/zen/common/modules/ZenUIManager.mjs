@@ -1216,9 +1216,9 @@ window.gZenVerticalTabsManager = {
    * hide App Hub / Suraksha dedicated strip buttons (Ctrl+Shift+U /
    * Ctrl+Shift+I still open them), move Compact to the sidebar footer next
    * to the theme toggle, and pin Back/Forward/Reload + AI so they cannot
-   * park under ». Sidebar+Top Toolbar (expanded, multi-toolbar) keeps Compact
-   * in the top strip and places the same AI toggle after Compact / hub icons
-   * (adapted DOM: no Back/Forward/Reload in this strip). Collapsed hides AI.
+   * park under ». Sidebar+Top Toolbar and Collapsed keep Compact in the top
+   * strip and place the same AI toggle after Compact / hub icons (adapted
+   * DOM: no Back/Forward/Reload in this strip).
    */
   _restoreWidgetToSidebarStrip(el) {
     if (!el) {
@@ -1329,7 +1329,8 @@ window.gZenVerticalTabsManager = {
           el.removeAttribute("overflows");
         }
       }
-      // Not Only Sidebar: show AI on Sidebar+Top Toolbar; hide when collapsed.
+      // Not Only Sidebar: AI stays in the strip for Sidebar+Top Toolbar and
+      // the collapsed icon rail (same customization target).
       this._placeAiButtonForNonOnlySidebar(target);
     }
     // Re-assert pref gates after layout allocation so Only Sidebar toggles
@@ -1355,20 +1356,13 @@ window.gZenVerticalTabsManager = {
   },
 
   /**
-   * Sidebar+Top Toolbar: AI lives in the sidebar strip after Compact (and
-   * App Hub / Suraksha when those prefs are on). Unlike Only Sidebar, Back /
-   * Forward / Reload stay on the top toolbar — do not anchor after Reload.
-   * Collapsed hides the control (thin rail).
+   * Sidebar+Top Toolbar and Collapsed: AI lives in the sidebar strip after
+   * Compact (and App Hub / Suraksha when those prefs are on). Unlike Only
+   * Sidebar, Back / Forward / Reload stay on the top toolbar — do not
+   * anchor after Reload. Collapsed stacks this control in the same column
+   * as Compact via vertical-tabs.css (48px, gap 5px).
    */
   _placeAiButtonForNonOnlySidebar(target) {
-    const expanded =
-      document.documentElement.getAttribute("zen-sidebar-expanded") ===
-        "true" ||
-      Services.prefs.getBoolPref("zen.view.sidebar-expanded", true);
-    if (!expanded) {
-      this._hideOnlySidebarAiButton();
-      return;
-    }
     this._placeMultiToolbarAiButton(target);
   },
 
@@ -1379,6 +1373,12 @@ window.gZenVerticalTabsManager = {
     }
     ai.removeAttribute("hidden");
     ai.setAttribute("overflows", "false");
+    // Compact can sit in the overflow list on a 60px collapsed rail until
+    // OverflowableToolbar settles. Pull it back so AI anchors after it.
+    const compact = document.getElementById("zen-toggle-compact-mode");
+    if (compact) {
+      this._restoreWidgetToSidebarStrip(compact);
+    }
     // Anchor after the last visible strip control we own (Compact → App Hub →
     // Suraksha). Fall back to prepend so AI sits with the strip icons.
     const anchorIds = [
@@ -1400,8 +1400,20 @@ window.gZenVerticalTabsManager = {
     }
     if (anchor) {
       anchor.after(ai);
+    } else if (compact && target.contains(compact)) {
+      compact.after(ai);
     } else if (!target.contains(ai)) {
       target.prepend(ai);
+    }
+    // Collapsed rail: Compact then AI, even if overflow later reorders
+    // hub / Suraksha around the pair.
+    if (
+      !this._prefsSidebarExpanded &&
+      compact &&
+      target.contains(compact) &&
+      target.contains(ai)
+    ) {
+      compact.after(ai);
     }
     this._syncAiSidebarButton();
   },
@@ -2054,6 +2066,19 @@ window.gZenVerticalTabsManager = {
         gZenCompactModeManager.getAndApplySidebarWidth({});
       }
       gZenUIManager.updateTabsToolbar();
+
+      // Re-assert AI after toolbox / nav-bar / overflow settle. Only Sidebar
+      // teardown sweeps cui-areatype widgets out of the strip; keep AI on
+      // the rail for Sidebar+Top Toolbar and the collapsed icon column.
+      const aiTarget = document.getElementById(
+        "zen-sidebar-top-buttons-customization-target"
+      );
+      if (isSingleToolbar) {
+        this._placeOnlySidebarAiButton(aiTarget);
+      } else {
+        this._placeAiButtonForNonOnlySidebar(aiTarget);
+      }
+
       this.rebuildURLBarMenus();
       appContentNavbarWrapper.style.transition = "";
     } catch (e) {

@@ -80,18 +80,26 @@
   display: none !important;
 }
 
-/* AI Sidebar toggle: Only Sidebar + Sidebar+Top Toolbar (expanded).
- * Collapsed keeps the thin rail for Compact only — AI stays hidden there.
+/* AI Sidebar toggle: Only Sidebar, Sidebar+Top Toolbar, and the collapsed
+ * icon rail (same customization target as Compact / App Hub / Suraksha).
  * skipintoolbarset keeps it out of CustomizableUI placements. */
-:root:not([zen-single-toolbar="true"]):not([zen-sidebar-expanded="true"])
-  #astra-ai-sidebar-button {
-  display: none !important;
+#astra-ai-sidebar-button {
+  display: flex !important;
 }
 
-:root[zen-single-toolbar="true"] #astra-ai-sidebar-button,
-:root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
-  #astra-ai-sidebar-button {
-  display: flex !important;
+/* Collapsed rail: match Compact / App Hub / Suraksha at 48px. The 28px Only
+ * Sidebar strip rules below are gated on zen-single-toolbar (expanded only).
+ * vertical-tabs.css already columns this target with gap: 5px. */
+:root:not([zen-sidebar-expanded="true"])
+  #zen-sidebar-top-buttons-customization-target
+  > #astra-ai-sidebar-button,
+:root:not([zen-sidebar-expanded="true"])
+  #zen-sidebar-top-buttons-customization-target
+  > #astra-ai-sidebar-button
+  > toolbarbutton {
+  min-width: var(--tab-collapsed-background-width);
+  width: var(--tab-collapsed-background-width);
+  max-width: var(--tab-collapsed-background-width);
 }
 
 /* Firefox Sidebars launcher + extension actions already overflowed the 186px
