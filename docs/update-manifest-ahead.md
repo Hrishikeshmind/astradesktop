@@ -208,10 +208,11 @@ emits `type="complete"` only).
 ## Post-publish checks
 
 1. **Header check (every release, ubuntu):**
-   `scripts/post_publish_mar_header_check.py` fetches live `update.xml` and the
-   first 64KiB of the MAR, asserts channel == SSOT and `numSignatures >= 1`.
-   Empty XML is OK while `.astra/publish-paused` is set; pass `--require-patch`
-   after a real publish.
+   `scripts/post_publish_mar_header_check.py` fetches live `update.xml` (up to
+   6 attempts, 10s apart, cache-busted query param — Pages commit-to-live lag
+   is not a missing `<patch>`) and the first 64KiB of the MAR, asserts channel
+   == SSOT and `numSignatures >= 1`. Empty XML is OK while
+   `.astra/publish-paused` is set; pass `--require-patch` after a real publish.
 2. **Staged XML vs MAR (every release, before Pages commit):**
    `scripts/validate_update_xml.py` asserts hash/size/buildID/channel/signature
    on the artifacts about to be published.

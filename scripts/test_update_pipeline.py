@@ -439,6 +439,114 @@ class RewritePatchUrlTests(unittest.TestCase):
             )
 
 
+class PostPublishPagesRetryTests(unittest.TestCase):
+    def test_cache_bust_appends_query(self):
+        from post_publish_mar_header_check import cache_bust_url
+
+        self.assertEqual(
+            cache_bust_url("https://example.com/update.xml", nonce=123),
+            "https://example.com/update.xml?_=123",
+        )
+        self.assertEqual(
+            cache_bust_url("https://example.com/x?a=1", nonce=9),
+            "https://example.com/x?a=1&_=9",
+        )
+
+    def test_retries_empty_then_succeeds(self):
+        from post_publish_mar_header_check import fetch_pages_update_xml
+
+        bodies = [
+            b'<?xml version="1.0"?><updates></updates>\n',
+            b'<?xml version="1.0"?><updates></updates>\n',
+            b'<?xml version="1.0"?><updates><patch type="complete" URL="https://x/a.mar"/></updates>\n',
+        ]
+        sleeps: list[float] = []
+        busted: list[bool] = []
+
+        def fake_fetch(url, max_bytes=None, *, cache_bust=False):
+            busted.append(cache_bust)
+            return bodies.pop(0)
+
+        xml, used, _elapsed, err = fetch_pages_update_xml(
+            "https://example.com/update.xml",
+            attempts=6,
+            backoff_s=10,
+            wait_for_patch=True,
+            fetch_bytes=fake_fetch,
+            sleep=sleeps.append,
+        )
+        self.assertIn("<patch ", xml)
+        self.assertEqual(used, 3)
+        self.assertIsNone(err)
+        self.assertEqual(sleeps, [10, 10])
+        self.assertEqual(busted, [True, True, True])
+
+    def test_exhausted_empty_reports_attempts(self):
+        from post_publish_mar_header_check import (
+            _no_patch_message,
+            fetch_pages_update_xml,
+        )
+
+        def fake_fetch(url, max_bytes=None, *, cache_bust=False):
+            return b'<?xml version="1.0"?><updates></updates>\n'
+
+        xml, used, elapsed, err = fetch_pages_update_xml(
+            "https://example.com/update.xml",
+            attempts=3,
+            backoff_s=0,
+            wait_for_patch=True,
+            fetch_bytes=fake_fetch,
+            sleep=lambda _s: None,
+        )
+        self.assertNotIn("<patch ", xml)
+        self.assertEqual(used, 3)
+        self.assertIsNone(err)
+        msg = _no_patch_message(
+            "https://example.com/update.xml",
+            attempts_used=used,
+            attempts_limit=3,
+            elapsed_s=elapsed,
+            last_error=err,
+        )
+        self.assertIn("still empty after 3 attempts", msg)
+        self.assertIn("GitHub Pages lag/cache race", msg)
+
+    def test_first_attempt_message_when_no_retry(self):
+        from post_publish_mar_header_check import _no_patch_message
+
+        msg = _no_patch_message(
+            "https://example.com/update.xml",
+            attempts_used=1,
+            attempts_limit=1,
+            elapsed_s=0.2,
+            last_error=None,
+        )
+        self.assertEqual(msg, "FAIL: https://example.com/update.xml has no patch")
+        self.assertNotIn("still empty", msg)
+
+    def test_paused_empty_does_not_retry(self):
+        from post_publish_mar_header_check import fetch_pages_update_xml
+
+        calls = {"n": 0}
+
+        def fake_fetch(url, max_bytes=None, *, cache_bust=False):
+            calls["n"] += 1
+            return b'<?xml version="1.0"?><updates></updates>\n'
+
+        xml, used, _elapsed, err = fetch_pages_update_xml(
+            "https://example.com/update.xml",
+            attempts=6,
+            backoff_s=10,
+            wait_for_patch=False,
+            fetch_bytes=fake_fetch,
+            sleep=lambda _s: self.fail("should not sleep while paused"),
+        )
+        self.assertNotIn("<patch ", xml)
+        self.assertEqual(used, 1)
+        self.assertEqual(calls["n"], 1)
+        self.assertIsNone(err)
+
+
 class FindMarsSkipsArtifactDirectories(unittest.TestCase):
     def test_rglob_does_not_return_directories_named_mar(self):
         from ci_guard_update_publish import find_mars
