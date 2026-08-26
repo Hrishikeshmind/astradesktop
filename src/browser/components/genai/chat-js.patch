@@ -1,0 +1,125 @@
+diff --git a/browser/components/genai/chat.js b/browser/components/genai/chat.js
+--- a/browser/components/genai/chat.js
++++ b/browser/components/genai/chat.js
+@@ -115,7 +115,61 @@ function openLink(url) {
+   });
+ }
+ 
++function showChatLoading() {
++  const el = document.getElementById("chat-loading");
++  if (el) {
++    el.hidden = false;
++  }
++  document.body.toggleAttribute("astra-chat-loading", true);
++}
++
++function hideChatLoading() {
++  const el = document.getElementById("chat-loading");
++  if (el) {
++    el.hidden = true;
++  }
++  document.body.removeAttribute("astra-chat-loading");
++}
++
++function updateProviderChrome() {
++  const icon = document.getElementById("provider-icon");
++  const info = lazy.GenAI.chatProviders.get(lazy.providerPref);
++  const id = info?.id || "";
++  document.body.dataset.provider = id;
++  document.body.toggleAttribute("astra-has-provider", !!lazy.providerPref);
++  if (!icon) {
++    return;
++  }
++  if (info?.iconUrl) {
++    icon.hidden = false;
++    icon.style.backgroundImage = `url("${info.iconUrl}")`;
++  } else {
++    icon.hidden = true;
++    icon.style.backgroundImage = "";
++  }
++}
++
++function dismissOnboardingIfProviderSet() {
++  if (!lazy.providerPref) {
++    return;
++  }
++  const root = document.getElementById("multi-stage-message-root");
++  if (!root) {
++    return;
++  }
++  if (typeof window.AWFinish === "function") {
++    window.AWFinish();
++  } else {
++    root.remove();
++  }
++}
++
+ function request(url = lazy.providerPref) {
++  if (url) {
++    showChatLoading();
++  } else {
++    hideChatLoading();
++  }
+   try {
+     node.chat.fixupAndLoadURIString(url, {
+       triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
+@@ -136,9 +190,45 @@ function renderChat() {
+   browser.setAttribute("nodefaultsrc", "true");
+   browser.setAttribute("remote", "true");
+   browser.setAttribute("type", "content");
++  bindChatLoading(browser);
+   return browserContainer.appendChild(browser);
+ }
+ 
++function bindChatLoading(browser) {
++  const hide = () => {
++    hideChatLoading();
++    if (browser._astraLoadTimer) {
++      clearTimeout(browser._astraLoadTimer);
++      browser._astraLoadTimer = null;
++    }
++  };
++  browser.addEventListener("load", hide, true);
++  try {
++    const listener = {
++      QueryInterface: ChromeUtils.generateQI([
++        "nsIWebProgressListener",
++        "nsISupportsWeakReference",
++      ]),
++      onStateChange(_progress, _request, flags) {
++        const wpl = Ci.nsIWebProgressListener;
++        if (
++          flags & wpl.STATE_STOP &&
++          flags & wpl.STATE_IS_WINDOW
++        ) {
++          hide();
++        }
++      },
++    };
++    browser.addProgressListener(
++      listener,
++      Ci.nsIWebProgress.NOTIFY_STATE_WINDOW
++    );
++  } catch (ex) {
++    console.warn("Astra chat loading listener", ex);
++  }
++  browser._astraLoadTimer = setTimeout(hide, 4500);
++}
++
+ async function renderProviders() {
+   // Skip potential pref change callback when unloading
+   if ((await document.visibilityState) == "hidden") {
+@@ -174,8 +264,13 @@ async function renderProviders() {
+     if (!lazy.providerPref) {
+       showOnboarding();
+     }
++  } else {
++    // Astra: drop leftover onboarding so the header + provider iframe show.
++    dismissOnboardingIfProviderSet();
+   }
+ 
++  updateProviderChrome();
++
+   // Clear warning message from different provider
+   clearWarningMessage();
+ 

@@ -1,0 +1,380 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Astra — GenAI chat sidebar (chrome://browser/content/genai/chat.html)
+ *
+ * chat.html is its own document (not browser.xhtml), so chrome zen-theme.css
+ * tokens do not inherit. Mirror the dark-elevation surfaces here.
+ */
+
+:root {
+  --astra-chat-sunken: var(--zen-surface-sunken, light-dark(#e5e2dc, #0f1013));
+  --astra-chat-chrome: var(--zen-surface-chrome, light-dark(#eeeae4, #1a1c22));
+  --astra-chat-raised: var(--zen-surface-raised, light-dark(#f7f5f1, #22242b));
+  --astra-chat-accent: var(--zen-colors-accent, light-dark(AccentColor, #f0a868));
+  --astra-chat-text: var(--zen-text-primary, light-dark(#12141a, #e4e5e9));
+  --astra-chat-text-secondary: var(
+    --zen-text-secondary,
+    light-dark(#5c5954, #8a8d97)
+  );
+  --astra-chat-border: var(--zen-colors-border, light-dark(#d4cfc6, #2a2c34));
+  --astra-chat-tile: light-dark(#fffdf9, #1a1c22);
+  --astra-chat-tile-hover: light-dark(#f3efe8, #262830);
+  --astra-chat-radius: 10px;
+  --astra-chat-space: 12px;
+}
+
+html,
+body {
+  background-color: var(--astra-chat-raised);
+  color: var(--astra-chat-text);
+}
+
+/* --------------------------------------------------------------------------
+   Header — provider icon + switcher + actions
+   -------------------------------------------------------------------------- */
+
+#header {
+  background-color: var(--astra-chat-chrome);
+  border-bottom: 1px solid var(--astra-chat-border);
+  gap: 8px;
+  min-height: 44px;
+  padding-block: 8px;
+  padding-inline: 14px;
+}
+
+#provider-icon {
+  -moz-context-properties: fill;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  border-radius: 4px;
+  fill: currentColor;
+  flex-shrink: 0;
+  height: 18px;
+  width: 18px;
+}
+
+#provider-icon[hidden] {
+  display: none;
+}
+
+body[data-provider="claude"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/claude.svg");
+}
+
+body[data-provider="chatgpt"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/chatgpt.svg");
+}
+
+body[data-provider="copilot"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/copilot.svg");
+}
+
+body[data-provider="gemini"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/gemini.svg");
+}
+
+body[data-provider="huggingchat"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/huggingchat.svg");
+}
+
+body[data-provider="lechat"] #provider-icon {
+  background-image: url("chrome://browser/content/genai/assets/brands/lechat.svg");
+}
+
+#header select {
+  --caret-padding: 8px;
+  --start-padding: 8px;
+  appearance: none;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--astra-chat-text);
+  flex: 1;
+  font-size: 0.9rem;
+  font-weight: 600;
+  height: 32px;
+  min-width: 0;
+  padding-inline: 8px 22px;
+}
+
+#header select:hover {
+  background-color: light-dark(rgba(28, 24, 20, 0.055), rgba(255, 255, 255, 0.07));
+  border-color: color-mix(in srgb, var(--astra-chat-border) 70%, transparent);
+}
+
+#header select:focus-visible {
+  outline: 2px solid var(--astra-chat-accent);
+  outline-offset: 1px;
+}
+
+#header moz-button::part(button) {
+  border-radius: 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Provider iframe + loading
+   -------------------------------------------------------------------------- */
+
+#browser-container {
+  background-color: var(--astra-chat-sunken);
+  position: relative;
+}
+
+#browser-container browser {
+  background-color: var(--astra-chat-sunken);
+  border: none;
+}
+
+#chat-loading {
+  align-items: center;
+  background-color: var(--astra-chat-raised);
+  color: var(--astra-chat-text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  inset: 0;
+  justify-content: center;
+  position: absolute;
+  z-index: 2;
+}
+
+#chat-loading[hidden] {
+  display: none;
+}
+
+.chat-loading-mark {
+  -moz-context-properties: fill;
+  background-color: var(--astra-chat-accent);
+  height: 22px;
+  mask: url("chrome://browser/skin/zen-icons/sparkles.svg") center / contain no-repeat;
+  -webkit-mask: url("chrome://browser/skin/zen-icons/sparkles.svg") center / contain
+    no-repeat;
+  width: 22px;
+}
+
+.chat-loading-copy {
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-loading-mark {
+    animation: astra-chat-pulse 1.1s ease-in-out infinite;
+  }
+}
+
+@keyframes astra-chat-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Onboarding / empty state — fill the panel, not a nested welcome card
+   -------------------------------------------------------------------------- */
+
+#multi-stage-message-root {
+  background-color: var(--astra-chat-raised);
+}
+
+#multi-stage-message-root .onboardingContainer {
+  height: 100%;
+  margin: 0;
+  max-width: none;
+}
+
+#multi-stage-message-root .screen,
+#multi-stage-message-root .main-content {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  min-height: 100%;
+  outline: none !important;
+}
+
+#multi-stage-message-root .main-content-inner {
+  box-sizing: border-box;
+  padding: 16px var(--astra-chat-space) 12px !important;
+}
+
+#multi-stage-message-root .welcome-text {
+  margin-bottom: 16px;
+  padding-inline: 0;
+  text-align: start;
+}
+
+#multi-stage-message-root .welcome-text h1,
+#multi-stage-message-root .welcome-text h2 {
+  color: var(--astra-chat-text);
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  text-align: start;
+}
+
+#multi-stage-message-root .welcome-text p,
+#multi-stage-message-root [data-l10n-id="genai-onboarding-choose-description"] {
+  color: var(--astra-chat-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: start;
+}
+
+/* Keep a single title in .welcome-text; hide aboutwelcome duplicates. */
+#multi-stage-message-root [data-l10n-id="genai-onboarding-choose-header"] {
+  display: none !important;
+}
+
+#multi-stage-message-root .welcome-text > :first-child {
+  display: revert !important;
+  color: var(--astra-chat-text);
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  text-align: start;
+}
+
+#multi-stage-message-root legend,
+#multi-stage-message-root .section-secondary,
+#multi-stage-message-root .sr-only:not(input) {
+  display: none !important;
+}
+
+#multi-stage-message-root .steps,
+#multi-stage-message-root .indicator,
+#multi-stage-message-root .progress-bar,
+#multi-stage-message-root .sr-steps {
+  display: none;
+}
+
+#multi-stage-message-root .tiles-single-select-container {
+  margin-block: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+#multi-stage-message-root .tiles-single-select-container::before,
+#multi-stage-message-root .tiles-single-select-container::after {
+  content: none;
+}
+
+#multi-stage-message-root fieldset {
+  gap: 8px;
+}
+
+#multi-stage-message-root label {
+  align-items: center;
+  background-color: var(--astra-chat-tile);
+  border: 1px solid var(--astra-chat-border);
+  border-radius: var(--astra-chat-radius);
+  box-shadow: none;
+  flex-direction: row;
+  gap: 2px;
+  margin: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+#multi-stage-message-root label:hover {
+  background-color: var(--astra-chat-tile-hover);
+  border-color: color-mix(in srgb, var(--astra-chat-accent) 35%, var(--astra-chat-border));
+}
+
+#multi-stage-message-root label:has(.selected) {
+  background-color: light-dark(
+    color-mix(in srgb, var(--astra-chat-accent) 10%, var(--astra-chat-tile)),
+    color-mix(in srgb, var(--astra-chat-accent) 14%, var(--astra-chat-tile))
+  );
+  border: 1px solid var(--astra-chat-accent);
+  box-shadow: inset 3px 0 0 var(--astra-chat-accent);
+  margin: 0;
+}
+
+#multi-stage-message-root label:focus-visible,
+#multi-stage-message-root label:has(:focus-visible) {
+  outline: 2px solid var(--astra-chat-accent);
+  outline-offset: 2px;
+}
+
+#multi-stage-message-root .icon {
+  --icon-size: 22px;
+  margin-inline: 2px 8px;
+}
+
+#multi-stage-message-root .text {
+  font-size: 0.92rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+#multi-stage-message-root .link-paragraph {
+  color: var(--astra-chat-text-secondary);
+  font-size: 0.75rem;
+  margin-block-start: 2px;
+}
+
+#multi-stage-message-root .additional-cta,
+#multi-stage-message-root .action-buttons {
+  gap: 8px;
+  margin-block-start: 16px;
+  padding-inline: 0;
+}
+
+#multi-stage-message-root .primary {
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  min-height: 36px;
+  width: 100%;
+}
+
+#multi-stage-message-root .additional_button,
+#multi-stage-message-root #additional_button {
+  color: var(--astra-chat-text-secondary);
+}
+
+/* --------------------------------------------------------------------------
+   Summarize footer
+   -------------------------------------------------------------------------- */
+
+#summarize-btn-container {
+  background-color: var(--astra-chat-chrome);
+  border-top: 1px solid var(--astra-chat-border);
+  padding: 10px 14px 12px;
+}
+
+#summarize-btn-container moz-button {
+  width: 100%;
+}
+
+#summarize-btn-container .badge {
+  left: 18px;
+}
+
+#message-container {
+  padding: 8px var(--astra-chat-space);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #multi-stage-message-root label,
+  .chat-loading-mark {
+    animation: none;
+    transition: none;
+  }
+}

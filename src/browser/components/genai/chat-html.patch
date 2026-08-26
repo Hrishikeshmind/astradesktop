@@ -1,0 +1,36 @@
+diff --git a/browser/components/genai/chat.html b/browser/components/genai/chat.html
+--- a/browser/components/genai/chat.html
++++ b/browser/components/genai/chat.html
+@@ -25,6 +25,10 @@
+       href="chrome://browser/content/aboutwelcome/aboutwelcome.css"
+     />
+     <link rel="stylesheet" href="chrome://browser/content/genai/chat.css" />
++    <link
++      rel="stylesheet"
++      href="chrome://browser/content/zen-styles/astra-genai-chat.css"
++    />
+     <script src="chrome://global/content/vendor/react.js"></script>
+     <script src="chrome://global/content/vendor/react-dom.js"></script>
+     <script src="chrome://browser/content/contentTheme.js"></script>
+@@ -32,6 +36,7 @@
+   </head>
+   <body>
+     <div id="header">
++      <div id="provider-icon" hidden=""></div>
+       <select data-l10n-id="genai-header-provider-menu" id="provider"></select>
+       <div id="permissions-indicator"></div>
+       <moz-button
+@@ -50,7 +55,12 @@
+       ></moz-button>
+     </div>
+     <div id="message-container"></div>
+-    <div id="browser-container"></div>
++    <div id="browser-container">
++      <div id="chat-loading" hidden="">
++        <div class="chat-loading-mark"></div>
++        <p class="chat-loading-copy" data-l10n-id="genai-chatbot-title"></p>
++      </div>
++    </div>
+     <div id="summarize-btn-container">
+       <span class="badge" data-l10n-id="genai-menu-new-badge"></span>
+       <moz-button
