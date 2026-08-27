@@ -665,6 +665,7 @@ window.gZenUIManager = {
   _lastSearch: "",
   _clearTimeout: null,
   _lastTab: null,
+  _overlayTab: null,
 
   // Check if browser elements are in a valid state for tab operations
   _validateBrowserState() {
@@ -751,6 +752,13 @@ window.gZenUIManager = {
       this._lastTab._visuallySelected = false;
     }
 
+    // Create and focus a real tab BEFORE wiring the overlay close handler.
+    // TabSelect would otherwise call _zenHandleUrlbarClose and tear the
+    // overlay down. Suggestion clicks must target this tab, not _lastTab.
+    // Skip for Glance / split-view (overridePreferance): those wait on the
+    // next TabSelect after a result is picked.
+    this._overlayTab = overridePreferance ? null : this._ensureOverlayTab();
+
     // Store URL bar state
     this._prevUrlbarLabel = gURLBar._untrimmedValue || "";
 
@@ -780,6 +788,47 @@ window.gZenUIManager = {
     this._lastSearch = "";
   },
 
+  _ensureOverlayTab() {
+    try {
+      const tab = gBrowser.addTrustedTab("about:blank", {
+        skipAnimation: true,
+      });
+      if (tab) {
+        gBrowser.selectedTab = tab;
+        return tab;
+      }
+    } catch (e) {
+      console.error("Error creating overlay new tab:", e);
+    }
+    return gBrowser.selectedTab;
+  },
+
+  _discardUnusedOverlayTab(overlayTab, onElementPicked) {
+    if (!overlayTab || overlayTab.closing) {
+      return;
+    }
+    // A picked result that loaded into this tab must be kept even while
+    // currentURI is still about:blank. Cancel / open-elsewhere leaves a
+    // leftover blank tab that should be removed.
+    if (onElementPicked && gBrowser.selectedTab === overlayTab) {
+      return;
+    }
+    const spec = overlayTab.linkedBrowser?.currentURI?.spec;
+    const stillBlank =
+      overlayTab.isEmpty || spec === "about:blank" || spec === "about:newtab";
+    if (!stillBlank) {
+      return;
+    }
+    if (
+      gBrowser.selectedTab === overlayTab &&
+      this._lastTab &&
+      !this._lastTab.closing
+    ) {
+      gBrowser.selectedTab = this._lastTab;
+    }
+    gBrowser.removeTab(overlayTab, { animate: false });
+  },
+
   handleUrlbarClose(onSwitch = false, onElementPicked = false) {
     // Validate browser state first
     if (!this._validateBrowserState()) {
@@ -791,6 +840,10 @@ window.gZenUIManager = {
     if (gURLBar._zenHandleUrlbarClose) {
       gURLBar._zenHandleUrlbarClose = null;
     }
+
+    const overlayTab = this._overlayTab;
+    this._overlayTab = null;
+    this._discardUnusedOverlayTab(overlayTab, onElementPicked);
 
     const isFocusedBefore = gURLBar.focused;
     setTimeout(() => {

@@ -222,18 +222,25 @@ index 0b1b4b2f0f8d6b0fb126aa1224409ab6f1ffb8d8..4405e1bf385477c2161ae3a5a62e32c1
      if (this.#isAddressbar) {
        this.#prepareAddressbarLoad(
          url,
-@@ -4411,6 +4515,10 @@ ${
+@@ -4411,6 +4515,17 @@ ${
        }
        reuseEmpty = true;
      }
 +    if (this.hasAttribute("zen-newtab")) {
-+      where = "tab";
-+      reuseEmpty = true;
++      // Never navigate the tab that was active when "+" opened the overlay.
++      if (this.window.gBrowser.selectedTab.hasAttribute("zen-empty-tab")) {
++        return "tab";
++      }
++      const overlayTab = this.window.gZenUIManager?._overlayTab;
++      if (overlayTab && this.window.gBrowser.selectedTab === overlayTab) {
++        return "current";
++      }
++      return "tab";
 +    }
      if (
        where == "tab" &&
        reuseEmpty &&
-@@ -4418,6 +4526,9 @@ ${
+@@ -4418,6 +4533,9 @@ ${
      ) {
        where = "current";
      }
