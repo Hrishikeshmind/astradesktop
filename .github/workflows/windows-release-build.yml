@@ -124,7 +124,7 @@ jobs:
 
       - name: Setup for Windows
         if: steps.cache-win-cross.outputs.cache-hit != 'true' && !(inputs['generate-gpo'] && matrix.arch == 'aarch64')
-        timeout-minutes: 20
+        timeout-minutes: 30
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path "${{ runner.temp }}/win-cross" | Out-Null
@@ -135,6 +135,20 @@ jobs:
           Remove-Item "wine.tar.zst" -Force
           Write-Output "Setup Visual Studio"
           python mach python --virtualenv build taskcluster/scripts/misc/get_vs.py build/vs/vs2026.yaml "${{ runner.temp }}/win-cross/vs2026"
+
+      # Native Windows `mach bootstrap` would otherwise call get_vs.py again and
+      # hang for hours on a silent Win11 SDK .cab download. Point configure at
+      # the layout already fetched above (or restored from cache) instead.
+      - name: Use cached Visual Studio / SDK
+        if: ${{ !(inputs['generate-gpo'] && matrix.arch == 'aarch64') }}
+        shell: pwsh
+        run: |
+          $vs = Join-Path $env:RUNNER_TEMP "win-cross\vs2026"
+          if (-not (Test-Path $vs)) {
+            throw "VS/SDK layout missing at $vs. Setup for Windows (or cache restore) must populate it."
+          }
+          Add-Content -Path $env:GITHUB_ENV -Value "WINSYSROOT=$vs"
+          Write-Host "WINSYSROOT=$vs"
 
       - name: Import
         if: ${{ !(inputs['generate-gpo'] && matrix.arch == 'aarch64') }}
@@ -147,15 +161,20 @@ jobs:
 
       - name: Bootstrap
         if: ${{ !(inputs['generate-gpo'] && matrix.arch == 'aarch64') }}
+        timeout-minutes: 45
+        env:
+          MOZ_AUTOMATION: "1"
+          MACH_HIDE_DEV_DRIVE_SUGGESTION: "1"
+          SURFER_PLATFORM: win32
         shell: bash
         run: |
           set -x
           cd engine/
           chmod -R +x "${{ runner.temp }}/win-cross/vs2026" || true
-          cd ..
-          export SURFER_PLATFORM="win32"
-          npm run bootstrap
-          cd engine/
+          # --exclude vs: VS/SDK already lives in WINSYSROOT. Without this,
+          # auto_bootstrap re-downloads Win11SDK cab files with no socket
+          # timeout and the step can sit silent until the 6h job limit.
+          ./mach --no-interactive bootstrap --application-choice browser --exclude vs
           ls ~/.mozbuild/clang/lib/clang/
           CLANG_DIR=$(ls -d ~/.mozbuild/clang/lib/clang/*/  2>/dev/null | head -1)
           if [ -z "$CLANG_DIR" ]; then
@@ -250,7 +269,11 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"
           $env:CARGO_HOME = "$env:USERPROFILE\.cargo"
           New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.cargo" | Out-Null
-          $env:WIN32_REDIST_DIR = "${{ runner.temp }}\win-cross\vs2026\VC\Redist\MSVC\14.50.35710\x64\Microsoft.VC145.CRT"
+          $redistArch = if ("${{ matrix.arch }}" -eq "aarch64") { "arm64" } else { "x64" }
+          $env:WIN32_REDIST_DIR = "${{ runner.temp }}\win-cross\vs2026\VC\Redist\MSVC\14.50.35710\$redistArch\Microsoft.VC145.CRT"
+          if (-not (Test-Path $env:WIN32_REDIST_DIR)) {
+            throw "WIN32_REDIST_DIR missing: $($env:WIN32_REDIST_DIR)"
+          }
           bash .github/workflows/src/release-build.sh
 
       - name: Stage uBlock + policies into dist/bin/distribution (pre-package)
