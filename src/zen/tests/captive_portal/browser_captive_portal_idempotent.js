@@ -97,3 +97,66 @@ add_task(async function test_new_portal_after_abort_shows_again() {
   await freePortal(true);
   Assert.equal(portalNodes().length, 0, "Success removes the new bar");
 });
+
+add_task(async function test_unlock_without_login_success_clears_bar() {
+  await fireLogin(1);
+  Assert.equal(portalNodes().length, 1, "Bar is showing after login topic");
+
+  const realCps = CaptivePortalWatcher._cps;
+  CaptivePortalWatcher._cps = {
+    state: realCps.UNLOCKED_PORTAL,
+    LOCKED_PORTAL: realCps.LOCKED_PORTAL,
+    UNLOCKED_PORTAL: realCps.UNLOCKED_PORTAL,
+    NOT_CAPTIVE: realCps.NOT_CAPTIVE,
+    UNKNOWN: realCps.UNKNOWN,
+  };
+  try {
+    Services.obs.notifyObservers(
+      null,
+      "network:captive-portal-connectivity",
+      "captive"
+    );
+    await TestUtils.waitForCondition(
+      () => portalNodes().length === 0,
+      "Bar is removed when CPS reports unlocked without login-success"
+    );
+  } finally {
+    CaptivePortalWatcher._cps = realCps;
+  }
+
+  await fireLogin(3);
+  Assert.equal(
+    portalNodes().length,
+    1,
+    "Idempotent show still holds after unlock teardown"
+  );
+
+  await freePortal(true);
+  Assert.equal(portalNodes().length, 0, "Success still removes the bar");
+});
+
+add_task(async function test_check_complete_clears_when_not_locked() {
+  await fireLogin(1);
+  Assert.equal(portalNodes().length, 1, "Bar is showing");
+
+  const realCps = CaptivePortalWatcher._cps;
+  CaptivePortalWatcher._cps = {
+    state: realCps.NOT_CAPTIVE,
+    LOCKED_PORTAL: realCps.LOCKED_PORTAL,
+    UNLOCKED_PORTAL: realCps.UNLOCKED_PORTAL,
+    NOT_CAPTIVE: realCps.NOT_CAPTIVE,
+    UNKNOWN: realCps.UNKNOWN,
+  };
+  try {
+    Services.obs.notifyObservers(null, "captive-portal-check-complete");
+    await TestUtils.waitForCondition(
+      () => portalNodes().length === 0,
+      "Bar is removed on check-complete when state is NOT_CAPTIVE"
+    );
+  } finally {
+    CaptivePortalWatcher._cps = realCps;
+  }
+
+  await freePortal(true);
+  Assert.equal(portalNodes().length, 0, "Success/abort still clears leftover state");
+});

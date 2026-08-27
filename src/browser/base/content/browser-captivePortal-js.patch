@@ -18,7 +18,50 @@ index 4f332f0..09ba614 100644
    get _captivePortalNotification() {
      return gNotificationBox.getNotificationWithValue(
        this.PORTAL_NOTIFICATION_VALUE
-@@ -241,7 +250,8 @@ var CaptivePortalWatcher = {
+@@ -50,6 +59,9 @@ var CaptivePortalWatcher = {
+     Services.obs.addObserver(this, "captive-portal-login");
+     Services.obs.addObserver(this, "captive-portal-login-abort");
+     Services.obs.addObserver(this, "captive-portal-login-success");
++    Services.obs.addObserver(this, "captive-portal-check-complete");
++    Services.obs.addObserver(this, "network:captive-portal-connectivity");
++    Services.obs.addObserver(this, "network:captive-portal-connectivity-changed");
+ 
+     this._cps = Cc["@mozilla.org/network/captive-portal-service;1"].getService(
+       Ci.nsICaptivePortalService
+@@ -83,6 +95,9 @@ var CaptivePortalWatcher = {
+     Services.obs.removeObserver(this, "captive-portal-login");
+     Services.obs.removeObserver(this, "captive-portal-login-abort");
+     Services.obs.removeObserver(this, "captive-portal-login-success");
++    Services.obs.removeObserver(this, "captive-portal-check-complete");
++    Services.obs.removeObserver(this, "network:captive-portal-connectivity");
++    Services.obs.removeObserver(this, "network:captive-portal-connectivity-changed");
+ 
+     this._cancelDelayedCaptivePortal();
+   },
+@@ -106,6 +121,12 @@ var CaptivePortalWatcher = {
+       case "captive-portal-login-success":
+         this._captivePortalGone(true);
+         break;
++      case "captive-portal-check-complete":
++      case "network:captive-portal-connectivity":
++      case "network:captive-portal-connectivity-changed":
++        // Rechecks / network changes can unlock without login-success.
++        this._syncIfUnlocked();
++        break;
+       case "delayed-captive-portal-handled":
+         this._cancelDelayedCaptivePortal();
+         break;
+@@ -227,7 +248,8 @@ var CaptivePortalWatcher = {
+       this._waitingForRecheck = false;
+       if (this._cps.state != this._cps.LOCKED_PORTAL) {
+         // We're free of the portal!
+-        return;
++        this._syncIfUnlocked();
++        return;
+       }
+ 
+       if (time <= this.PORTAL_RECHECK_DELAY_MS) {
+@@ -241,7 +263,8 @@ var CaptivePortalWatcher = {
  
    _captivePortalGone(aSuccess) {
      this._cancelDelayedCaptivePortal();
@@ -28,7 +71,7 @@ index 4f332f0..09ba614 100644
  
      let durationInSeconds = Math.round(
        (Date.now() - this._bannerDisplayTime) / 1000
-@@ -317,10 +327,20 @@ var CaptivePortalWatcher = {
+@@ -317,10 +340,20 @@ var CaptivePortalWatcher = {
    },
  
    _showNotification() {
@@ -50,7 +93,7 @@ index 4f332f0..09ba614 100644
      Glean.networking.captivePortalBannerDisplayed.add(1);
      this._bannerDisplayTime = Date.now();
  
-@@ -344,6 +364,7 @@ var CaptivePortalWatcher = {
+@@ -344,6 +377,7 @@ var CaptivePortalWatcher = {
  
      let closeHandler = aEventName => {
        if (aEventName == "dismissed") {
@@ -58,7 +101,7 @@ index 4f332f0..09ba614 100644
          let durationInSeconds = Math.round(
            (Date.now() - this._bannerDisplayTime) / 1000
          );
-@@ -351,6 +372,7 @@ var CaptivePortalWatcher = {
+@@ -351,6 +385,7 @@ var CaptivePortalWatcher = {
          Glean.networking.captivePortalBannerDisplayTime.dismiss.add(
            durationInSeconds
          );
@@ -66,7 +109,7 @@ index 4f332f0..09ba614 100644
        }
  
        if (aEventName != "removed") {
-@@ -359,25 +381,51 @@ var CaptivePortalWatcher = {
+@@ -359,25 +394,62 @@ var CaptivePortalWatcher = {
        gBrowser.tabContainer.removeEventListener("TabSelect", this);
      };
  
@@ -102,10 +145,6 @@ index 4f332f0..09ba614 100644
      gBrowser.tabContainer.addEventListener("TabSelect", this);
    },
  
--  _removeNotification() {
--    let n = this._captivePortalNotification;
--    if (!n || !n.parentNode) {
--      return;
 +  _portalNotificationsInDOM() {
 +    if (!gNotificationBox._stack) {
 +      return [];
@@ -123,11 +162,24 @@ index 4f332f0..09ba614 100644
 +      if (n.parentNode) {
 +        gNotificationBox.removeNotification(n, true);
 +      }
-     }
--    n.close();
++    }
 +  },
 +
-+  _removeNotification() {
+   _removeNotification() {
+-    let n = this._captivePortalNotification;
+-    if (!n || !n.parentNode) {
++    this._removeAllPortalNotifications();
++  },
++
++  // Tear down the bar whenever the service says the network is not locked.
++  // login-success/abort are not the only paths to UNLOCKED_PORTAL / NOT_CAPTIVE
++  // (periodic recheck Complete() and some network changes never emit them).
++  _syncIfUnlocked() {
++    if (this._cps.state == this._cps.LOCKED_PORTAL) {
+       return;
+     }
+-    n.close();
++    this._userDismissed = false;
 +    this._removeAllPortalNotifications();
    },
  
