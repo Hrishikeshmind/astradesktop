@@ -163,7 +163,10 @@ jobs:
         if: ${{ !(inputs['generate-gpo'] && matrix.arch == 'aarch64') }}
         timeout-minutes: 45
         env:
-          MOZ_AUTOMATION: "1"
+          # Do not set MOZ_AUTOMATION here. With MOZ_AUTOMATION=1, moz.configure's
+          # bootstrap_default is False and toolchain installs (clang under
+          # ~/.mozbuild) become a silent no-op — run #143 failed that way even
+          # though --exclude vs correctly avoided the VS/SDK hang.
           MACH_HIDE_DEV_DRIVE_SUGGESTION: "1"
           SURFER_PLATFORM: win32
         shell: bash
@@ -175,14 +178,23 @@ jobs:
           # auto_bootstrap re-downloads Win11SDK cab files with no socket
           # timeout and the step can sit silent until the 6h job limit.
           ./mach --no-interactive bootstrap --application-choice browser --exclude vs
-          ls ~/.mozbuild/clang/lib/clang/
-          CLANG_DIR=$(ls -d ~/.mozbuild/clang/lib/clang/*/  2>/dev/null | head -1)
-          if [ -z "$CLANG_DIR" ]; then
-            CLANG_DIR=$(find ~/.mozbuild/clang/lib/clang -maxdepth 1 -type d | tail -1)/
+          # bash -e: never let a missing ls abort before we emit a clear error.
+          CLANG_DIR=$(ls -d ~/.mozbuild/clang/lib/clang/*/ 2>/dev/null | head -1 || true)
+          if [ -z "${CLANG_DIR}" ]; then
+            CLANG_DIR=$(find ~/.mozbuild/clang/lib/clang -maxdepth 1 -mindepth 1 -type d 2>/dev/null | tail -1 || true)
+            if [ -n "${CLANG_DIR}" ]; then
+              CLANG_DIR="${CLANG_DIR}/"
+            fi
           fi
-          if [ -n "$CLANG_DIR" ]; then
-            echo "export LIB=\"${CLANG_DIR}lib/windows\"" >> ../configs/common/mozconfig
+          if [ -z "${CLANG_DIR}" ] || [ ! -d "${CLANG_DIR}" ]; then
+            echo "::error::clang toolchain missing under ~/.mozbuild/clang after bootstrap"
+            ls -la ~/.mozbuild 2>/dev/null || true
+            ls -la ~/.mozbuild/clang 2>/dev/null || true
+            exit 1
           fi
+          echo "Using clang at ${CLANG_DIR}"
+          ls "${CLANG_DIR}" || true
+          echo "export LIB=\"${CLANG_DIR}lib/windows\"" >> ../configs/common/mozconfig
           cat ../configs/common/mozconfig || true
           ls "${{ runner.temp }}/win-cross/wine" || true
           ls "${{ runner.temp }}/win-cross/vs2026" || true
