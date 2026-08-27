@@ -69,8 +69,35 @@
       width: fit-content;
     }
 
-    &:root[zen-right-side="true"] #zen-sidebar-top-buttons .titlebar-buttonbox-container {
-      margin-right: calc(-1 * var(--zen-toolbox-padding));
+    /*
+     * Windows captions live in #zen-sidebar-top-buttons when tabs are on the
+     * right (ZenUIManager doNotChangeWindowButtons). The previous rule used
+     * margin-right: calc(-1 * var(--zen-toolbox-padding)), which cancelled the
+     * toolbox's padding-right and pulled min/close onto the AI toggle.
+     *
+     * Left/macOS equivalent: .titlebar-buttonbox-container uses
+     * margin-inline-end: 8px after traffic lights, and Only Sidebar uses an
+     * 8px #zen-sidebar-top-buttons-separator between icon groups. Mirror that
+     * as margin-inline-start before Windows captions. Pack the icon cluster
+     * toward the captions so AI (last in the strip) stays visible instead of
+     * overflowing under min/close.
+     */
+    &:root[zen-right-side="true"][zen-sidebar-expanded="true"]
+      #zen-sidebar-top-buttons:has(> .titlebar-buttonbox-container) {
+      & > #zen-sidebar-top-buttons-customization-target {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: clip;
+        justify-content: flex-end;
+      }
+
+      & > .titlebar-buttonbox-container {
+        margin-left: 0;
+        margin-right: 0;
+        margin-inline-start: 8px;
+        margin-inline-end: 0;
+        flex-shrink: 0;
+      }
     }
   }
 }
