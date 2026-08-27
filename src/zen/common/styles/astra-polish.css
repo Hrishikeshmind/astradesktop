@@ -87,6 +87,11 @@
   outline-offset: 1px;
 }
 
+#zen-toggle-window-scheme,
+#astra-ai-sidebar-toolbarbutton {
+  cursor: pointer;
+}
+
 #urlbar:not([breakout-extend]):hover .urlbar-background {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 8%, transparent);
 }

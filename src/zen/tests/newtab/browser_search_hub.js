@@ -72,14 +72,27 @@ add_task(async function test_search_hub_overrides_newtab_url() {
       "Search Hub points AboutNewTab at the packaged chrome page"
     );
     Assert.ok(
+      AboutNewTab.newTabURLOverridden,
+      "AboutNewTab reports the New Tab URL as overridden"
+    );
+    Assert.ok(
       !gZenUIManager.handleNewTab(false, false, "tab"),
       "Search Hub does not intercept Ctrl+T as the URL-bar overlay"
+    );
+    Assert.equal(
+      BROWSER_NEW_TAB_URL,
+      SEARCH_HUB_URL,
+      "BROWSER_NEW_TAB_URL follows the Search Hub override"
     );
   } finally {
     gZenUIManager.testingEnabled = originalTesting;
     await SpecialPowers.popPrefEnv();
     ZenAstraNTP.apply();
   }
+  Assert.ok(
+    !AboutNewTab.newTabURLOverridden,
+    "Switching back to Minimal clears the New Tab override"
+  );
   Assert.notEqual(
     AboutNewTab.newTabURL,
     SEARCH_HUB_URL,

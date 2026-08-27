@@ -81,7 +81,8 @@ export const ZenAstraNTP = {
   _restoreDefaultNewTab() {
     try {
       if (typeof lazy.AboutNewTab.resetNewTabURL === "function") {
-        if (lazy.AboutNewTab.overridden) {
+        // Firefox exposes newTabURLOverridden (not "overridden").
+        if (lazy.AboutNewTab.newTabURLOverridden) {
           lazy.AboutNewTab.resetNewTabURL();
         }
         return;
