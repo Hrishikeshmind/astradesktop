@@ -142,10 +142,7 @@ class nsZenUIMigration {
         );
         // User has clicked on "Learn More"
         if (buttonPressed === 0) {
-          win.openTrustedLinkIn(
-            "https://github.com/Hrishikeshmind/astradesktop",
-            "tab"
-          );
+          win.openTrustedLinkIn("about:astra-features", "tab");
         }
       }, 1000);
     });
