@@ -183,3 +183,45 @@ add_task(async function test_overlay_in_compact_mode_leaves_previous_tab() {
     gZenCompactModeManager.preference = origCompact;
   }
 });
+
+add_task(async function test_overlay_survives_blur_before_uri_updates() {
+  // Regression: handleCommand → _loadURL blurs the urlbar and endLayoutExtend
+  // called handleUrlbarClose(false, false) while currentURI was still
+  // about:blank, which discarded the overlay tab and aborted the load.
+  await withOverlayNewTab(async ({ prevTab, overlayTab }) => {
+    const loaded = BrowserTestUtils.browserLoaded(
+      overlayTab.linkedBrowser,
+      false,
+      url => url.startsWith(NEXT_URL)
+    );
+    gURLBar.value = NEXT_URL;
+    gURLBar.handleCommand(new KeyboardEvent("keydown", { key: "Enter" }));
+
+    // Simulate the blur/endLayoutExtend close racing ahead of the URI update.
+    if (gURLBar.hasAttribute("zen-newtab")) {
+      Assert.ok(
+        gZenUIManager._overlayLoadPending ||
+          overlayTab.linkedBrowser.busy ||
+          overlayTab.linkedBrowser.isLoadingDocument ||
+          overlayTab.linkedBrowser.currentURI.spec.startsWith(NEXT_URL),
+        "Overlay load was marked pending (or already committed) before discard"
+      );
+      gZenUIManager.handleUrlbarClose(false, false);
+    }
+
+    await loaded;
+    Assert.ok(
+      !overlayTab.closing && overlayTab.isConnected,
+      "Overlay tab is not discarded by the blur-before-URI race"
+    );
+    Assert.equal(
+      prevTab.linkedBrowser.currentURI.spec,
+      PREV_URL,
+      "Previous tab is unchanged after the blur race"
+    );
+    Assert.ok(
+      gBrowser.selectedTab.linkedBrowser.currentURI.spec.startsWith(NEXT_URL),
+      "Navigation still lands in the overlay tab"
+    );
+  });
+});

@@ -666,6 +666,9 @@ window.gZenUIManager = {
   _clearTimeout: null,
   _lastTab: null,
   _overlayTab: null,
+  // Set when a zen-newtab overlay navigation targets _overlayTab, before the
+  // urlbar blur/endLayoutExtend can discard that still-blank tab.
+  _overlayLoadPending: false,
 
   // Check if browser elements are in a valid state for tab operations
   _validateBrowserState() {
@@ -757,6 +760,7 @@ window.gZenUIManager = {
     // overlay down. Suggestion clicks must target this tab, not _lastTab.
     // Skip for Glance / split-view (overridePreferance): those wait on the
     // next TabSelect after a result is picked.
+    this._overlayLoadPending = false;
     this._overlayTab = overridePreferance ? null : this._ensureOverlayTab();
 
     // Store URL bar state
@@ -811,14 +815,31 @@ window.gZenUIManager = {
     // currentURI is still about:blank. Cancel / open-elsewhere leaves a
     // leftover blank tab that should be removed.
     if (onElementPicked && gBrowser.selectedTab === overlayTab) {
+      this._overlayLoadPending = false;
       return;
     }
-    const spec = overlayTab.linkedBrowser?.currentURI?.spec;
+    const browser = overlayTab.linkedBrowser;
+    const spec = browser?.currentURI?.spec;
     const stillBlank =
       overlayTab.isEmpty || spec === "about:blank" || spec === "about:newtab";
     if (!stillBlank) {
+      this._overlayLoadPending = false;
       return;
     }
+    // Typed Enter / _loadURL blurs the urlbar (endLayoutExtend) before the
+    // document URI updates — and often before browser.busy is set. The
+    // UrlbarInput zen-newtab path sets _overlayLoadPending when navigation
+    // targets this tab; keep it so Compact Mode "+" is not a no-op.
+    if (
+      gBrowser.selectedTab === overlayTab &&
+      (this._overlayLoadPending ||
+        browser?.busy ||
+        browser?.isLoadingDocument)
+    ) {
+      this._overlayLoadPending = false;
+      return;
+    }
+    this._overlayLoadPending = false;
     if (
       gBrowser.selectedTab === overlayTab &&
       this._lastTab &&
