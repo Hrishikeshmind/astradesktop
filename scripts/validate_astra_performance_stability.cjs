@@ -253,6 +253,11 @@ if (exists(zenPath)) {
       "zen.js still contains Astra-generated dom.ipc.processCount override (regenerate ffprefs)"
     );
   } else ok("zen.js has no Astra processCount override");
+  if (zenPref(zen, "captivedetect.canonicalContent") === "") {
+    fail(
+      "zen.js must not empty captivedetect.canonicalContent while URL is canonical.html"
+    );
+  } else ok("zen.js does not empty captivedetect.canonicalContent");
   if (/javascript\.options\.asmjs/.test(zen) && /asmjs\",\s*true/.test(zen)) {
     fail("zen.js forces asmjs true");
   } else ok("zen.js does not force asmjs true");

@@ -71,12 +71,16 @@ index 4f332f0..09ba614 100644
  
      let durationInSeconds = Math.round(
        (Date.now() - this._bannerDisplayTime) / 1000
-@@ -317,10 +340,20 @@ var CaptivePortalWatcher = {
+@@ -317,10 +340,24 @@ var CaptivePortalWatcher = {
    },
  
    _showNotification() {
 -    if (this._captivePortalNotification) {
 +    if (this._userDismissed) {
++      return;
++    }
++
++    if (this._cps && this._cps.state != this._cps.LOCKED_PORTAL) {
 +      return;
 +    }
 +

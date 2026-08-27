@@ -160,3 +160,23 @@ add_task(async function test_check_complete_clears_when_not_locked() {
   await freePortal(true);
   Assert.equal(portalNodes().length, 0, "Success/abort still clears leftover state");
 });
+
+add_task(async function test_canonical_content_matches_html_endpoint() {
+  const url = Services.prefs.getCharPref("captivedetect.canonicalURL");
+  const content = Services.prefs.getCharPref("captivedetect.canonicalContent");
+  Assert.ok(
+    url.includes("detectportal.firefox.com"),
+    "Still uses Mozilla detectportal"
+  );
+  if (url.includes("canonical.html")) {
+    Assert.greater(
+      content.length,
+      0,
+      "canonical.html must not have empty expected content (that always reports LOCKED_PORTAL)"
+    );
+    Assert.ok(
+      content.includes("captive-portal"),
+      "Expected body matches the detectportal HTML contract"
+    );
+  }
+});

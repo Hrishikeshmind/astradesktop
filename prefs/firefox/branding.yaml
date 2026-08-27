@@ -9,8 +9,9 @@
 # detectportal.firefox.com is kept intentionally: it is Mozilla-operated
 # connectivity-check infrastructure with no user-visible branding. Replacing
 # it would require Astra-hosted captive-portal detection endpoints.
-
-# generate_204 expects empty canonical content; a non-empty string causes
-# false-positive captive portal notifications on normal networks.
-- name: captivedetect.canonicalContent
-  value: ""
+#
+# Do NOT override captivedetect.canonicalContent. This Firefox tree still
+# uses captivedetect.canonicalURL = .../canonical.html, whose body is the
+# support.mozilla.org meta-refresh string in all.js/greprefs.js. An empty
+# expected body (correct for generate_204, bug 2052715) makes every 200
+# response look like a captive portal and permanently LOCKED_PORTAL.

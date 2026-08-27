@@ -760,6 +760,19 @@ toolbaritem[id$="-browser-action"] {
 
 /* Notification Stack */
 
+.notificationbox-stack notification-message {
+  --astra-infobar-dark-bg: #5c6070;
+  --astra-infobar-dark-fg: #f4f5f7;
+  --info-bar-background-color-configurable: light-dark(
+    color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%),
+    var(--astra-infobar-dark-bg)
+  );
+  --info-bar-background-color: var(--info-bar-background-color-configurable);
+  --info-bar-text-color: light-dark(CanvasText, var(--astra-infobar-dark-fg));
+  background-color: var(--info-bar-background-color) !important;
+  color: var(--info-bar-text-color) !important;
+}
+
 .notificationbox-stack {
   background: transparent;
 
@@ -778,13 +791,28 @@ toolbaritem[id$="-browser-action"] {
     z-index: 9999;
 
     & notification-message {
-      background: light-dark(
+      /*
+       * Dark: --zen-surface-raised (#22242b) is only 1.23:1 against the
+       * page floor (#0f1013), so the toast vanished on dark sites.
+       * Fill #5c6070 is 3.05:1 vs that floor (WCAG 1.4.11); copy
+       * #f4f5f7 on that fill is 5.73:1 (WCAG 1.4.3 AA). --info-bar-*
+       * configurable vars inherit into the infobar shadow.
+       */
+      --astra-infobar-dark-bg: #5c6070;
+      --astra-infobar-dark-fg: #f4f5f7;
+      --info-bar-background-color-configurable: light-dark(
         color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%),
-        var(--zen-surface-raised)
+        var(--astra-infobar-dark-bg)
       );
-      color: light-dark(CanvasText, var(--zen-text-primary));
+      --info-bar-background-color: var(--info-bar-background-color-configurable);
+      --info-bar-text-color: light-dark(CanvasText, var(--astra-infobar-dark-fg));
+      --message-bar-background-color: var(--info-bar-background-color);
+      --message-bar-text-color: var(--info-bar-text-color);
+      background: var(--info-bar-background-color) !important;
+      color: var(--info-bar-text-color) !important;
       backdrop-filter: light-dark(blur(10px), none);
-      border: 1px solid light-dark(var(--arrowpanel-border-color), var(--zen-colors-border));
+      border: 1px solid light-dark(var(--arrowpanel-border-color), #b8bac6);
+      box-shadow: light-dark(none, 0 8px 24px rgba(0, 0, 0, 0.55));
       border-radius: var(--zen-border-radius);
 
       &::before {

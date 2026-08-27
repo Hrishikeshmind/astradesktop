@@ -1,8 +1,22 @@
 diff --git a/toolkit/components/captivedetect/CaptiveDetect.sys.mjs b/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
-index 72d9a3a..2e017b6 100644
 --- a/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
 +++ b/toolkit/components/captivedetect/CaptiveDetect.sys.mjs
-@@ -412,6 +412,15 @@ CaptivePortalDetector.prototype = {
+@@ -358,6 +358,14 @@
+   },
+ 
+   _startDetection: function _startDetection() {
++    try {
++      this._canonicalSiteURL = Services.prefs.getCharPref(
++        "captivedetect.canonicalURL"
++      );
++      this._canonicalSiteExpectedContent = Services.prefs.getCharPref(
++        "captivedetect.canonicalContent"
++      );
++    } catch (e) {}
+     debug(
+       "startDetection {site=" +
+         this._canonicalSiteURL +
+@@ -412,6 +420,15 @@
    },
  
    _startLogin: function _startLogin() {
@@ -18,3 +32,22 @@ index 72d9a3a..2e017b6 100644
      let id = this._allocateRequestId();
      let details = {
        type: kOpenCaptivePortalLoginEvent,
+@@ -471,6 +488,18 @@
+   validateContent: function validateContent(content) {
+     debug("received content: " + content);
+     let valid = content === this._canonicalSiteExpectedContent;
++    if (!valid) {
++      try {
++        Services.console.logStringMessage(
++          "CPDETECT mismatch url=" +
++            this._canonicalSiteURL +
++            " expectedLen=" +
++            (this._canonicalSiteExpectedContent || "").length +
++            " gotLen=" +
++            (content || "").length
++        );
++      } catch (e) {}
++    }
+     // We need a way to indicate that a check has been performed, and if we are
+     // still in a captive portal.
+     this._sendEvent(kCaptivePortalCheckComplete, !valid);

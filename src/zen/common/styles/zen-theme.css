@@ -347,22 +347,22 @@
 
 /*
  * notification-message / infobar adopt zen-theme.css into the shadow.
- * Firefox default dark infobar is rgb(66,65,77) (~#42414d) — the flat
- * mid-gray. Paint the elevated plane instead; keep light's mix.
+ * Dark fill is #5c6070 (3.05:1 vs page #0f1013), not --zen-surface-raised
+ * which only measured 1.23:1 and disappeared over dark content.
  */
 :host(.infobar),
 :host(notification-message) {
   --info-bar-background-color: light-dark(
     color-mix(in srgb, var(--zen-colors-tertiary) 70%, transparent 30%),
-    var(--zen-surface-raised)
+    #5c6070
   ) !important;
   --info-bar-text-color: light-dark(
     var(--color-gray-100, CanvasText),
-    var(--zen-text-primary)
+    #f4f5f7
   );
   background-color: var(--info-bar-background-color) !important;
   color: var(--info-bar-text-color);
-  border-color: light-dark(var(--arrowpanel-border-color, transparent), var(--zen-colors-border));
+  border-color: light-dark(var(--arrowpanel-border-color, transparent), #b8bac6);
 
   --message-bar-background-color: var(--info-bar-background-color);
   --message-bar-text-color: var(--info-bar-text-color);
