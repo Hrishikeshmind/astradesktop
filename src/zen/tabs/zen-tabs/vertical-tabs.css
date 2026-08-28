@@ -940,6 +940,11 @@
     justify-content: center;
   }
 
+  & #zen-sidebar-top-buttons-customization-target > #tabs-newtab-button {
+    display: flex !important;
+    min-height: var(--tab-min-height);
+  }
+
   /* Size the footer to its icons and pin it to the bottom of the 1fr
    * #TabsToolbar row. The newtab pack used justify-content: flex-start on
    * every TabsToolbar child, which also hit this toolbar; combined with

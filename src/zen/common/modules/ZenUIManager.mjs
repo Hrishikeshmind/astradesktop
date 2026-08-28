@@ -1237,6 +1237,12 @@ window.gZenVerticalTabsManager = {
     this._updateEvent();
     this._initOnlySidebarAiButton();
 
+    gZenWorkspaces.addChangeListeners(() => {
+      this._syncCollapsedRailNewTab(
+        document.getElementById("zen-sidebar-top-buttons-customization-target")
+      );
+    });
+
     if (!this.isWindowsStyledButtons) {
       document.documentElement.setAttribute(
         "zen-window-buttons-reversed",
@@ -1490,6 +1496,81 @@ window.gZenVerticalTabsManager = {
       compact.after(ai);
     }
     this._syncAiSidebarButton();
+  },
+
+  _collapsedRailNewTabSlots: new Map(),
+
+  _restoreCollapsedRailNewTabButtons() {
+    for (const [btn, slot] of this._collapsedRailNewTabSlots) {
+      if (!slot?.parent?.isConnected) {
+        continue;
+      }
+      try {
+        slot.parent.insertBefore(btn, slot.nextSibling);
+      } catch (_) {
+        /* slot parent may have been rebuilt */
+      }
+      btn.removeAttribute("zen-collapsed-rail-newtab");
+    }
+    this._collapsedRailNewTabSlots.clear();
+  },
+
+  /**
+   * Collapsed rail: park the active workspace New Tab control in the top
+   * strip directly under AI so it reads as part of the icon stack (not
+   * buried in the tab-list periphery mid-column).
+   */
+  _syncCollapsedRailNewTab(target, { forCustomizableMode = false } = {}) {
+    if (
+      forCustomizableMode ||
+      document.documentElement.hasAttribute("customizing")
+    ) {
+      this._restoreCollapsedRailNewTabButtons();
+      return;
+    }
+
+    const isVerticalTabs = this._prefsVerticalTabs;
+    const isSidebarExpanded = this._prefsSidebarExpanded || !isVerticalTabs;
+    const showNewTab = Services.prefs.getBoolPref(
+      "zen.tabs.show-newtab-vertical",
+      true
+    );
+
+    if (!isVerticalTabs || isSidebarExpanded || !showNewTab || !target) {
+      this._restoreCollapsedRailNewTabButtons();
+      return;
+    }
+
+    const newTab = gZenWorkspaces.activeWorkspaceElement?.newTabButton;
+    if (!newTab) {
+      return;
+    }
+
+    for (const [btn, slot] of [...this._collapsedRailNewTabSlots]) {
+      if (btn !== newTab && target.contains(btn)) {
+        slot.parent?.insertBefore(btn, slot.nextSibling);
+        btn.removeAttribute("zen-collapsed-rail-newtab");
+        this._collapsedRailNewTabSlots.delete(btn);
+      }
+    }
+
+    if (!this._collapsedRailNewTabSlots.has(newTab)) {
+      this._collapsedRailNewTabSlots.set(newTab, {
+        parent: newTab.parentElement,
+        nextSibling: newTab.nextElementSibling,
+      });
+    }
+
+    newTab.removeAttribute("hidden");
+    newTab.setAttribute("overflows", "false");
+
+    const ai = document.getElementById("astra-ai-sidebar-button");
+    if (ai && target.contains(ai)) {
+      ai.after(newTab);
+    } else if (!target.contains(newTab)) {
+      target.append(newTab);
+    }
+    newTab.setAttribute("zen-collapsed-rail-newtab", "true");
   },
 
   _hideOnlySidebarAiButton() {
@@ -2168,6 +2249,7 @@ window.gZenVerticalTabsManager = {
       } else {
         this._placeAiButtonForNonOnlySidebar(aiTarget);
       }
+      this._syncCollapsedRailNewTab(aiTarget, { forCustomizableMode });
 
       // Collapsed rail: XUL flex="1" on #zen-sidebar-top-buttons stretches the
       // strip and vertically centers Compact / AI mid-column. Pin flex to 0

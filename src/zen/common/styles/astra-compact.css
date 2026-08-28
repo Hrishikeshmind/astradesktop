@@ -543,6 +543,11 @@
     justify-content: flex-start !important;
   }
 
+  & #zen-sidebar-top-buttons-customization-target > #tabs-newtab-button {
+    display: flex !important;
+    min-height: var(--tab-min-height);
+  }
+
   & #zen-overflow-extensions-list {
     display: none !important;
   }
