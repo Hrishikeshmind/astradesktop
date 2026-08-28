@@ -194,6 +194,7 @@ window.gZenCompactModeManager = {
     window.addEventListener("resize", () =>
       this._invalidateSidebarBoundsCache()
     );
+    this._initDevToolsBoundsListener();
     window.addEventListener("fullscreen", () => {
       this._invalidateSidebarBoundsCache();
       this._clearEdgeRevealState();
@@ -1205,20 +1206,139 @@ window.gZenCompactModeManager = {
     this._cachedSidebarHandoffExtent = null;
   },
 
+  _initDevToolsBoundsListener() {
+    if (this._devtoolsBoundsListenerBound) {
+      return;
+    }
+    this._devtoolsBoundsListenerBound = true;
+
+    const invalidate = () => this._invalidateSidebarBoundsCache();
+
+    const hookDevTools = () => {
+      try {
+        const { gDevTools } = ChromeUtils.importESModule(
+          "resource://devtools/client/framework/devtools.js",
+          { global: "contextual" }
+        );
+        if (!gDevTools || this._devtoolsBoundsHooked) {
+          return;
+        }
+        this._devtoolsBoundsHooked = true;
+        gDevTools.on("toolbox-ready", invalidate);
+        gDevTools.on("toolbox-destroyed", invalidate);
+        gDevTools.on("toolbox-host-changed", invalidate);
+        gDevTools.on("toolbox-resize", invalidate);
+      } catch (_e) {
+        // Retry once DevTools has finished injecting its keyset.
+      }
+    };
+
+    window.addEventListener("zen-devtools-keyset-added", hookDevTools, {
+      once: true,
+    });
+    Services.tm.dispatchToMainThread(hookDevTools);
+
+    const host =
+      document.getElementById("browser") ||
+      document.getElementById("tabbrowser-tabbox") ||
+      document.documentElement;
+    this._devtoolsBoundsObserver = new MutationObserver(invalidate);
+    this._devtoolsBoundsObserver.observe(host, {
+      attributes: true,
+      attributeFilter: ["hidden", "style", "width", "height"],
+      subtree: true,
+    });
+  },
+
+  _getDevToolsChromeInsets() {
+    const insets = { top: 0, bottom: 0, left: 0, right: 0 };
+    if (window.closed) {
+      return insets;
+    }
+
+    // Prefer live toolbox geometry when DevTools is docked in this window.
+    try {
+      const { gDevTools } = ChromeUtils.importESModule(
+        "resource://devtools/client/framework/devtools.js",
+        { global: "contextual" }
+      );
+      const toolbox = gDevTools?.getToolboxForTab(window.gBrowser?.selectedTab);
+      if (toolbox && toolbox.host !== "window") {
+        const node = toolbox.frame || toolbox.win?.document?.documentElement;
+        const rect = node?.getBoundingClientRect?.();
+        if (rect?.width > 0 && rect?.height > 0) {
+          switch (toolbox.host) {
+            case "bottom":
+              insets.bottom = Math.max(0, window.innerHeight - rect.top);
+              break;
+            case "right":
+              insets.right = Math.max(0, window.innerWidth - rect.left);
+              break;
+            case "left":
+              insets.left = Math.max(0, rect.right);
+              break;
+          }
+        }
+      }
+    } catch (_e) {
+      // DevTools module unavailable during early startup — fall through to DOM probes.
+    }
+
+    if (!insets.bottom) {
+      for (const id of [
+        "devtools-toolbox-bottom-iframe",
+        "devtools-toolbox-bottom-anchor",
+      ]) {
+        const el = document.getElementById(id);
+        if (!el || el.hidden) {
+          continue;
+        }
+        const rect = el.getBoundingClientRect();
+        if (rect.height > 0) {
+          insets.bottom = Math.max(insets.bottom, window.innerHeight - rect.top);
+        }
+      }
+    }
+
+    if (!insets.right && !insets.left) {
+      for (const id of [
+        "devtools-toolbox-side-iframe",
+        "devtools-toolbox-side-anchor",
+      ]) {
+        const el = document.getElementById(id);
+        if (!el || el.hidden) {
+          continue;
+        }
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 0) {
+          continue;
+        }
+        if (rect.left > window.innerWidth / 2) {
+          insets.right = Math.max(insets.right, window.innerWidth - rect.left);
+        } else {
+          insets.left = Math.max(insets.left, rect.right);
+        }
+      }
+    }
+
+    return insets;
+  },
+
   _getSidebarVerticalBounds() {
     if (this._cachedSidebarVerticalBounds) {
       return this._cachedSidebarVerticalBounds;
     }
     const rect = this.sidebar.getBoundingClientRect();
+    const devtoolsInsets = this._getDevToolsChromeInsets();
     if (rect.height < 1) {
       this._cachedSidebarVerticalBounds = {
-        top: 0,
-        bottom: window.innerHeight,
+        top: devtoolsInsets.top,
+        bottom: window.innerHeight - devtoolsInsets.bottom,
       };
     } else {
       this._cachedSidebarVerticalBounds = {
-        top: rect.top,
-        bottom: rect.bottom,
+        top: Math.max(rect.top, devtoolsInsets.top),
+        bottom: Math.min(rect.bottom, window.innerHeight - devtoolsInsets.bottom),
       };
     }
     return this._cachedSidebarVerticalBounds;
@@ -1703,9 +1823,10 @@ window.gZenCompactModeManager = {
 
   _isPointerOnSidebarEdge(clientX, clientY) {
     const threshold = this.EDGE_HIT_SIZE;
+    const devtoolsInsets = this._getDevToolsChromeInsets();
     const onEdgeX = this.sidebarIsOnRight
-      ? window.innerWidth - clientX <= threshold
-      : clientX <= threshold;
+      ? window.innerWidth - devtoolsInsets.right - clientX <= threshold
+      : clientX - devtoolsInsets.left <= threshold;
     if (!onEdgeX) {
       return false;
     }
