@@ -1,0 +1,93 @@
+diff --git a/browser/components/translations/content/fullPageTranslationsPanel.js b/browser/components/translations/content/fullPageTranslationsPanel.js
+--- a/browser/components/translations/content/fullPageTranslationsPanel.js
++++ b/browser/components/translations/content/fullPageTranslationsPanel.js
+@@ -392,12 +392,12 @@
+    * Use `#getCachedDetectedLanguages` when the lang tags do not need to be re-fetched.
+    * This requires a bit of work to do, so prefer the cached version when possible.
+    *
+-   * @returns {Promise<LangTags | null>}
++   * @returns {Promise<LangTags>}
+    */
+   async #fetchDetectedLanguages() {
+     this.detectedLanguages = await TranslationsParent.getTranslationsActor(
+       gBrowser.selectedBrowser
+-    ).getLangTags();
++    ).getDetectedLanguages();
+     return this.detectedLanguages;
+   }
+ 
+@@ -405,7 +405,7 @@
+    * If the detected language tags have been retrieved previously, return the cached
+    * version. Otherwise do a fresh lookup of the document's language tag.
+    *
+-   * @returns {Promise<LangTags | null>}
++   * @returns {Promise<LangTags>}
+    */
+   async #getCachedDetectedLanguages() {
+     if (!this.detectedLanguages) {
+@@ -438,20 +438,9 @@
+       gBrowser.selectedBrowser
+     ).languageState
+   ) {
+-    const {
+-      translateButton,
+-      toMenuList,
+-      fromMenuList,
+-      header,
+-      cancelButton,
+-      intro,
+-    } = this.elements;
++    const { translateButton, toMenuList, fromMenuList, header, cancelButton } =
++      this.elements;
+     const { requestedLanguagePair, isEngineReady } = languageState;
+-
+-    if (TranslationsPanelShared.getLangListsInitState(this) === "error") {
+-      translateButton.disabled = true;
+-      return;
+-    }
+ 
+     // Remove the model variant. e.g. "ru,base" -> "ru"
+     const selectedFrom = fromMenuList.value.split(",")[0];
+@@ -512,12 +501,6 @@
+         fromLanguage: languageDisplayNames.of(sourceLanguage),
+         toLanguage: languageDisplayNames.of(targetLanguage),
+       });
+-    } else if (
+-      !requestedLanguagePair &&
+-      !intro.hidden &&
+-      !TranslationsParent.hasUserEverTranslated()
+-    ) {
+-      document.l10n.setAttributes(header, "translations-panel-intro-header");
+     } else {
+       document.l10n.setAttributes(header, "translations-panel-header");
+     }
+@@ -578,10 +561,10 @@
+       header,
+     } = this.elements;
+ 
++    this.#updateViewFromTranslationStatus();
++
+     // Unconditionally hide the intro text in case the panel is re-shown.
+     intro.hidden = true;
+-
+-    this.#updateViewFromTranslationStatus();
+ 
+     if (TranslationsPanelShared.getLangListsInitState(this) === "error") {
+       // There was an error, display it in the view rather than the language
+@@ -600,7 +583,6 @@
+       cancelButton.hidden = false;
+       langSelection.hidden = true;
+       errorHintAction.disabled = false;
+-      document.l10n.setAttributes(header, "translations-panel-header");
+       return;
+     }
+ 
+@@ -983,7 +965,7 @@
+       gBrowser.selectedBrowser.browsingContext.top.embedderElement
+         .documentGlobal;
+     window.openTrustedLinkIn(
+-      "https://support.mozilla.org/kb/website-translation",
++      "about:astra-translations",
+       "tab",
+       {
+         forceForeground: true,
