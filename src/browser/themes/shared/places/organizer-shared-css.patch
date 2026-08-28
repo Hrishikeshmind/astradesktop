@@ -1,11 +1,14 @@
 diff --git a/browser/themes/shared/places/organizer-shared.css b/browser/themes/shared/places/organizer-shared.css
-index fe6b79cfc2453927c324a044bd62040f866def95..a93813c76ba3633c365a739289b39187c0d1e881 100644
 --- a/browser/themes/shared/places/organizer-shared.css
 +++ b/browser/themes/shared/places/organizer-shared.css
-@@ -67,6 +67,31 @@
- }
- 
- 
+@@ -49,6 +49,32 @@
+   .expander-up,
+   .expander-down {
+     min-width: 0;
++  }
++}
++
++
 +#places .zenEditBMPanel_fieldContainer {
 +  display: contents;
 +}
@@ -28,9 +31,6 @@ index fe6b79cfc2453927c324a044bd62040f866def95..a93813c76ba3633c365a739289b39187
 +
 +  @media -moz-pref("zen.view.window.scheme", 2) {
 +    color-scheme: light dark;
-+  }
-+}
-+
- #editBMPanel_itemsCountText {
-   grid-column: auto / span 2;
-   justify-self: center;
+   }
+ }
+ 

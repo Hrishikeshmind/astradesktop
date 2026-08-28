@@ -1,86 +1,7 @@
 diff --git a/browser/base/content/utilityOverlay.js b/browser/base/content/utilityOverlay.js
 --- a/browser/base/content/utilityOverlay.js
 +++ b/browser/base/content/utilityOverlay.js
-@@ -16,15 +16,12 @@
-     "moz-src:///browser/components/aiwindow/ui/modules/AIWindow.sys.mjs",
-   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
-   BrowserWindowTracker: "resource:///modules/BrowserWindowTracker.sys.mjs",
--  ContainerCreationPanel:
--    "chrome://browser/content/usercontext/ContainerCreationPanel.mjs",
-   ContextualIdentityService:
--    "moz-src:///toolkit/components/contextualidentity/ContextualIdentityService.sys.mjs",
-+    "resource://gre/modules/ContextualIdentityService.sys.mjs",
-   ExtensionSettingsStore:
-     "resource://gre/modules/ExtensionSettingsStore.sys.mjs",
-   ExtensionUtils: "resource://gre/modules/ExtensionUtils.sys.mjs",
-   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
--  Referrals: "resource:///modules/referrals/Referrals.sys.mjs",
-   ShellService: "moz-src:///browser/components/shell/ShellService.sys.mjs",
-   URILoadingHelper: "resource:///modules/URILoadingHelper.sys.mjs",
- });
-@@ -185,7 +182,6 @@
-     excludeUserContextId = 0,
-     showDefaultTab = false,
-     useAccessKeys = true,
--    showAddContainer = true,
-     showManageContainers = true,
-   } = {}
- ) {
-@@ -248,28 +244,9 @@
-     docfrag.appendChild(menuitem);
-   });
- 
--  if (showAddContainer || showManageContainers) {
-+  if (showManageContainers) {
-     docfrag.appendChild(document.createXULElement("menuseparator"));
--  }
--
--  if (showAddContainer) {
--    let menuitem = document.createXULElement("menuitem");
--    if (useAccessKeys) {
--      document.l10n.setAttributes(menuitem, "user-context-add-container");
--    } else {
--      const label = ContextualIdentityService.formatContextLabel(
--        "user-context-add-container"
--      );
--      menuitem.setAttribute("label", label);
--    }
--    menuitem.addEventListener("command", commandEvent => {
--      commandEvent.stopPropagation();
--      ContainerCreationPanel.open(window);
--    });
--    docfrag.appendChild(menuitem);
--  }
--
--  if (showManageContainers) {
-+
-     let menuitem = document.createXULElement("menuitem");
-     if (useAccessKeys) {
-       document.l10n.setAttributes(menuitem, "user-context-manage-containers");
-@@ -279,10 +256,7 @@
-       );
-       menuitem.setAttribute("label", label);
-     }
--    menuitem.addEventListener("command", commandEvent => {
--      commandEvent.stopPropagation();
--      openPreferences("paneContainers");
--    });
-+    menuitem.setAttribute("command", "Browser:OpenAboutContainers");
-     docfrag.appendChild(menuitem);
-   }
- 
-@@ -402,10 +376,6 @@
- 
-   var win = BrowserWindowTracker.getTopWindow() || window;
-   win.openDialog("chrome://browser/content/aboutDialog.xhtml", "", features);
--}
--
--function openReferralsPage() {
--  Referrals.openReferralsTab(window, "help_menu");
- }
- 
- async function openPreferences(paneID, extraArgs) {
-@@ -512,13 +482,7 @@
+@@ -482,13 +482,7 @@
   * Appends UTM parameters to then opens the SUMO URL for device migration.
   */
  function openSwitchingDevicesPage() {
@@ -95,13 +16,3 @@ diff --git a/browser/base/content/utilityOverlay.js b/browser/base/content/utili
  }
  
  function buildHelpMenu() {
-@@ -530,9 +494,6 @@
- 
-   document.getElementById("troubleShooting").disabled =
-     !Services.policies.isAllowed("aboutSupport");
--
--  document.getElementById("menu_referralsPage").hidden =
--    !Services.prefs.getBoolPref("browser.referrals.enabled");
- 
-   let supportMenu = Services.policies.getSupportMenu();
-   if (supportMenu) {
