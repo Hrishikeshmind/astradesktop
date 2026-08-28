@@ -1,10 +1,21 @@
 diff --git a/browser/components/genai/chat.js b/browser/components/genai/chat.js
 --- a/browser/components/genai/chat.js
 +++ b/browser/components/genai/chat.js
-@@ -115,7 +115,61 @@ function openLink(url) {
+@@ -105,6 +105,9 @@ ChromeUtils.defineLazyGetter(
+ 
+ const node = {};
+ 
++// Astra: keep the last N provider frames warm for instant switching.
++const ASTRA_MAX_WARM_PROVIDERS = 3;
++
+ function closeSidebar() {
+   topChromeWindow.SidebarController.hide();
+ }
+@@ -115,28 +118,217 @@ function openLink(url) {
    });
  }
  
+-function request(url = lazy.providerPref) {
 +function showChatLoading() {
 +  const el = document.getElementById("chat-loading");
 +  if (el) {
@@ -54,25 +65,141 @@ diff --git a/browser/components/genai/chat.js b/browser/components/genai/chat.js
 +  }
 +}
 +
- function request(url = lazy.providerPref) {
-+  if (url) {
-+    showChatLoading();
-+  } else {
-+    hideChatLoading();
++function hideAllProviderBrowsers() {
++  for (const browser of node.providerBrowsers?.values() || []) {
++    browser.setAttribute("hidden", "true");
 +  }
++  node.activeProviderUrl = null;
++  node.chat = null;
++}
++
++function evictProviderBrowser(url) {
++  const browser = node.providerBrowsers?.get(url);
++  if (!browser) {
++    return;
++  }
++  if (node.activeProviderUrl === url) {
++    browser.setAttribute("hidden", "true");
++    node.activeProviderUrl = null;
++    node.chat = null;
++  }
++  browser.remove();
++  node.providerBrowsers.delete(url);
++  const lruIndex = node.providerLRU.indexOf(url);
++  if (lruIndex >= 0) {
++    node.providerLRU.splice(lruIndex, 1);
++  }
++}
++
++function touchProviderLRU(url) {
++  const idx = node.providerLRU.indexOf(url);
++  if (idx >= 0) {
++    node.providerLRU.splice(idx, 1);
++  }
++  node.providerLRU.unshift(url);
++  while (node.providerLRU.length > ASTRA_MAX_WARM_PROVIDERS) {
++    evictProviderBrowser(node.providerLRU.at(-1));
++  }
++}
++
++function showProviderBrowser(browser, url) {
++  for (const other of node.providerBrowsers.values()) {
++    other.setAttribute("hidden", "true");
++  }
++  browser.removeAttribute("hidden");
++  node.activeProviderUrl = url;
++  node.chat = browser;
++}
++
++function providerBrowserIsWarm(browser, url) {
++  return (
++    browser &&
++    browser._astraLoadedUrl === url &&
++    browser.currentURI?.spec &&
++    !browser.currentURI.spec.startsWith("about:")
++  );
++}
++
++function loadProviderInBrowser(browser, url) {
++  showChatLoading();
    try {
-     node.chat.fixupAndLoadURIString(url, {
+-    node.chat.fixupAndLoadURIString(url, {
++    browser.fixupAndLoadURIString(url, {
        triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal(
-@@ -136,9 +190,45 @@ function renderChat() {
+         {}
+       ),
+     });
++    browser._astraLoadedUrl = url;
+   } catch (ex) {
+     console.error("Failed to request chat provider", ex);
++    if (node.chat === browser) {
++      hideChatLoading();
++    }
+   }
+ }
+ 
+-function renderChat() {
+-  const browser = document.createXULElement("browser");
++function createProviderBrowser(url) {
+   const browserContainer = document.getElementById("browser-container");
++  const browser = document.createXULElement("browser");
+   browser.setAttribute("disableglobalhistory", "true");
+   browser.setAttribute("maychangeremoteness", "true");
+   browser.setAttribute("messagemanagergroup", "chatbot-browser");
    browser.setAttribute("nodefaultsrc", "true");
    browser.setAttribute("remote", "true");
    browser.setAttribute("type", "content");
+-  return browserContainer.appendChild(browser);
++  browser.setAttribute("hidden", "true");
++  browser.dataset.astraProviderUrl = url;
 +  bindChatLoading(browser);
-   return browserContainer.appendChild(browser);
- }
- 
++  browserContainer.appendChild(browser);
++  return browser;
++}
++
++function request(url = lazy.providerPref, { forceReload = false } = {}) {
++  if (!url) {
++    hideChatLoading();
++    hideAllProviderBrowsers();
++    return;
++  }
++
++  let browser = node.providerBrowsers.get(url);
++  const warm = !forceReload && providerBrowserIsWarm(browser, url);
++
++  if (warm) {
++    showProviderBrowser(browser, url);
++    hideChatLoading();
++    touchProviderLRU(url);
++    return;
++  }
++
++  if (!browser) {
++    browser = createProviderBrowser(url);
++    node.providerBrowsers.set(url, browser);
++  }
++
++  showProviderBrowser(browser, url);
++  touchProviderLRU(url);
++
++  if (forceReload) {
++    browser._astraLoadedUrl = null;
++  }
++  loadProviderInBrowser(browser, url);
++}
++
++function renderChat() {
++  node.providerBrowsers = new Map();
++  node.providerLRU = [];
++  node.activeProviderUrl = null;
++  return null;
++}
++
 +function bindChatLoading(browser) {
 +  const hide = () => {
++    if (node.chat !== browser) {
++      return;
++    }
 +    hideChatLoading();
 +    if (browser._astraLoadTimer) {
 +      clearTimeout(browser._astraLoadTimer);
@@ -104,12 +231,10 @@ diff --git a/browser/components/genai/chat.js b/browser/components/genai/chat.js
 +    console.warn("Astra chat loading listener", ex);
 +  }
 +  browser._astraLoadTimer = setTimeout(hide, 4500);
-+}
-+
+ }
+ 
  async function renderProviders() {
-   // Skip potential pref change callback when unloading
-   if ((await document.visibilityState) == "hidden") {
-@@ -174,8 +264,13 @@ async function renderProviders() {
+@@ -174,8 +366,13 @@ async function renderProviders() {
      if (!lazy.providerPref) {
        showOnboarding();
      }
@@ -123,3 +248,30 @@ diff --git a/browser/components/genai/chat.js b/browser/components/genai/chat.js
    // Clear warning message from different provider
    clearWarningMessage();
  
+@@ -229,7 +426,7 @@ function renderMore() {
+           { provider },
+         ],
+         function reload() {
+-          request();
++          request(lazy.providerPref, { forceReload: true });
+         },
+       ],
+       ["menuseparator"],
+@@ -350,6 +547,9 @@ var browserPromise = new Promise((resolve, reject) => {
+ 
+ addEventListener("unload", () => {
+   node.menu?.remove();
++  for (const url of [...(node.providerLRU || [])]) {
++    evictProviderBrowser(url);
++  }
+   Glean.genaiChatbot.sidebarToggle.record({
+     opened: false,
+     provider: lazy.GenAI.getProviderId(),
+@@ -610,6 +810,4 @@ window.onNewPrompt = async function (opt = {}) {
+   }
+ };
+ 
+-window.addEventListener("SidebarFocused", () =>
+-  document.querySelector("#browser-container browser").focus()
+-);
++window.addEventListener("SidebarFocused", () => node.chat?.focus());
