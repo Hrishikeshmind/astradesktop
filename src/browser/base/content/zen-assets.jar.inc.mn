@@ -29,3 +29,6 @@
         content/browser/aboutPrivacy.html                                       (content/aboutPrivacy.html)
         content/browser/aboutFeatures.html                                      (content/aboutFeatures.html)
         content/browser/aboutChangelog.html                                     (content/aboutChangelog.html)
+        content/browser/aboutTranslations.html                                  (content/aboutTranslations.html)
+        content/browser/aboutTroubleshooting.html                               (content/aboutTroubleshooting.html)
+        content/browser/aboutSyncDevices.html                                   (content/aboutSyncDevices.html)

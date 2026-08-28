@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Troubleshooting — Astra</title>
+    <link rel="icon" href="chrome://branding/content/about-logo.svg" />
+    <link rel="stylesheet" href="chrome://browser/content/aboutAstraPages.css" />
+  </head>
+  <body>
+    <main>
+      <section class="card">
+        <img class="mark" src="chrome://branding/content/about-logo.svg" alt="" />
+        <nav>
+          <a href="about:astra-privacy">Privacy</a>
+          <a href="about:astra-features">Features</a>
+          <a href="about:astra-changelog">Changelog</a>
+          <a href="about:support">Support data</a>
+        </nav>
+        <p class="kicker">Astra Browser</p>
+        <h1>Troubleshooting</h1>
+        <p>
+          If Developer Tools or extension debugging behaves unexpectedly, start
+          with these checks before filing a bug.
+        </p>
+
+        <h2>Version mismatch</h2>
+        <p>
+          Remote debugging expects the browser and DevTools to come from the
+          same build family. If you connect to another device or an older build,
+          update both sides to the latest Astra release when possible.
+        </p>
+
+        <h2>Quick fixes</h2>
+        <ul>
+          <li>Restart Astra after installing or updating extensions.</li>
+          <li>
+            Open <a href="about:support">about:support</a> and attach that page
+            when reporting an issue on GitHub.
+          </li>
+          <li>
+            Try Troubleshoot Mode from the Help menu if an extension may be
+            interfering.
+          </li>
+        </ul>
+
+        <h2>Report a bug</h2>
+        <p>
+          File issues at
+          <a href="https://github.com/Hrishikeshmind/astradesktop/issues">GitHub</a>
+          with steps to reproduce and your Astra version from
+          <a href="about:about">about:about</a>.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

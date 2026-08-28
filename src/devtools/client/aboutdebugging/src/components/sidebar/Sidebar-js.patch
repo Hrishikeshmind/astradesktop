@@ -1,0 +1,21 @@
+diff --git a/devtools/client/aboutdebugging/src/components/sidebar/Sidebar.js b/devtools/client/aboutdebugging/src/components/sidebar/Sidebar.js
+--- a/devtools/client/aboutdebugging/src/components/sidebar/Sidebar.js
++++ b/devtools/client/aboutdebugging/src/components/sidebar/Sidebar.js
+@@ -43,7 +43,7 @@
+   require("resource://devtools/client/aboutdebugging/src/components/sidebar/RefreshDevicesButton.js")
+ );
+ const FIREFOX_ICON =
+-  "chrome://devtools/skin/images/aboutdebugging-firefox-logo.svg";
++  "chrome://branding/content/about-logo.svg";
+ const CONNECT_ICON = "chrome://devtools/skin/images/settings.svg";
+ const GLOBE_ICON =
+   "chrome://devtools/skin/images/aboutdebugging-globe-icon.svg";
+@@ -158,7 +158,7 @@
+   renderFooter() {
+     const HELP_ICON_SRC = "chrome://global/skin/icons/help.svg";
+     const SUPPORT_URL =
+-      "https://firefox-source-docs.mozilla.org/devtools-user/about_colon_debugging/";
++      "about:astra-troubleshooting";
+ 
+     return dom.footer(
+       {

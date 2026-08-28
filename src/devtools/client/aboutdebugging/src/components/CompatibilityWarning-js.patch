@@ -1,0 +1,17 @@
+diff --git a/devtools/client/aboutdebugging/src/components/CompatibilityWarning.js b/devtools/client/aboutdebugging/src/components/CompatibilityWarning.js
+index 1111111111111111111111111111111111111111..2222222222222222222222222222222222222222 100644
+--- a/devtools/client/aboutdebugging/src/components/CompatibilityWarning.js
++++ b/devtools/client/aboutdebugging/src/components/CompatibilityWarning.js
+@@ -24,10 +24,9 @@
+   COMPATIBILITY_STATUS,
+ } = require("resource://devtools/client/shared/remote-debugging/version-checker.js");
+ 
+-const TROUBLESHOOTING_URL =
+-  "https://firefox-source-docs.mozilla.org/devtools-user/about_colon_debugging/";
++const TROUBLESHOOTING_URL = "about:astra-troubleshooting";
+ const FENNEC_TROUBLESHOOTING_URL =
+-  "https://firefox-source-docs.mozilla.org/devtools-user/about_colon_debugging/index.html#connection-to-firefox-for-android-68";
++  "about:astra-troubleshooting";
+ 
+ const Types = require("resource://devtools/client/aboutdebugging/src/types/index.js");
+ 

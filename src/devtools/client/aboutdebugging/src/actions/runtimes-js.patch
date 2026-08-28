@@ -1,0 +1,15 @@
+diff --git a/devtools/client/aboutdebugging/src/actions/runtimes.js b/devtools/client/aboutdebugging/src/actions/runtimes.js
+--- a/devtools/client/aboutdebugging/src/actions/runtimes.js
++++ b/devtools/client/aboutdebugging/src/actions/runtimes.js
+@@ -71,9 +71,8 @@
+     }
+   }
+ 
+-  return channel === "release" || channel === "beta" || channel === "aurora"
+-    ? `chrome://devtools/skin/images/aboutdebugging-firefox-${channel}.svg`
+-    : "chrome://devtools/skin/images/aboutdebugging-firefox-nightly.svg";
++  // Astra: use product branding instead of Firefox DevTools artwork.
++  return "chrome://branding/content/about-logo.svg";
+ }
+ 
+ function onRemoteDevToolsClientClosed() {
