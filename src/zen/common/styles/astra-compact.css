@@ -523,7 +523,24 @@
   }
 
   & #zen-sidebar-top-buttons {
-    flex: 0 0 auto;
+    flex: 0 0 auto !important;
+    -moz-box-flex: 0 !important;
+    flex-grow: 0 !important;
+    flex-direction: column !important;
+    height: fit-content !important;
+    min-height: unset !important;
+    max-height: unset !important;
+    justify-content: flex-start !important;
+  }
+
+  & #zen-sidebar-top-buttons-customization-target {
+    flex: 0 0 auto !important;
+    -moz-box-flex: 0 !important;
+    flex-grow: 0 !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: unset !important;
+    justify-content: flex-start !important;
   }
 
   & #zen-overflow-extensions-list {
@@ -540,21 +557,22 @@
 
   & #zen-tabs-wrapper {
     height: auto !important;
-    flex: 1 1 auto !important;
+    flex: 0 1 auto !important;
     min-height: 0 !important;
   }
 
-  & #zen-sidebar-top-buttons {
-    flex-direction: column !important;
-    height: fit-content !important;
-    min-height: unset !important;
-    max-height: unset !important;
+  & #tabbrowser-tabs,
+  & #TabsToolbar-customization-target,
+  & .zen-workspace-tabs-section {
+    flex: 0 1 auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    justify-content: flex-start !important;
   }
 
-  & #zen-sidebar-top-buttons-customization-target {
-    flex-direction: column !important;
+  & #tabbrowser-arrowscrollbox {
     height: auto !important;
-    min-height: unset !important;
+    min-height: 0 !important;
   }
 
   & #zen-sidebar-foot-buttons {
@@ -568,7 +586,8 @@
 
   & #TabsToolbar > *:not(#zen-sidebar-foot-buttons) {
     justify-content: flex-start !important;
-    flex: 1 1 auto;
+    align-items: stretch !important;
+    flex: 0 1 auto !important;
     min-height: 0;
   }
 }

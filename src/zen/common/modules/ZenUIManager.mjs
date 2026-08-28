@@ -2169,6 +2169,23 @@ window.gZenVerticalTabsManager = {
         this._placeAiButtonForNonOnlySidebar(aiTarget);
       }
 
+      // Collapsed rail: XUL flex="1" on #zen-sidebar-top-buttons stretches the
+      // strip and vertically centers Compact / AI mid-column. Pin flex to 0
+      // until expanded; tab-stack siblings get the same treatment.
+      if (isVerticalTabs && !isSidebarExpanded) {
+        topButtons?.setAttribute("flex", "0");
+        buttonsTarget?.setAttribute("flex", "0");
+        const tabsToolbar = document.getElementById("TabsToolbar");
+        for (const child of tabsToolbar?.children ?? []) {
+          if (child.id !== "zen-sidebar-foot-buttons") {
+            child.setAttribute("flex", "0");
+          }
+        }
+      } else {
+        topButtons?.setAttribute("flex", "1");
+        buttonsTarget?.setAttribute("flex", "1");
+      }
+
       this.rebuildURLBarMenus();
       appContentNavbarWrapper.style.transition = "";
     } catch (e) {
