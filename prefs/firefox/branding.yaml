@@ -3,6 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 # Astra: Replace Mozilla SUMO/support URLs with project help infrastructure.
+# Note: about:addons "Add-ons Support" uses a dedicated link (see
+# src/toolkit/mozapps/extensions/content/aboutaddons-js.patch) to
+# docs/addons-support.md — not app.support.baseURL + "addons-help".
 - name: app.support.baseURL
   value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title="
 
