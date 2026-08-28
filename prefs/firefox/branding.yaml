@@ -6,6 +6,10 @@
 - name: app.support.baseURL
   value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title="
 
+# Share ideas / feedback menu (Discussions not enabled on the repo yet).
+- name: app.feedback.baseURL
+  value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=enhancement&title="
+
 # detectportal.firefox.com is kept intentionally: it is Mozilla-operated
 # connectivity-check infrastructure with no user-visible branding. Replacing
 # it would require Astra-hosted captive-portal detection endpoints.

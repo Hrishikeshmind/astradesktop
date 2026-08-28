@@ -1,0 +1,14 @@
+diff --git a/browser/components/urlbar/UrlbarUtils.sys.mjs b/browser/components/urlbar/UrlbarUtils.sys.mjs
+--- a/browser/components/urlbar/UrlbarUtils.sys.mjs
++++ b/browser/components/urlbar/UrlbarUtils.sys.mjs
+@@ -1730,6 +1730,10 @@
+     // We also don't want to add history in private browsing mode.
+     // Finally we don't want to store extremely long strings that would not be
+     // particularly useful to the user.
++    if (!Services.prefs.getBoolPref("browser.formfill.enable", true)) {
++      return Promise.resolve();
++    }
++
+     if (
+       !value ||
+       input.isPrivate ||

@@ -1,0 +1,33 @@
+diff --git a/browser/components/customizableui/CustomizableWidgets.sys.mjs b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+--- a/browser/components/customizableui/CustomizableWidgets.sys.mjs
++++ b/browser/components/customizableui/CustomizableWidgets.sys.mjs
+@@ -18,7 +18,7 @@
+     "resource:///modules/sessionstore/RecentlyClosedTabsAndWindowsMenuUtils.sys.mjs",
+   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
+   SessionStore: "resource:///modules/sessionstore/SessionStore.sys.mjs",
+-  SharingUtils: "moz-src:///browser/components/sharing/SharingUtils.sys.mjs",
++  SharingUtils: "resource:///modules/SharingUtils.sys.mjs",
+   ShortcutUtils: "resource://gre/modules/ShortcutUtils.sys.mjs",
+ });
+ 
+@@ -283,7 +283,6 @@
+   {
+     id: "open-file-button",
+     l10nId: "toolbar-button-open-file",
+-    shortcutId: "openFileKb",
+     onCreated(aNode) {
+       aNode.setAttribute("command", "Browser:OpenFile");
+     },
+@@ -800,12 +799,3 @@
+     l10nId: "toolbar-button-tab-groups",
+   });
+ }
+-
+-CustomizableWidgets.push({
+-  id: "firefox-view-button",
+-  l10nId: "toolbar-button-firefox-view-2",
+-  onCreated(node) {
+-    node.setAttribute("role", "button");
+-    node.setAttribute("aria-pressed", "false");
+-  },
+-});
