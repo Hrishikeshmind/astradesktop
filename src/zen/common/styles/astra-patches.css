@@ -98,3 +98,39 @@ menuitem[data-l10n-id="appmenuitem-help-enterprisepolicies"],
 toolbarbutton[data-l10n-id="appmenuitem-help-enterprisepolicies"] {
   display: none !important;
 }
+
+/* ASTRA: Trim Customize Toolbar palette — hide rarely-needed stock widgets.
+   Only affects items available to ADD in customize mode; widgets already
+   placed on the toolbar are untouched. Delete this block to restore the
+   full Firefox palette. */
+#customization-titlebar-visibility-checkbox,
+#customization-uidensity-menu,
+#customization-uidensity-mode-menu,
+#customization-uidensity-touch-spacer,
+#customization-uidensity-autotouchmode-checkbox,
+#customization-palette toolbarpaletteitem:has(> #save-page-button),
+#customization-palette toolbarpaletteitem:has(> #open-file-button),
+#customization-palette toolbarpaletteitem:has(> #zoom-controls),
+#customization-palette toolbarpaletteitem:has(> #edit-controls),
+#customization-palette toolbarpaletteitem:has(> #characterencoding-button),
+#customization-palette toolbarpaletteitem:has(> #email-link-button),
+#customization-palette toolbarpaletteitem:has(> #logins-button),
+#customization-palette toolbarpaletteitem:has(> #share-tab-button),
+#customization-palette toolbarpaletteitem:has(> #sync-button),
+#customization-palette toolbarpaletteitem:has(> #send-tab-button),
+#customization-palette toolbarpaletteitem:has(> #panic-button),
+#customization-palette toolbarpaletteitem:has(> #privatebrowsing-button),
+#customization-palette toolbarpaletteitem:has(> #developer-button),
+#customization-palette toolbarpaletteitem:has(> #new-window-button),
+#customization-palette toolbarpaletteitem:has(> #fullscreen-button),
+#customization-palette toolbarpaletteitem:has(> #fxa-toolbar-menu-button),
+#customization-palette toolbarpaletteitem:has(> #alltabs-button),
+#customization-palette toolbarpaletteitem:has(> #wrapper-alltabs-button),
+#customization-palette toolbarpaletteitem:has(> #sidebar-button),
+#customization-palette toolbarpaletteitem:has(> #zen-expand-sidebar-button),
+#customization-palette toolbarpaletteitem:has(> #firefox-view-button),
+#customization-palette toolbarpaletteitem:has(> #wrapper-firefox-view-button),
+#customization-palette toolbarpaletteitem:has(> #tab-groups-button),
+#customization-palette toolbarpaletteitem:has(> #import-button) {
+  display: none !important;
+}
