@@ -85,19 +85,33 @@ body[data-provider="lechat"] #provider-icon {
 }
 
 #header select {
-  --caret-padding: 8px;
-  --start-padding: 8px;
+  --caret-padding: 0;
+  --end-padding: 0;
+  --start-padding: 0;
   appearance: none;
   background-color: transparent;
+  background-image: url("chrome://global/skin/icons/arrow-down-12.svg");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  background-size: 12px;
   border: 1px solid transparent;
   border-radius: 8px;
   color: var(--astra-chat-text);
+  fill: currentColor;
   flex: 1;
   font-size: 0.9rem;
   font-weight: 600;
   height: 32px;
   min-width: 0;
-  padding-inline: 8px 22px;
+  -moz-context-properties: fill, stroke;
+  padding-inline: 8px 34px;
+  stroke: currentColor;
+  text-overflow: ellipsis;
+}
+
+#header select option {
+  padding-block: 6px;
+  padding-inline: 10px 28px;
 }
 
 #header select:hover {
@@ -126,6 +140,12 @@ body[data-provider="lechat"] #provider-icon {
 #browser-container browser {
   background-color: var(--astra-chat-sunken);
   border: none;
+  flex: 1;
+  min-height: 0;
+}
+
+#browser-container browser[hidden] {
+  display: none;
 }
 
 #chat-loading {
@@ -281,7 +301,7 @@ body[data-provider="lechat"] #provider-icon {
   border-radius: var(--astra-chat-radius);
   box-shadow: none;
   flex-direction: row;
-  gap: 2px;
+  gap: 10px;
   margin: 0;
   min-height: 44px;
   padding: 10px 12px;
