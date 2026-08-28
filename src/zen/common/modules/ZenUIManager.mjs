@@ -2058,12 +2058,28 @@ window.gZenVerticalTabsManager = {
         !canHideTabBarPref &&
         ((!this.isWindowsStyledButtons && !isRightSide) ||
           (this.isWindowsStyledButtons && isRightSide));
-      // Compact Mode still parks the strip on #nav-bar. Collapsed (non-compact)
-      // keeps it in the toolbox rail so vertical-tabs.css can stack the icons
-      // in a column — moving it to #nav-bar left the 38px row locked in the
-      // top-left corner over the narrow rail.
-      if (!isSingleToolbar && isCompactMode && !captionsShouldStayOnSidebar) {
-        navBar.prepend(topButtons);
+      // Compact Mode parks the strip on #nav-bar only while the sidebar is
+      // tucked away (no hover / user-show reveal). Collapsed rail layout needs
+      // the strip in #titlebar so vertical-tabs.css can column-stack icons and
+      // pin #zen-sidebar-foot-buttons. Expanded sidebar keeps the strip in
+      // #titlebar too — parking on #nav-bar overlapped Back/Forward/Reload.
+      if (
+        !isSingleToolbar &&
+        isCompactMode &&
+        !captionsShouldStayOnSidebar &&
+        !isSidebarExpanded
+      ) {
+        const toolbox = this.navigatorToolbox;
+        const sidebarRevealed =
+          toolbox.hasAttribute("zen-user-show") ||
+          toolbox.hasAttribute("zen-has-hover") ||
+          toolbox.hasAttribute("zen-compact-mode-active") ||
+          toolbox.hasAttribute("flash-popup") ||
+          toolbox.hasAttribute("has-popup-menu") ||
+          toolbox.hasAttribute("movingtab");
+        if (!sidebarRevealed) {
+          navBar.prepend(topButtons);
+        }
       }
 
       // Case: single toolbar, compact mode, right side and windows styled buttons

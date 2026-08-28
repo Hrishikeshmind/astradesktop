@@ -1123,6 +1123,15 @@ window.gZenCompactModeManager = {
 
   toggleSidebar() {
     this.sidebar.toggleAttribute("zen-user-show");
+    this._syncSidebarTopButtonsForReveal();
+  },
+
+  /** Reposition #zen-sidebar-top-buttons when compact sidebar reveal changes. */
+  _syncSidebarTopButtonsForReveal() {
+    if (!this.preference || gZenVerticalTabsManager._hasSetSingleToolbar) {
+      return;
+    }
+    gZenVerticalTabsManager._updateEvent({ dontRebuildAreas: true });
   },
 
   get hideAfterHoverDuration() {
@@ -2110,6 +2119,9 @@ window.gZenCompactModeManager = {
         (isToolbar || element === this.sidebar)
       ) {
         this._syncEdgeHitTargets();
+        if (element === this.sidebar) {
+          this._syncSidebarTopButtonsForReveal();
+        }
       }
     } else {
       if (attr === "zen-has-hover") {
@@ -2134,6 +2146,9 @@ window.gZenCompactModeManager = {
         (isToolbar || element === this.sidebar)
       ) {
         this._syncEdgeHitTargets();
+        if (element === this.sidebar) {
+          this._syncSidebarTopButtonsForReveal();
+        }
       }
     }
   },

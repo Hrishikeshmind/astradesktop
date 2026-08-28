@@ -850,7 +850,7 @@
    * wrap XUL hbox children, so column + height unlock must be explicit. */
   & #zen-sidebar-top-buttons {
     display: flex;
-    flex-direction: column;
+    flex-direction: column !important;
     flex-wrap: nowrap;
     justify-content: center;
     align-items: center;
@@ -862,14 +862,19 @@
   }
 
   /* Pack the rail to its stacked-icon height (Compact + AI, etc.) and give
-   * leftover height to #TabsToolbar. Default grid stretch inflates every auto
-   * row equally, which opened a hole under the rail and dropped
-   * #tabs-newtab-button with it whenever the rail grew. */
+   * leftover height to #TabsToolbar. Flex is used instead of grid so
+   * #TabsToolbar still fills the column when Compact Mode parks
+   * #zen-sidebar-top-buttons on #nav-bar (collapsed tucked). */
   & #titlebar {
-    display: grid;
-    grid-template-rows: auto 1fr;
-    align-content: stretch;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
     align-items: stretch;
+  }
+
+  & #zen-sidebar-top-buttons {
+    flex: 0 0 auto;
   }
 
   /* Only Sidebar expanded parks overflowed extensions here. Collapsed is
@@ -881,12 +886,19 @@
 
   & #TabsToolbar {
     min-height: 0;
+    height: 100%;
+    flex: 1 1 auto;
+  }
+
+  & #zen-tabs-wrapper {
     height: auto;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   & #zen-sidebar-top-buttons-customization-target {
     display: flex;
-    flex-direction: column;
+    flex-direction: column !important;
     flex-wrap: nowrap;
     align-items: center;
     justify-content: center;
@@ -913,7 +925,7 @@
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     align-self: stretch;
     margin-top: auto;

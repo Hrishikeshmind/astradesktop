@@ -504,3 +504,83 @@
   outline: 2px solid var(--focus-outline-color, var(--color-accent-primary));
   outline-offset: 1px;
 }
+
+/* ==========================================================================
+   Part D — Collapsed icon rail inside Compact Mode flyout
+   Compact parks #navigator-toolbox as a fixed card (height: auto). Without
+   reasserting the collapsed grid/flex contract, #TabsToolbar stops filling
+   the titlebar 1fr row and #zen-sidebar-foot-buttons drifts to mid-rail.
+   ========================================================================== */
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox:not([zen-sidebar-expanded='true']):not([animate='true']) {
+  & #titlebar {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  & #zen-sidebar-top-buttons {
+    flex: 0 0 auto;
+  }
+
+  & #zen-overflow-extensions-list {
+    display: none !important;
+  }
+
+  & #TabsToolbar {
+    min-height: 0 !important;
+    height: 100% !important;
+    flex: 1 1 auto !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  & #zen-tabs-wrapper {
+    height: auto !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+  }
+
+  & #zen-sidebar-top-buttons {
+    flex-direction: column !important;
+    height: fit-content !important;
+    min-height: unset !important;
+    max-height: unset !important;
+  }
+
+  & #zen-sidebar-top-buttons-customization-target {
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: unset !important;
+  }
+
+  & #zen-sidebar-foot-buttons {
+    margin-top: auto !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    height: fit-content !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+  }
+
+  & #TabsToolbar > *:not(#zen-sidebar-foot-buttons) {
+    justify-content: flex-start !important;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+}
+
+/* Sidebar+Top / Collapsed: expanded sidebar must clear the top toolbar band.
+ * zen-tabs.css applies titlebar padding-top only when compact is off. */
+:root[zen-compact-mode='true']:not([zen-single-toolbar='true']):not([customizing]):not([inDOMFullscreen='true'])
+  #navigator-toolbox[zen-sidebar-expanded='true']:not([animate='true']) {
+  top: calc(
+    var(--zen-toolbar-height-with-bookmarks, var(--zen-toolbar-height, 38px)) +
+      var(--zen-compact-card-inset, 8px)
+  ) !important;
+  bottom: var(--zen-compact-card-inset, 8px) !important;
+  height: auto !important;
+}
