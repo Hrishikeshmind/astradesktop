@@ -165,6 +165,11 @@
   }
 }
 
+#urlbar[zen-newtab] #identity-box,
+#urlbar[zen-newtab] #urlbar-label-box {
+  display: none !important;
+}
+
 :root:not([zen-single-toolbar="true"]):not([zen-has-empty-tab="true"]) #urlbar:not([breakout-extend]) .urlbar-input-container {
   padding: 2px 3px;
   gap: 2px;
