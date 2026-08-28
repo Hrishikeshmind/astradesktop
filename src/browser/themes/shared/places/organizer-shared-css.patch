@@ -2,9 +2,9 @@ diff --git a/browser/themes/shared/places/organizer-shared.css b/browser/themes/
 index fe6b79cfc2453927c324a044bd62040f866def95..a93813c76ba3633c365a739289b39187c0d1e881 100644
 --- a/browser/themes/shared/places/organizer-shared.css
 +++ b/browser/themes/shared/places/organizer-shared.css
-@@ -52,6 +52,16 @@
-   }
+@@ -67,6 +67,31 @@
  }
+ 
  
 +#places .zenEditBMPanel_fieldContainer {
 +  display: contents;
@@ -14,6 +14,21 @@ index fe6b79cfc2453927c324a044bd62040f866def95..a93813c76ba3633c365a739289b39187
 +#places #editBMPanel_workspaceDropdown,
 +#places #editBMPanel_workspaceList {
 +  display: none;
++}
++
++/* Astra: Library window follows zen.view.window.scheme like the main browser. */
++:root {
++  @media -moz-pref("zen.view.window.scheme", 0) {
++    color-scheme: dark;
++  }
++
++  @media -moz-pref("zen.view.window.scheme", 1) {
++    color-scheme: light;
++  }
++
++  @media -moz-pref("zen.view.window.scheme", 2) {
++    color-scheme: light dark;
++  }
 +}
 +
  #editBMPanel_itemsCountText {

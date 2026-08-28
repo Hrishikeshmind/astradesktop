@@ -34,6 +34,10 @@
 - name: browser.toolbars.bookmarks.visibility
   value: "newtab"
 
+# Astra: fresh profiles should not import Mozilla's default bookmark set.
+- name: browser.bookmarks.restore_default_bookmarks
+  value: false
+
 - name: widget.non-native-theme.scrollbar.style
   value: 2
 
