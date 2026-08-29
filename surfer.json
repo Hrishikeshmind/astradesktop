@@ -7,7 +7,8 @@
     "product": "firefox",
     "version": "153.0.4",
     "candidate": "153.0.4",
-    "candidateBuild": 1
+    "candidateBuild": 1,
+    "engineVersion": "153.0.4-astra-beta"
   },
   "buildOptions": {
     "generateBranding": true
@@ -20,7 +21,7 @@
       "brandShortName": "Astra",
       "brandFullName": "Astra Browser",
       "release": {
-        "displayVersion": "1.19.8e",
+        "displayVersion": "1.19.9b",
         "github": {
           "repo": "Hrishikeshmind/astradesktop"
         },

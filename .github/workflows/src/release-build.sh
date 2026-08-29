@@ -49,6 +49,7 @@ if command -v Xvfb &> /dev/null; then
     export DISPLAY=:2
   fi
   export ZEN_RELEASE=1
+  node scripts/patch_surfer_engine_version.cjs
   npm run build
 else
   echo "Xvfb could not be found, running without it"
@@ -56,6 +57,7 @@ else
 
   set -v
   export ZEN_RELEASE=1
+  node scripts/patch_surfer_engine_version.cjs
   npm run build
 fi
 

@@ -3,12 +3,12 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 EXTRA_JS_MODULES.zen.boosts += [
+  "ZenBoostHighlightsContent.sys.mjs",
+  "ZenBoostHighlightsManager.sys.mjs",
+  "ZenBoostHighlightsUI.mjs",
   "ZenBoostsEditor.mjs",
   "ZenBoostsManager.sys.mjs",
   "ZenBoostStyles.sys.mjs",
-  "ZenBoostHighlightsManager.sys.mjs",
-  "ZenBoostHighlightsContent.sys.mjs",
-  "ZenBoostHighlightsUI.mjs",
   "ZenSelectorComponent.sys.mjs",
   "ZenZapDissolve.sys.mjs",
   "ZenZapOverlayChild.sys.mjs",
