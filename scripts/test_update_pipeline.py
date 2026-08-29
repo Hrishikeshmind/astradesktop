@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from probe_disk_guard import prepare_probe_workspace
 import struct
 import sys
 import tempfile
@@ -568,4 +569,5 @@ class FindMarsSkipsArtifactDirectories(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    prepare_probe_workspace(Path(__file__).resolve().parents[1], label="test_update_pipeline")
     unittest.main()

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from probe_disk_guard import prepare_probe_workspace
 import json
 import shutil
 import socket
@@ -318,4 +319,5 @@ def main():
 
 
 if __name__ == "__main__":
+    prepare_probe_workspace(Path(__file__).resolve().parents[1], label="verify_responsive_ui")
     main()

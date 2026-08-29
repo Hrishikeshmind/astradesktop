@@ -10,6 +10,7 @@ This is the only proof that updates work. Fresh-install tests do not count.
 
 from __future__ import annotations
 
+from probe_disk_guard import prepare_probe_workspace
 import argparse
 import base64
 import hashlib
@@ -481,4 +482,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    prepare_probe_workspace(Path(__file__).resolve().parents[1], label="smoke_update_apply")
     raise SystemExit(main())

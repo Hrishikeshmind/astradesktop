@@ -13,6 +13,8 @@ from pathlib import Path
 
 from marionette_driver.marionette import Marionette
 
+from probe_disk_guard import MIN_FREE_GB, TMP_MAX_AGE_HOURS, prepare_probe_workspace
+
 ROOT = Path(__file__).resolve().parents[1]
 EXE = ROOT / ".tmp-feature-verify" / "astra-run" / "astra.exe"
 BROWSER_JAR = ROOT / ".tmp-feature-verify" / "astra-run" / "browser" / "omni.ja"
@@ -37,6 +39,16 @@ const flags = ctx.DRAWWINDOW_DRAW_CARET | ctx.DRAWWINDOW_DRAW_VIEW | ctx.DRAWWIN
 ctx.drawWindow(window, 0, 0, w, h, "rgb(243,239,233)", flags);
 return canvas.toDataURL("image/png").split(",")[1];
 """
+
+
+def bootstrap_disk_guard(label: str) -> None:
+    prepare_probe_workspace(
+        ROOT,
+        protect_dir_names={".tmp-feature-verify", ".tmp-beta-polish"},
+        min_free_gb=MIN_FREE_GB,
+        max_age_hours=TMP_MAX_AGE_HOURS,
+        label=label,
+    )
 
 
 def patch_jar(jar: Path, force: bool = False) -> None:
@@ -250,22 +262,37 @@ def capture_boost_indic(client: Marionette) -> dict:
         gZenBoostsManager.openBoostWindow(window, boost, uri);
         return new Promise(resolve => {
           setTimeout(() => {
-            const win = Services.wm.getMostRecentWindow('zen-boost-editor');
+            let win = null;
+            for (const w of Services.wm.getEnumerator(null)) {
+              try {
+                if (String(w.location.href).includes('zen-boost-editor.xhtml')) {
+                  win = w;
+                  break;
+                }
+              } catch (e) {}
+            }
             const grid = win?.document?.getElementById('zen-boost-font-grid');
             const buttons = [...(grid?.children || [])].map(btn => ({
               title: btn.title,
               preview: btn.textContent,
               font: btn.getAttribute('font-data'),
             }));
-            resolve({ buttons, count: buttons.length });
-          }, 1200);
+            resolve({ buttons, count: buttons.length, found: !!win });
+          }, 2500);
         });
         """,
         script_timeout=8000,
     )
     editor_shot = client.execute_script(
         """
-        const win = Services.wm.getMostRecentWindow('zen-boost-editor');
+        const win = (() => {
+          for (const w of Services.wm.getEnumerator(null)) {
+            try {
+              if (String(w.location.href).includes('zen-boost-editor.xhtml')) return w;
+            } catch (e) {}
+          }
+          return null;
+        })();
         if (!win) return null;
         const canvas = document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
         const w = win.innerWidth, h = win.innerHeight;
@@ -291,6 +318,7 @@ def capture_boost_indic(client: Marionette) -> dict:
 
 
 def main() -> None:
+    bootstrap_disk_guard("beta_build_verify")
     if not EXE.exists():
         raise SystemExit(f"Missing build: {EXE}")
     patch_jar(BROWSER_JAR)
@@ -319,6 +347,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) > 1 and sys.argv[1] == "boost-only":
+        bootstrap_disk_guard("beta_build_verify.boost-only")
         if not EXE.exists():
             raise SystemExit(f"Missing build: {EXE}")
         patch_jar(BROWSER_JAR)

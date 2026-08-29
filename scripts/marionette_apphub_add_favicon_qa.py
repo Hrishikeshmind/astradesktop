@@ -8,6 +8,7 @@ icons (not stuck on monogram) in both light and dark themes.
 
 from __future__ import annotations
 
+from probe_disk_guard import prepare_probe_workspace
 import json
 import os
 import shutil
@@ -440,4 +441,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    prepare_probe_workspace(Path(__file__).resolve().parents[1], label="marionette_apphub_add_favicon_qa")
     sys.exit(main())

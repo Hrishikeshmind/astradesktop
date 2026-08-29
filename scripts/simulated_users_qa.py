@@ -8,6 +8,7 @@ Does not sandboxed-guess — all findings come from live chrome DOM / computed s
 
 from __future__ import annotations
 
+from probe_disk_guard import prepare_probe_workspace
 import argparse
 import json
 import re
@@ -1352,4 +1353,5 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    prepare_probe_workspace(Path(__file__).resolve().parents[1], label="simulated_users_qa")
     raise SystemExit(main())
