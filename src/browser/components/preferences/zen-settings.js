@@ -682,6 +682,11 @@ var gZenMarketplaceManager = {
 
 const kZenExtendedSidebar = "zen.view.sidebar-expanded";
 const kZenSingleToolbar = "zen.view.use-single-toolbar";
+const kCollapsedLayoutEnabled = "astra.sidebar.collapsed-layout.enabled";
+
+function isCollapsedLayoutEnabled() {
+  return Services.prefs.getBoolPref(kCollapsedLayoutEnabled, false);
+}
 
 var gZenLooksAndFeel = {
   init() {
@@ -689,11 +694,11 @@ var gZenLooksAndFeel = {
       return;
     }
     this.__hasInitialized = true;
-    for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
+    for (const pref of [kZenExtendedSidebar, kZenSingleToolbar, kCollapsedLayoutEnabled]) {
       Services.prefs.addObserver(pref, this);
     }
     window.addEventListener("unload", () => {
-      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar]) {
+      for (const pref of [kZenExtendedSidebar, kZenSingleToolbar, kCollapsedLayoutEnabled]) {
         Services.prefs.removeObserver(pref, this);
       }
     });
@@ -709,19 +714,30 @@ var gZenLooksAndFeel = {
   },
 
   applySidebarLayout() {
+    const collapsedEnabled = isCollapsedLayoutEnabled();
+    const collapsedLayout = document.querySelector(
+      '#zenLayoutList [layout="collapsed"]'
+    );
+    if (collapsedLayout) {
+      collapsedLayout.hidden = !collapsedEnabled;
+    }
     const isSingleToolbar = Services.prefs.getBoolPref(kZenSingleToolbar);
     const isExtendedSidebar = Services.prefs.getBoolPref(kZenExtendedSidebar);
     for (const layout of document.getElementById("zenLayoutList").children) {
       layout.classList.remove("selected");
-      if (layout.getAttribute("layout") == "single" && isSingleToolbar) {
+      const layoutType = layout.getAttribute("layout");
+      if (layoutType == "collapsed" && !collapsedEnabled) {
+        continue;
+      }
+      if (layoutType == "single" && isSingleToolbar) {
         layout.classList.add("selected");
       } else if (
-        layout.getAttribute("layout") == "multiple" &&
+        layoutType == "multiple" &&
         !isSingleToolbar &&
-        isExtendedSidebar
+        (isExtendedSidebar || (!collapsedEnabled && !isExtendedSidebar))
       ) {
         layout.classList.add("selected");
-      } else if (layout.getAttribute("layout") == "collapsed" && !isExtendedSidebar) {
+      } else if (layoutType == "collapsed" && !isExtendedSidebar) {
         layout.classList.add("selected");
       }
     }
@@ -732,6 +748,12 @@ var gZenLooksAndFeel = {
     for (const layout of document.getElementById("zenLayoutList").children) {
       layout.addEventListener("click", () => {
         if (layout.hasAttribute("disabled")) {
+          return;
+        }
+        if (
+          layout.getAttribute("layout") == "collapsed" &&
+          !isCollapsedLayoutEnabled()
+        ) {
           return;
         }
 

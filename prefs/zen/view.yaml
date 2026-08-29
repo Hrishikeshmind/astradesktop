@@ -80,3 +80,8 @@
   value: true
 - name: zen.sidebar.extensions.enabled
   value: true
+
+# Pref gate (not removal): collapsed icon-rail layout. Default off for beta;
+# CSS/JS for collapsed mode stay in the tree for a future re-enable.
+- name: astra.sidebar.collapsed-layout.enabled
+  value: false

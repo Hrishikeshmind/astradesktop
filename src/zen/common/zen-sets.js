@@ -602,6 +602,16 @@ document.addEventListener(
             gZenPinnedTabManager.resetPinnedTab();
             break;
           case "cmd_zenToggleSidebar":
+            if (
+              !Services.prefs.getBoolPref(
+                "astra.sidebar.collapsed-layout.enabled",
+                false
+              ) &&
+              Services.prefs.getBoolPref("zen.view.sidebar-expanded", true) &&
+              !Services.prefs.getBoolPref("zen.view.use-single-toolbar", false)
+            ) {
+              break;
+            }
             gZenVerticalTabsManager.toggleExpand();
             break;
           case "cmd_zenOpenZenThemePicker":

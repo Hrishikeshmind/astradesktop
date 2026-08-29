@@ -7,7 +7,7 @@ diff --git a/toolkit/mozapps/extensions/content/aboutaddons.js b/toolkit/mozapps
 -        link.setAttribute("support-page", "addons-help");
 +        let link = document.createElement("a");
 +        link.href =
-+          "https://github.com/Hrishikeshmind/astradesktop/tree/addons-help";
++          "https://hrishikeshmind.github.io/astradesktop/docs/addons-help.md";
 +        link.target = "_blank";
 +        link.rel = "noopener";
          link.id = "help-button";

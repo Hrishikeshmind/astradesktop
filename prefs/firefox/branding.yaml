@@ -4,7 +4,7 @@
 
 # Astra: Replace Mozilla SUMO/support URLs with project help infrastructure.
 # Note: about:addons "Add-ons Support" uses a dedicated link (see
-# aboutaddons-js.patch) to the addons-help branch — not baseURL + "addons-help".
+# aboutaddons-js.patch) to /docs/addons-help — not baseURL + "addons-help".
 - name: app.support.baseURL
   value: "https://github.com/Hrishikeshmind/astradesktop/issues/new?labels=bug&title="
 

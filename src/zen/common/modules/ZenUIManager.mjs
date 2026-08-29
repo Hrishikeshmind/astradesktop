@@ -1183,6 +1183,8 @@ XPCOMUtils.defineLazyPreferenceGetter(
   true
 );
 
+const kCollapsedLayoutEnabled = "astra.sidebar.collapsed-layout.enabled";
+
 window.gZenVerticalTabsManager = {
   init() {
     this._multiWindowFeature = new nsZenMultiWindowFeature();
@@ -1219,6 +1221,8 @@ window.gZenVerticalTabsManager = {
     var onPrefChange = this._onPrefChange.bind(this);
 
     this.initializePreferences(onPrefChange);
+    this._enforceCollapsedLayoutGate();
+    this._initCollapsedLayoutGateObserver();
     this._toolbarOriginalParent =
       document.getElementById("nav-bar").parentElement;
 
@@ -1258,9 +1262,59 @@ window.gZenVerticalTabsManager = {
   },
 
   toggleExpand() {
-    const newVal = !Services.prefs.getBoolPref("zen.view.sidebar-expanded");
+    const currentlyExpanded = Services.prefs.getBoolPref("zen.view.sidebar-expanded");
+    const newVal = !currentlyExpanded;
+    if (
+      !newVal &&
+      !Services.prefs.getBoolPref(kCollapsedLayoutEnabled, false) &&
+      !Services.prefs.getBoolPref("zen.view.use-single-toolbar", false)
+    ) {
+      return;
+    }
     Services.prefs.setBoolPref("zen.view.sidebar-expanded", newVal);
     Services.prefs.setBoolPref("zen.view.use-single-toolbar", false);
+  },
+
+  _enforceCollapsedLayoutGate() {
+    if (Services.prefs.getBoolPref(kCollapsedLayoutEnabled, false)) {
+      return;
+    }
+    if (
+      !Services.prefs.getBoolPref("zen.view.sidebar-expanded", true) &&
+      !Services.prefs.getBoolPref("zen.view.use-single-toolbar", false)
+    ) {
+      Services.prefs.setBoolPref("zen.view.sidebar-expanded", true);
+    }
+  },
+
+  _initCollapsedLayoutGateObserver() {
+    this._collapsedLayoutGateObserver = {
+      observe: () => {
+        this._enforceCollapsedLayoutGate();
+      },
+    };
+    try {
+      Services.prefs.addObserver(
+        kCollapsedLayoutEnabled,
+        this._collapsedLayoutGateObserver
+      );
+    } catch (e) {
+      console.warn("[Astra] collapsed layout gate observer failed:", e);
+    }
+    window.addEventListener(
+      "unload",
+      () => {
+        try {
+          Services.prefs.removeObserver(
+            kCollapsedLayoutEnabled,
+            this._collapsedLayoutGateObserver
+          );
+        } catch {
+          // ignore
+        }
+      },
+      { once: true }
+    );
   },
 
   get navigatorToolbox() {
