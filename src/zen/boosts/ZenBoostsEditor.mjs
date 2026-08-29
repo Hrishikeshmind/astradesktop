@@ -336,29 +336,63 @@ export class nsZenBoostEditor {
   }
 
   /**
+   * Quick-pick fonts for the Aa grid: Latin staples plus regional/Indic options.
+   * Devanagari entries are listed first among the Indic set (Hindi is the primary target).
+   */
+  get featuredFontButtons() {
+    return [
+      { name: "Arial", preview: "Aa" },
+      { name: "Georgia", preview: "Aa" },
+      { name: "Verdana", preview: "Aa" },
+      { name: "Tahoma", preview: "Aa" },
+      { name: "Trebuchet MS", preview: "Aa" },
+      { name: "Times New Roman", preview: "Aa" },
+      { name: "Courier New", preview: "Aa" },
+      { name: "Helvetica", preview: "Aa" },
+      { name: "Palatino Linotype", preview: "Aa" },
+      { name: "Century Gothic", preview: "Aa" },
+      { name: "Comic Sans MS", preview: "Aa" },
+      { name: "Impact", preview: "Aa" },
+      { name: "Garamond", preview: "Aa" },
+      { name: "Arial Black", preview: "Aa" },
+      { name: "Papyrus", preview: "Aa" },
+      // Indic / regional — only shown when installed (Windows: Nirmala UI, Mangal; etc.)
+      { name: "Nirmala UI", preview: "अ" },
+      { name: "Mangal", preview: "अ" },
+      { name: "Aparajita", preview: "अ" },
+      { name: "Noto Sans Devanagari", preview: "अ" },
+      { name: "Noto Sans Tamil", preview: "அ" },
+      { name: "Noto Sans Bengali", preview: "অ" },
+      { name: "Noto Sans Kannada", preview: "ಅ" },
+      { name: "Noto Sans Telugu", preview: "అ" },
+      { name: "Noto Sans Malayalam", preview: "അ" },
+      { name: "Noto Sans Gujarati", preview: "અ" },
+      { name: "Noto Sans Gurmukhi", preview: "ਅ" },
+    ];
+  }
+
+  /**
    * Initializes the font selection UI by creating font buttons and dropdown options
    * for the available font families.
    */
   initFonts() {
-    const commonFonts = this.commonFonts;
     const fonts = this.fetchFontList();
+    const availableFonts = new Set(fonts);
 
     const fontButtonGroup = this.doc.getElementById("zen-boost-font-grid");
     const fontList = this.doc.getElementById("zen-boost-font-select");
-    const buttonCount = 15;
 
-    for (let i = 0; i < Math.min(commonFonts.length, buttonCount); i++) {
-      let font = fonts[i]; // Fallback
-      if (fonts.includes(commonFonts[i])) {
-        font = commonFonts[i];
+    for (const { name, preview } of this.featuredFontButtons) {
+      if (!availableFonts.has(name)) {
+        continue;
       }
 
       const fontButton = this.doc.createElement("button");
-      fontButton.setAttribute("font-data", `${font}`);
+      fontButton.setAttribute("font-data", name);
       fontButton.classList.add("subviewbutton");
-      fontButton.style.fontFamily = `'${font}'`;
-      fontButton.innerHTML = "Aa";
-      fontButton.title = font;
+      fontButton.style.fontFamily = `'${name}'`;
+      fontButton.textContent = preview;
+      fontButton.title = name;
       fontButton.addEventListener("click", this.onFontButtonClick.bind(this));
 
       fontButtonGroup.appendChild(fontButton);
@@ -1519,10 +1553,13 @@ ${cssSelector} {
    * Shuffles the boost data and updates the presentation
    */
   shuffleBoost() {
-    const availFonts = this.fetchFontList();
-    const commonFonts = this.commonFonts;
-    let font = commonFonts[Math.round(Math.random() * commonFonts.length)];
-    if (availFonts.includes(font)) {
+    const availFonts = new Set(this.fetchFontList());
+    const candidates = this.featuredFontButtons
+      .map(entry => entry.name)
+      .filter(name => availFonts.has(name));
+    if (candidates.length) {
+      const font =
+        candidates[Math.floor(Math.random() * candidates.length)];
       this.currentBoostData.fontFamily = font;
     }
 

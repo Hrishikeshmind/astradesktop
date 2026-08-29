@@ -61,7 +61,7 @@ export class nsZenBoostStyles {
 
     const fontFamily =
       boostData.fontFamily != ""
-        ? `font-family: ${boostData.fontFamily} !important;`
+        ? `font-family: ${JSON.stringify(boostData.fontFamily)} !important;`
         : ``;
     const fontCase =
       boostData.textCaseOverride != "none"
