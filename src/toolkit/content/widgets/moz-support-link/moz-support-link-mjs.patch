@@ -1,13 +1,14 @@
-diff --git a/toolkit/content/global/elements/moz-support-link.mjs b/toolkit/content/global/elements/moz-support-link.mjs
---- a/toolkit/content/global/elements/moz-support-link.mjs
-+++ b/toolkit/content/global/elements/moz-support-link.mjs
-@@ -102,6 +102,18 @@ export default class MozSupportLink extends HTMLAnchorElement {
+diff --git a/toolkit/content/widgets/moz-support-link/moz-support-link.mjs b/toolkit/content/widgets/moz-support-link/moz-support-link.mjs
+--- a/toolkit/content/widgets/moz-support-link/moz-support-link.mjs
++++ b/toolkit/content/widgets/moz-support-link/moz-support-link.mjs
+@@ -102,6 +102,19 @@
  
    #setHref() {
      let supportPage = this.getAttribute("support-page") ?? "";
 +    const ASTRA_DOCS_BASE =
 +      "https://hrishikeshmind.github.io/astradesktop/docs/";
 +    const ASTRA_DOCS_PAGES = {
++      "addons-help": "addons-help.md",
 +      "drm-content": "drm.md",
 +      "performance": "performance.md",
 +      "extensionrecommendations": "privacy.md",
