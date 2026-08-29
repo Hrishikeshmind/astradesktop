@@ -6,6 +6,8 @@ const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   gZenBoostsManager: "resource:///modules/zen/boosts/ZenBoostsManager.sys.mjs",
+  gZenBoostHighlightsManager:
+    "resource:///modules/zen/boosts/ZenBoostHighlightsManager.sys.mjs",
 });
 
 export class ZenBoostsParent extends JSWindowActorParent {
@@ -14,6 +16,7 @@ export class ZenBoostsParent extends JSWindowActorParent {
     "zen-space-gradient-update",
     "zen-boosts-disable-zap",
     "zen-boosts-disable-picker",
+    "zen-boost-highlights-update",
   ];
 
   // Topics the content child is allowed to forward to the observer service.
@@ -68,6 +71,9 @@ export class ZenBoostsParent extends JSWindowActorParent {
         break;
       case "zen-boosts-disable-picker":
         this.sendAsyncMessage("ZenBoost:DisablePickerMode");
+        break;
+      case "zen-boost-highlights-update":
+        this.sendAsyncMessage("ZenBoost:HighlightsReload");
         break;
     }
   }
@@ -194,6 +200,27 @@ export class ZenBoostsParent extends JSWindowActorParent {
       case "ZenBoost:UpdateBoostSize": {
         const { sizeOverride } = message.data;
         this.updateBoostSizeOverride(sizeOverride);
+        break;
+      }
+      case "ZenBoost:GetHighlightsForURL": {
+        return lazy.gZenBoostHighlightsManager.getHighlightsForURL(message.data);
+      }
+      case "ZenBoost:HighlightAdd": {
+        const { url, record } = message.data ?? {};
+        return lazy.gZenBoostHighlightsManager.addHighlight(url, record);
+      }
+      case "ZenBoost:HighlightRemove": {
+        const { url, highlightId } = message.data ?? {};
+        return lazy.gZenBoostHighlightsManager.removeHighlight(url, highlightId);
+      }
+      case "ZenBoost:HighlightOrphaned": {
+        const { url, id } = message.data ?? {};
+        await lazy.gZenBoostHighlightsManager.markOrphaned(url, id);
+        break;
+      }
+      case "ZenBoost:HighlightsOrphanedCount": {
+        const win = this.browsingContext.topChromeWindow;
+        win?.gZenBoostHighlightsUI?.notifyOrphaned(message.data?.count ?? 0);
         break;
       }
       default: {

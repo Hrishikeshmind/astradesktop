@@ -857,3 +857,36 @@ body {
     linear-gradient(#fff 0 0);
   mask-composite: exclude;
 }
+
+/* Boost page highlighter — chrome badge + toast */
+#zen-boost-highlight-badge {
+  min-width: 22px;
+  min-height: 22px;
+  margin-inline: 2px 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #ffb020 35%, var(--zen-boosts-secondary-background));
+  border: 1px solid color-mix(in srgb, #ffb020 45%, var(--zen-boosts-primary-border-color));
+  color: var(--zen-boosts-primary-color);
+  font: 600 11px/1 system-ui, sans-serif;
+}
+
+#zen-boost-highlight-badge:hover {
+  background: color-mix(in srgb, #ffb020 55%, var(--zen-boosts-secondary-background));
+}
+
+.zen-boost-highlight-toast {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 99999;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--zen-boosts-primary-background);
+  border: 1px solid var(--zen-boosts-primary-border-color);
+  box-shadow: 0 10px 30px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.45));
+  color: var(--zen-boosts-primary-color);
+  font: 500 13px/1.35 system-ui, sans-serif;
+  pointer-events: none;
+}

@@ -318,8 +318,12 @@ window.gZenUIManager = {
     const { nsZenSiteDataPanel: ZenSiteDataPanel } = ChromeUtils.importESModule(
       "resource:///modules/ZenSiteDataPanel.sys.mjs"
     );
+    const { initZenBoostHighlightsUI } = ChromeUtils.importESModule(
+      "resource:///modules/zen/boosts/ZenBoostHighlightsUI.mjs"
+    );
     registerZenUrlbarProviders();
     window.gZenSiteDataPanel = new ZenSiteDataPanel(window);
+    initZenBoostHighlightsUI(window);
     gURLBar._zenTrimURL = this.urlbarTrim.bind(this);
   },
 

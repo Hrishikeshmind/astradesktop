@@ -85,3 +85,8 @@
 # CSS/JS for collapsed mode stay in the tree for a future re-enable.
 - name: astra.sidebar.collapsed-layout.enabled
   value: false
+
+# Boost text highlighter — URL-keyed persistent highlights (see ZenBoostHighlights*).
+# Default off until post-release polish pass; code ships intact behind this gate.
+- name: astra.boost.highlighter.enabled
+  value: false

@@ -368,6 +368,10 @@ export class nsZenBoostEditor {
       { name: "Noto Sans Malayalam", preview: "അ" },
       { name: "Noto Sans Gujarati", preview: "અ" },
       { name: "Noto Sans Gurmukhi", preview: "ਅ" },
+      { name: "Noto Sans Oriya", preview: "ଅ" },
+      { name: "Noto Nastaliq Urdu", preview: "ا" },
+      { name: "Urdu Typesetting", preview: "ا" },
+      { name: "Jameel Noori Nastaleeq", preview: "ا" },
     ];
   }
 

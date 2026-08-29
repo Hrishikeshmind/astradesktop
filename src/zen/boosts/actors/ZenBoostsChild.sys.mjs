@@ -10,7 +10,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ZapOverlay: "resource:///modules/zen/boosts/ZenZapOverlayChild.sys.mjs",
   SelectorComponent:
     "resource:///modules/zen/boosts/ZenSelectorComponent.sys.mjs",
+  ZenBoostHighlightsContent:
+    "resource:///modules/zen/boosts/ZenBoostHighlightsContent.sys.mjs",
+  buildHighlightRecord:
+    "resource:///modules/zen/boosts/ZenBoostHighlightsManager.sys.mjs",
 });
+
+const HIGHLIGHTS_PREF = "astra.boost.highlighter.enabled";
 
 export class ZenBoostsChild extends JSWindowActorChild {
   #currentSheet = null;
@@ -19,6 +25,8 @@ export class ZenBoostsChild extends JSWindowActorChild {
   #zappedElementsTempShown = [];
 
   #overlay = null;
+  #highlights = null;
+  #highlightsBound = false;
 
   static STATES = {
     NONE: "none",
@@ -72,9 +80,81 @@ export class ZenBoostsChild extends JSWindowActorChild {
 
   actorCreated() {
     this.#applyBoostForPageIfAvailable();
+    this.#initHighlightsIfEnabled();
+  }
+
+  #highlightsEnabled() {
+    try {
+      return Services.prefs.getBoolPref(HIGHLIGHTS_PREF, true);
+    } catch {
+      return true;
+    }
+  }
+
+  #initHighlightsIfEnabled() {
+    if (!this.#highlightsEnabled()) {
+      return;
+    }
+    const browsingContext = this.browsingContext;
+    if (!browsingContext || browsingContext.parent !== null) {
+      return;
+    }
+    this.#highlights = new lazy.ZenBoostHighlightsContent(this.document);
+    if (!this.#highlightsBound) {
+      this.#highlightsBound = true;
+      this.#highlights.bindInteractions({
+        onRemove: id => this.#removeHighlightById(id),
+      });
+      this.document.defaultView?.addEventListener("pageshow", () => {
+        this.#reloadHighlights();
+      });
+      Services.obs.addObserver(this, "zen-boost-highlights-update");
+    }
+    this.#reloadHighlights();
+  }
+
+  observe(_subject, topic) {
+    if (topic === "zen-boost-highlights-update") {
+      this.#reloadHighlights();
+    }
+  }
+
+  async #reloadHighlights() {
+    if (!this.#highlightsEnabled() || !this.#highlights) {
+      return;
+    }
+    this.#highlights.clearAllFromDOM();
+    const url = this.document?.documentURI;
+    if (!url) {
+      return;
+    }
+    const highlights = await this.sendQuery("ZenBoost:GetHighlightsForURL", url);
+    const { applied, orphaned } = this.#highlights.applyHighlights(highlights);
+    if (orphaned.length) {
+      for (const id of orphaned) {
+        this.sendAsyncMessage("ZenBoost:HighlightOrphaned", { url, id });
+      }
+      this.sendAsyncMessage("ZenBoost:HighlightsOrphanedCount", {
+        count: orphaned.length,
+      });
+    }
+    return { applied, orphaned };
+  }
+
+  async #removeHighlightById(highlightId) {
+    const url = this.document?.documentURI;
+    if (!url || !highlightId) {
+      return false;
+    }
+    this.#highlights?.removeHighlightFromDOM(highlightId);
+    await this.sendQuery("ZenBoost:HighlightRemove", { url, highlightId });
+    return true;
   }
 
   didDestroy() {
+    if (this.#highlightsBound) {
+      Services.obs.removeObserver(this, "zen-boost-highlights-update");
+    }
     if (this.#currentState === ZenBoostsChild.STATES.ZAP) {
       this.disableZapMode();
     }
@@ -280,6 +360,34 @@ export class ZenBoostsChild extends JSWindowActorChild {
       case "ZenBoost:OpenInspector":
         this.sendAsyncMessage("ZenBoost:OpenInspector");
         break;
+      case "ZenBoost:HighlightSelection": {
+        if (!this.#highlightsEnabled()) {
+          return { ok: false, reason: "disabled" };
+        }
+        if (!this.#highlights) {
+          this.#initHighlightsIfEnabled();
+        }
+        const picked = this.#highlights?.getSelectionRange();
+        if (!picked) {
+          return { ok: false, reason: "no-selection" };
+        }
+        const record = lazy.buildHighlightRecord(picked.text, picked.range);
+        if (!record) {
+          return { ok: false, reason: "empty" };
+        }
+        const url = this.document.documentURI;
+        const saved = await this.sendQuery("ZenBoost:HighlightAdd", {
+          url,
+          record,
+        });
+        if (!saved) {
+          return { ok: false, reason: "save-failed" };
+        }
+        this.#highlights.wrapCurrentSelection(saved.id);
+        return { ok: true, id: saved.id };
+      }
+      case "ZenBoost:HighlightsReload":
+        return this.#reloadHighlights();
     }
     return null;
   }

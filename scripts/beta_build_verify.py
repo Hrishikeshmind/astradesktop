@@ -138,7 +138,7 @@ def shot(client: Marionette, name: str) -> Path:
     return path
 
 
-def capture_welcome(client: Marionette) -> list[dict]:
+def capture_welcome(client: Marionette, apphub_enabled: bool = True) -> list[dict]:
     records: list[dict] = []
     time.sleep(2)
     shot(client, "welcome-01-intro")
@@ -150,22 +150,27 @@ def capture_welcome(client: Marionette) -> list[dict]:
     step_names = [
         "browser-choice",
         "ublock",
-        "compact",
-        "search",
     ]
+    if apphub_enabled:
+        step_names.append("apphub")
+    step_names.extend(["compact", "search"])
     for i, step in enumerate(step_names, start=2):
         hero = client.execute_script(
             """
             const hero = document.getElementById('zen-welcome-hero');
             const ids = [...(hero?.querySelectorAll('[data-l10n-id]') || [])]
               .map(el => el.getAttribute('data-l10n-id'));
-            return ids || [];
+            const finish = !!document.getElementById('zen-welcome-finish');
+            const engines = document.querySelectorAll('.zen-welcome-engine-card:not(.zen-welcome-engine-skeleton)').length;
+            return { ids: ids || [], finish, engines };
             """
         )
         fname = f"welcome-{i:02d}-{step}"
         shot(client, fname)
-        records.append({"step": step, "l10n": hero, "file": f"{fname}.png"})
+        records.append({"step": step, "l10n": hero.get("ids"), "file": f"{fname}.png", **hero})
         if step == "search":
+            if not hero.get("finish") and hero.get("engines", 0) < 1:
+                records.append({"step": "search", "warning": "search step may not be fully hydrated"})
             break
         client.execute_script(
             "document.querySelector('.zen-welcome-btn-skip')?.click();"
@@ -317,6 +322,212 @@ def capture_boost_indic(client: Marionette) -> dict:
     }
 
 
+INDIC_SITES = [
+    {
+        "script": "devanagari",
+        "url": "https://www.bbc.com/hindi",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Mangal", "Aparajita", "Noto Sans Devanagari"],
+    },
+    {
+        "script": "bengali",
+        "url": "https://www.bbc.com/bengali",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Sans Bengali"],
+    },
+    {
+        "script": "tamil",
+        "url": "https://www.bbc.com/tamil",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Sans Tamil"],
+    },
+    {
+        "script": "telugu",
+        "url": "https://www.bbc.com/telugu",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Sans Telugu"],
+    },
+    {
+        "script": "kannada",
+        "url": "https://kannada.oneindia.com",
+        "domain": "kannada.oneindia.com",
+        "fonts": ["Nirmala UI", "Noto Sans Kannada"],
+    },
+    {
+        "script": "malayalam",
+        "url": "https://www.manoramaonline.com",
+        "domain": "manoramaonline.com",
+        "fonts": ["Nirmala UI", "Noto Sans Malayalam"],
+    },
+    {
+        "script": "gujarati",
+        "url": "https://www.bbc.com/gujarati",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Sans Gujarati"],
+    },
+    {
+        "script": "gurmukhi",
+        "url": "https://www.bbc.com/punjabi",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Sans Gurmukhi"],
+    },
+    {
+        "script": "oriya",
+        "url": "https://sambad.in",
+        "domain": "sambad.in",
+        "fonts": ["Nirmala UI", "Noto Sans Oriya"],
+    },
+    {
+        "script": "urdu",
+        "url": "https://www.bbc.com/urdu",
+        "domain": "bbc.com",
+        "fonts": ["Nirmala UI", "Noto Nastaliq Urdu", "Urdu Typesetting", "Jameel Noori Nastaleeq"],
+    },
+]
+
+
+def capture_indic_all(client: Marionette) -> dict:
+    """Apply best available font per script and screenshot each BBC language page."""
+    client.set_context(client.CONTEXT_CHROME)
+    available = client.execute_script(
+        """
+        const fe = Cc['@mozilla.org/gfx/fontenumerator;1'].createInstance(Ci.nsIFontEnumerator);
+        return fe.EnumerateFonts(null, null);
+        """
+    )
+    available_set = set(available or [])
+    results = []
+
+    for site in INDIC_SITES:
+        pick = next((f for f in site["fonts"] if f in available_set), None)
+        record = {"script": site["script"], "url": site["url"], "picked_font": pick}
+        if not pick:
+            record["error"] = "no font available on system"
+            results.append(record)
+            continue
+
+        client.execute_script(
+            f"""
+            const tab = gBrowser.addTab({json.dumps(site["url"])}, {{
+              triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+            }});
+            gBrowser.selectedTab = tab;
+            """
+        )
+        time.sleep(6)
+        client.execute_script(
+            f"""
+            const tab = gBrowser.selectedTab;
+            const browser = tab.linkedBrowser;
+            const domain = {json.dumps(site["domain"])};
+            const {{ gZenBoostsManager }} = ChromeUtils.importESModule(
+              'resource:///modules/zen/boosts/ZenBoostsManager.sys.mjs'
+            );
+            const boost = gZenBoostsManager.createNewBoost(domain);
+            boost.boostEntry.boostData.fontFamily = {json.dumps(pick)};
+            boost.boostEntry.boostData.changeWasMade = true;
+            gZenBoostsManager.saveBoostToStore(boost);
+            gZenBoostsManager.makeBoostActiveForDomain(domain, boost.id);
+            browser.reload();
+            """
+        )
+        time.sleep(5)
+        client.set_context(client.CONTEXT_CONTENT)
+        after = client.execute_script(
+            """
+            const el = document.querySelector('h1, h2, p, article, main') || document.body;
+            const style = getComputedStyle(el);
+            return {
+              fontFamily: style.fontFamily,
+              text: (el.innerText || '').trim().slice(0, 160),
+              title: document.title,
+            };
+            """
+        )
+        record["after"] = after
+        client.set_context(client.CONTEXT_CHROME)
+        shot(client, f"indic-{site['script']}-{pick.replace(' ', '-').lower()}")
+        results.append(record)
+        client.execute_script(
+            """
+            const tab = gBrowser.selectedTab;
+            if (tab) gBrowser.removeTab(tab);
+            """
+        )
+        time.sleep(1)
+
+    # Font grid snapshot after all patches applied
+    client.execute_script(
+        """
+        const tab = gBrowser.addTab('https://www.bbc.com/hindi', {
+          triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+        });
+        gBrowser.selectedTab = tab;
+        """
+    )
+    time.sleep(4)
+    grid_info = client.execute_script(
+        """
+        const tab = gBrowser.selectedTab;
+        const uri = tab.linkedBrowser.currentURI;
+        const domain = 'bbc.com';
+        const { gZenBoostsManager } = ChromeUtils.importESModule(
+          'resource:///modules/zen/boosts/ZenBoostsManager.sys.mjs'
+        );
+        const boost = gZenBoostsManager.loadActiveBoostFromStore(domain);
+        gZenBoostsManager.openBoostWindow(window, boost, uri);
+        return new Promise(resolve => {
+          setTimeout(() => {
+            let win = null;
+            for (const w of Services.wm.getEnumerator(null)) {
+              try {
+                if (String(w.location.href).includes('zen-boost-editor.xhtml')) {
+                  win = w;
+                  break;
+                }
+              } catch (e) {}
+            }
+            const grid = win?.document?.getElementById('zen-boost-font-grid');
+            const buttons = [...(grid?.children || [])].map(btn => ({
+              title: btn.title,
+              preview: btn.textContent,
+              font: btn.getAttribute('font-data'),
+            }));
+            resolve({ buttons, count: buttons.length });
+          }, 2500);
+        });
+        """,
+        script_timeout=8000,
+    )
+    editor_shot = client.execute_script(
+        """
+        const win = (() => {
+          for (const w of Services.wm.getEnumerator(null)) {
+            try {
+              if (String(w.location.href).includes('zen-boost-editor.xhtml')) return w;
+            } catch (e) {}
+          }
+          return null;
+        })();
+        if (!win) return null;
+        const canvas = document.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
+        const w = win.innerWidth, h = win.innerHeight;
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        const flags = ctx.DRAWWINDOW_DRAW_CARET | ctx.DRAWWINDOW_DRAW_VIEW | ctx.DRAWWINDOW_USE_WIDGET_LAYERS;
+        ctx.drawWindow(win, 0, 0, w, h, 'rgb(255,255,255)', flags);
+        return canvas.toDataURL('image/png').split(',')[1];
+        """
+    )
+    if editor_shot:
+        path = OUT / "boost-font-grid-indic-all.png"
+        path.write_bytes(base64.b64decode(editor_shot))
+
+    return {"sites": results, "font_grid": grid_info, "available_targets": sorted(available_set.intersection({
+        f for site in INDIC_SITES for f in site["fonts"]
+    }))}
+
+
 def main() -> None:
     bootstrap_disk_guard("beta_build_verify")
     if not EXE.exists():
@@ -325,7 +536,10 @@ def main() -> None:
     report: dict = {"shots_dir": str(OUT), "welcome": [], "boost": {}}
 
     profile = ROOT / ".tmp-beta-polish" / "profile-welcome-boost"
-    proc, client = launch(profile, ['user_pref("zen.welcome-screen.seen", false);'])
+    proc, client = launch(profile, [
+        'user_pref("zen.welcome-screen.seen", false);',
+        'user_pref("astra.apphub.enabled", true);',
+    ])
     try:
         report["welcome"] = capture_welcome(client)
     finally:
@@ -360,5 +574,19 @@ if __name__ == "__main__":
             print(json.dumps(result, indent=2))
         finally:
             stop(proc2, client2)
+    elif len(sys.argv) > 1 and sys.argv[1] == "indic-all":
+        bootstrap_disk_guard("beta_build_verify.indic-all")
+        if not EXE.exists():
+            raise SystemExit(f"Missing build: {EXE}")
+        patch_jar(BROWSER_JAR, force=True)
+        profile3 = ROOT / ".tmp-beta-polish" / "profile-indic-all"
+        proc3, client3 = launch(profile3, ['user_pref("zen.welcome-screen.seen", true);'])
+        try:
+            result = capture_indic_all(client3)
+            report_path = OUT / "indic-all-report.json"
+            report_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+            print(json.dumps(result, indent=2))
+        finally:
+            stop(proc3, client3)
     else:
         main()
