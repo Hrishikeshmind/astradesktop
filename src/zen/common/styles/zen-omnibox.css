@@ -166,7 +166,11 @@
 }
 
 #urlbar[zen-newtab] #identity-box,
-#urlbar[zen-newtab] #urlbar-label-box {
+#urlbar[zen-newtab] #urlbar-label-box,
+#urlbar[breakout-extend][zen-newtab] #identity-box,
+#urlbar[breakout-extend][zen-newtab] #urlbar-label-box,
+#urlbar[zen-floating-urlbar][zen-newtab] #identity-box,
+#urlbar[zen-floating-urlbar][zen-newtab] #urlbar-label-box {
   display: none !important;
 }
 

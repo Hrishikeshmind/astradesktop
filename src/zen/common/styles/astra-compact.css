@@ -342,7 +342,11 @@
   }
 }
 
-:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true'])
+/* Floating/breakout urlbar results paint outside the card; overflow:hidden
+ * on the toolbox clips them and blocks pointer hit-testing on rows. */
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):not(
+    :has(#urlbar[breakout-extend], #urlbar[zen-floating-urlbar='true'])
+  )
   #navigator-toolbox:not([animate='true']) {
   border-radius: var(--zen-native-inner-radius);
   overflow: hidden;
@@ -352,6 +356,44 @@
     top 0.2s ease,
     box-shadow 0.2s ease,
     background-color 0.15s ease;
+}
+
+/* Full-bleed compact content sits above the sidebar card's stacking context;
+ * while the new-tab overlay is open, let the floating urlbar own mouse hits. */
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #zen-appcontent-wrapper,
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #tabbrowser-tabbox,
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #tabbrowser-tabpanels,
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #tabbrowser-tabpanels browser {
+  pointer-events: none !important;
+}
+
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #urlbar:is([breakout-extend], [zen-floating-urlbar='true']),
+:root[zen-compact-mode='true']:not([customizing]):not([inDOMFullscreen='true']):has(
+    #urlbar[zen-newtab]
+  )
+  #urlbar:is([breakout-extend], [zen-floating-urlbar='true']) :is(
+    #urlbar-results,
+    .urlbarView-row,
+    .urlbarView-row-inner,
+    .urlbarView-no-wrap,
+    .urlbarView-url
+  ) {
+  pointer-events: auto !important;
 }
 
 /* Tucked: fully off-canvas. Do not leave a 4px peek that still paints. */

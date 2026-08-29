@@ -184,6 +184,46 @@ add_task(async function test_overlay_in_compact_mode_leaves_previous_tab() {
   }
 });
 
+add_task(async function test_overlay_compact_click_result_navigates() {
+  const origCompact = gZenCompactModeManager.preference;
+  gZenCompactModeManager.preference = true;
+  await TestUtils.waitForCondition(
+    () => document.documentElement.getAttribute("zen-compact-mode") === "true",
+    "Compact Mode enabled"
+  );
+  try {
+    await withOverlayNewTab(async ({ prevTab, overlayTab }) => {
+      await UrlbarTestUtils.promiseAutocompleteResultPopup({
+        window,
+        waitForFocus: true,
+      });
+      const row = document.querySelector("#urlbar-results .urlbarView-row");
+      Assert.ok(row, "Compact overlay shows at least one suggestion row");
+
+      const loaded = BrowserTestUtils.browserLoaded(
+        overlayTab.linkedBrowser,
+        false,
+        url => url && url !== "about:blank" && url !== "about:newtab"
+      );
+      EventUtils.synthesizeMouseAtCenter(row, {}, window);
+      await loaded;
+
+      Assert.equal(
+        prevTab.linkedBrowser.currentURI.spec,
+        PREV_URL,
+        "Compact mouse click must not navigate the previous tab"
+      );
+      Assert.notEqual(
+        gBrowser.selectedTab.linkedBrowser.currentURI.spec,
+        "about:blank",
+        "Compact mouse click navigates the overlay tab"
+      );
+    });
+  } finally {
+    gZenCompactModeManager.preference = origCompact;
+  }
+});
+
 add_task(async function test_overlay_survives_blur_before_uri_updates() {
   // Regression: handleCommand → _loadURL blurs the urlbar and endLayoutExtend
   // called handleUrlbarClose(false, false) while currentURI was still

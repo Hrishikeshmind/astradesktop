@@ -593,11 +593,9 @@ window.gZenUIManager = {
   // Section: URL bar
 
   onUrlbarOpen() {
-    setTimeout(() => {
-      const hadValid = gURLBar.getAttribute("pageproxystate") === "valid";
-      gURLBar.setPageProxyState("invalid", false);
-      gURLBar.setAttribute("had-proxystate", hadValid);
-    }, 0);
+    const hadValid = gURLBar.getAttribute("pageproxystate") === "valid";
+    gURLBar.setPageProxyState("invalid", false);
+    gURLBar.setAttribute("had-proxystate", hadValid);
   },
 
   onUrlbarClose() {
@@ -769,6 +767,7 @@ window.gZenUIManager = {
     // Set up URL bar for new tab
     gURLBar._zenHandleUrlbarClose = this.handleUrlbarClose.bind(this);
     gURLBar.setAttribute("zen-newtab", true);
+    gURLBar.setPageProxyState("invalid", false);
 
     // Update newtab buttons
     for (const button of this.newtabButtons) {
