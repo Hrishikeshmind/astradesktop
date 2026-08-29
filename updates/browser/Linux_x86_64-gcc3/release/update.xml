@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<updates>
+  <update detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases" type="minor" displayVersion="1.19.8e" appVersion="1.19.8e" platformVersion="153.0.4" buildID="20260827142003">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.8e/linux.mar" hashFunction="sha512" hashValue="2230f538ad256dcef48e8a3f3eda1e08ad25af9872080757ab540bee59664ef1e35d934834990c4d618fedbf3a45e53a694beb57816b68c1fd0db01affaf60a8" size="93805025"/>
+  </update>
+</updates>

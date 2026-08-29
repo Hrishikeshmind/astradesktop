@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<updates>
+  <update type="minor" displayVersion="1.19.8e" appVersion="1.19.8e" platformVersion="153.0.4" buildID="20260827142003" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.8e/windows-arm64.mar" hashFunction="sha512" hashValue="016a1ec9bea9796f952ce1307f03d7666f25d127ac3fd45d3ba2ec3160369a438fc6c3ac1426d54dae1a384ad64917558a1636198a3cbfe81317e96a7e520e75" size="93095057"/>
+  </update>
+</updates>
