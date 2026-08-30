@@ -15,7 +15,6 @@ export class nsZenBoostHighlightsUI {
   #window;
   #document;
   #badge = null;
-  #menuItem = null;
   #boundUpdate = null;
 
   constructor(win) {
@@ -82,7 +81,6 @@ export class nsZenBoostHighlightsUI {
     });
     menu.appendChild(sep);
     menu.appendChild(item);
-    this.#menuItem = item;
   }
 
   #initBadge() {

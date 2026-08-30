@@ -138,7 +138,6 @@ export class ZenBoostsChild extends JSWindowActorChild {
         count: orphaned.length,
       });
     }
-    return { applied, orphaned };
   }
 
   async #removeHighlightById(highlightId) {
@@ -387,7 +386,8 @@ export class ZenBoostsChild extends JSWindowActorChild {
         return { ok: true, id: saved.id };
       }
       case "ZenBoost:HighlightsReload":
-        return this.#reloadHighlights();
+        await this.#reloadHighlights();
+        return { ok: true };
     }
     return null;
   }
