@@ -690,3 +690,24 @@
   overflow: hidden !important;
   pointer-events: none !important;
 }
+
+/* Sidebar+Top Toolbar compact: the live strip lives on #nav-bar only. */
+:root[zen-compact-mode='true']:not([zen-single-toolbar='true']):not([customizing]):not(
+    [inDOMFullscreen='true']
+  )
+  #nav-bar
+  > #zen-sidebar-top-buttons {
+  display: flex !important;
+  visibility: visible !important;
+  height: var(--zen-toolbar-height, 38px) !important;
+  min-height: var(--zen-toolbar-height, 38px) !important;
+  max-height: var(--zen-toolbar-height, 38px) !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+  flex: 0 0 auto !important;
+  -moz-box-flex: 0 !important;
+}

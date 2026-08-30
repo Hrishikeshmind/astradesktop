@@ -1179,7 +1179,9 @@ window.gZenCompactModeManager = {
     if (!this.preference || gZenVerticalTabsManager._hasSetSingleToolbar) {
       return;
     }
-    gZenVerticalTabsManager._updateEvent({ dontRebuildAreas: true });
+    // Targeted placement only — full _updateEvent on hover was re-parking the
+    // strip back into #titlebar and migrating Compact + AI into the sidebar.
+    gZenVerticalTabsManager._placeSidebarTopToolbarControls?.();
   },
 
   get hideAfterHoverDuration() {
@@ -1802,6 +1804,9 @@ window.gZenCompactModeManager = {
       this._setElementExpandAttribute(this.sidebar, true, "zen-has-hover");
       if (toolbar) {
         this._setElementExpandAttribute(toolbar, true, "zen-has-hover");
+      }
+      if (!gZenVerticalTabsManager._hasSetSingleToolbar) {
+        gZenVerticalTabsManager._placeSidebarTopToolbarControls?.();
       }
       this._syncEdgeHitTargets();
       return;

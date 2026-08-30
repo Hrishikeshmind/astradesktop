@@ -1516,7 +1516,10 @@ window.gZenVerticalTabsManager = {
       "zen-sidebar-top-buttons-customization-target"
     );
     const topButtons = document.getElementById("zen-sidebar-top-buttons");
-    const navBar = document.getElementById("nav-bar");
+    const navBarHost = document.getElementById("zen-appcontent-navbar-wrapper");
+    const navBar =
+      navBarHost?.querySelector("#nav-bar") ??
+      document.getElementById("nav-bar");
     const compact = document.getElementById("zen-toggle-compact-mode");
     const ai = document.getElementById("astra-ai-sidebar-button");
     for (const el of [compact, ai]) {
@@ -1544,11 +1547,41 @@ window.gZenVerticalTabsManager = {
       navBar &&
       !this._hasSetSingleToolbar
     ) {
-      navBar.prepend(topButtons);
+      if (topButtons.parentElement !== navBar) {
+        navBar.prepend(topButtons);
+      }
       topButtons.setAttribute("flex", "0");
       target?.setAttribute("flex", "0");
     }
     this._syncAiSidebarButton();
+  },
+
+  /** Keep Compact + AI on #nav-bar (top toolbar), never in sidebar flyout. */
+  _assertCompactTopToolbarStripPlacement() {
+    if (
+      !gZenCompactModeManager?.preference ||
+      this._hasSetSingleToolbar ||
+      !this._prefsSidebarExpanded
+    ) {
+      return;
+    }
+    const topButtons = document.getElementById("zen-sidebar-top-buttons");
+    const navBarHost = document.getElementById("zen-appcontent-navbar-wrapper");
+    const navBar =
+      navBarHost?.querySelector("#nav-bar") ??
+      document.getElementById("nav-bar");
+    if (
+      topButtons &&
+      navBar &&
+      topButtons.parentElement !== navBar &&
+      topButtons.closest("#navigator-toolbox")
+    ) {
+      navBar.prepend(topButtons);
+      topButtons.setAttribute("flex", "0");
+      document
+        .getElementById("zen-sidebar-top-buttons-customization-target")
+        ?.setAttribute("flex", "0");
+    }
   },
 
   _placeMultiToolbarAiButton(target) {
@@ -2189,7 +2222,10 @@ window.gZenVerticalTabsManager = {
       let windowButtons = this.actualWindowButtons;
       let doNotChangeWindowButtons =
         !isCompactMode && isRightSide && this.isWindowsStyledButtons;
-      const navBar = document.getElementById("nav-bar");
+      const navBarHost = document.getElementById("zen-appcontent-navbar-wrapper");
+      const navBar =
+        navBarHost?.querySelector("#nav-bar") ??
+        document.getElementById("nav-bar");
 
       if (isSingleToolbar) {
         this._navbarParent = navBar.parentElement;
@@ -2402,6 +2438,7 @@ window.gZenVerticalTabsManager = {
       } else {
         this._placeAiButtonForNonOnlySidebar(aiTarget);
       }
+      this._assertCompactTopToolbarStripPlacement();
       this._syncCollapsedRailNewTab(aiTarget, { forCustomizableMode });
 
       // Collapsed rail: XUL flex="1" on #zen-sidebar-top-buttons stretches the
