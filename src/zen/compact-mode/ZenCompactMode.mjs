@@ -813,6 +813,15 @@ window.gZenCompactModeManager = {
       new CustomEvent("ZenCompactMode:Toggled", { detail: this.preference })
     );
     this._syncEdgeHitTargets();
+    // Sidebar+Top Toolbar: hover used to be the first _syncSidebarTopButtonsForReveal
+    // caller, leaving the tucked flyout ghosting until mouseenter (Bug 2).
+    if (this.preference && !gZenVerticalTabsManager._hasSetSingleToolbar) {
+      gZenVerticalTabsManager._placeSidebarTopToolbarControls?.();
+      this._syncSidebarTopButtonsForReveal();
+      if (!this._isPointerOverCompactChromeUI()) {
+        this._setCompactChromeRevealed(false, { immediate: true });
+      }
+    }
   },
 
   // NOTE: Dont actually use event, it's just so we make sure
