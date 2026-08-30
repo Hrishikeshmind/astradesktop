@@ -185,6 +185,9 @@
           max-height: none !important;
           overflow: visible !important;
           pointer-events: auto;
+          /* Above sidebar flyout card (z=15) so urlbar/chrome stay clickable
+           * when unified reveal mispositions the sidebar one frame (Bug 4). */
+          z-index: 20 !important;
           /* Opaque theme-tinted floor so icons stay readable on light OR dark
            * page content. Overrides Transparent Mode glass tint on this strip. */
           background: var(--zen-compact-toolbar-overlay-bg) !important;
