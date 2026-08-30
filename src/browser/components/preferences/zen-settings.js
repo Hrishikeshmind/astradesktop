@@ -720,6 +720,10 @@ var gZenLooksAndFeel = {
     );
     if (collapsedLayout) {
       collapsedLayout.hidden = !collapsedEnabled;
+      collapsedLayout.toggleAttribute("aria-hidden", !collapsedEnabled);
+      // Belt-and-suspenders: zen-preferences.css #zenLayoutList > [layout]
+      // sets display:flex and can override XUL hidden without the pref gate.
+      collapsedLayout.style.display = collapsedEnabled ? "" : "none";
     }
     const isSingleToolbar = Services.prefs.getBoolPref(kZenSingleToolbar);
     const isExtendedSidebar = Services.prefs.getBoolPref(kZenExtendedSidebar);

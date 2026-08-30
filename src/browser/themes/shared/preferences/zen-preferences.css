@@ -475,6 +475,18 @@ groupbox h2 {
   }
 }
 
+/* ASTRA-FEATURE-GATE: Collapsed Sidebar layout picker tile.
+   JS sets hidden on #zenLayoutCollapsed, but #zenLayoutList > [layout]
+   forces display:flex and overrides the hidden attribute (Bug 1 / build 147).
+   Same reversible pref-gate pattern as App Hub in astra-patches.css. */
+@media not (-moz-pref("astra.sidebar.collapsed-layout.enabled")) {
+  #zenLayoutCollapsed,
+  #zenLayoutList > [layout="collapsed"] {
+    display: none !important;
+    pointer-events: none !important;
+  }
+}
+
 /* Disable mozilla's settings */
 
 #dataCollectionCategory,
