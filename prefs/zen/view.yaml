@@ -86,6 +86,11 @@
 - name: astra.sidebar.collapsed-layout.enabled
   value: false
 
+# Pref gate: "sidebar on right side" context-menu option. Default off for this
+# release; underlying right-side rendering stays in the tree.
+- name: astra.sidebar.right-side.enabled
+  value: false
+
 # Boost text highlighter — URL-keyed persistent highlights (see ZenBoostHighlights*).
 - name: astra.boost.highlighter.enabled
   value: true

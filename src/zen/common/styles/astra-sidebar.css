@@ -174,8 +174,4 @@
   justify-content: flex-start;
   align-items: center;
   padding-inline: 2px;
-
-  & #zen-create-new-button {
-    margin-inline-start: auto;
-  }
 }

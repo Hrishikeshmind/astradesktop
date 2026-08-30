@@ -90,6 +90,16 @@
   }
 }
 
+/* ASTRA-FEATURE-GATE: Sidebar on right side (context menu only).
+   While astra.sidebar.right-side.enabled is false, hide the toolbar context
+   menu item. Underlying right-side rendering is untouched. */
+/* stylelint-disable-next-line media-query-no-invalid */
+@media not (-moz-pref("astra.sidebar.right-side.enabled")) {
+  #zen-toolbar-context-tabs-right {
+    display: none !important;
+  }
+}
+
 /* Consumer build: hide Firefox enterprise-policy chrome. policies.json is
    used to ship uBlock Origin, not to manage the browser for an organization. */
 #appMenu-help-enterprisepolicies,

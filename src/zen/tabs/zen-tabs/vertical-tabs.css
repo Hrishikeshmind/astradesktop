@@ -638,10 +638,6 @@
     gap: 5px;
     width: 100%;
     position: relative;
-
-    & #zen-create-new-button {
-      margin-inline-start: auto;
-    }
   }
 
   & #zen-essentials {

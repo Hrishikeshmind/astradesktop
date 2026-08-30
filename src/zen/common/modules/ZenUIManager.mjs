@@ -1187,6 +1187,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 const kCollapsedLayoutEnabled = "astra.sidebar.collapsed-layout.enabled";
+const kRightSideSidebarEnabled = "astra.sidebar.right-side.enabled";
 
 window.gZenVerticalTabsManager = {
   init() {
@@ -1325,6 +1326,9 @@ window.gZenVerticalTabsManager = {
   },
 
   initRightSideOrderContextMenu() {
+    if (!Services.prefs.getBoolPref(kRightSideSidebarEnabled, false)) {
+      return;
+    }
     const kConfigKey = "zen.tabs.vertical.right-side";
     const fragment = window.MozXULElement.parseXULToFragment(`
       <menuitem id="zen-toolbar-context-tabs-right"
