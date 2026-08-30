@@ -113,7 +113,7 @@ class nsZenBoostHighlightsManager {
     await this.#ensureLoaded();
     const obj = Object.fromEntries(this.#pages);
     this.#file.data = obj;
-    await this.#file.write();
+    this.#file.saveSoon();
   }
 
   #notify() {

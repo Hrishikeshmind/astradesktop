@@ -74,7 +74,7 @@ class nsZenMods extends nsZenPreloadedFeature {
       const content = await this.#readStylesheet();
       this.#modsBackend.rebuildModsStyles(content);
     } catch (e) {
-      console.warn("[ZenMods]: Error rebuilding mods styles:", e);
+      console.warn("[AstraMods]: Error rebuilding mods styles:", e);
     }
   }
 
@@ -122,15 +122,15 @@ class nsZenMods extends nsZenPreloadedFeature {
     if (disableAll) {
       // eslint-disable-next-line no-console
       console.info(
-        "[ZenMods]: Marketplace mods disabled by user preference; Astra first-party mods remain active."
+        "[AstraMods]: Marketplace mods disabled by user preference; Astra first-party mods remain active."
       );
     }
     // eslint-disable-next-line no-console
     const modList = mods.map(({ name }) => name).join(", ");
     const message =
       modList !== ""
-        ? `[ZenMods]: Loading enabled mods: ${modList}.`
-        : "[ZenMods]: No enabled mods.";
+        ? `[AstraMods]: Loading enabled mods: ${modList}.`
+        : "[AstraMods]: No enabled mods.";
     console.warn(message);
     return mods;
   }
@@ -159,7 +159,7 @@ class nsZenMods extends nsZenPreloadedFeature {
           getProperty(property);
         } catch {
           console.warn(
-            `[ZenMods]: Setting default value for ${property} to ${defaultValue} (${typeof defaultValue})`
+            `[AstraMods]: Setting default value for ${property} to ${defaultValue} (${typeof defaultValue})`
           );
 
           if (
@@ -168,7 +168,7 @@ class nsZenMods extends nsZenPreloadedFeature {
             typeof defaultValue !== "number"
           ) {
             console.warn(
-              `[ZenMods]: Warning, invalid data type received (${typeof defaultValue}), skipping.`
+              `[AstraMods]: Warning, invalid data type received (${typeof defaultValue}), skipping.`
             );
             continue;
           }
@@ -335,10 +335,10 @@ class nsZenMods extends nsZenPreloadedFeature {
     try {
       parsed = new URL(url);
     } catch {
-      throw new Error(`[ZenMods]: Invalid mod asset URL: ${url}`);
+      throw new Error(`[AstraMods]: Invalid mod asset URL: ${url}`);
     }
     if (parsed.protocol !== "https:") {
-      throw new Error(`[ZenMods]: Refusing non-HTTPS mod asset URL: ${url}`);
+      throw new Error(`[AstraMods]: Refusing non-HTTPS mod asset URL: ${url}`);
     }
 
     let attempt = 0;
@@ -364,13 +364,13 @@ class nsZenMods extends nsZenPreloadedFeature {
         attempt++;
         if (attempt >= maxRetries) {
           console.error(
-            "[ZenMods]: Error downloading file after retries",
+            "[AstraMods]: Error downloading file after retries",
             url,
             e
           );
         } else {
           console.warn(
-            `[ZenMods]: Download failed (attempt ${attempt} of ${maxRetries}), retrying in ${retryDelayMs}ms...`,
+            `[AstraMods]: Download failed (attempt ${attempt} of ${maxRetries}), retrying in ${retryDelayMs}ms...`,
             url,
             e
           );
@@ -479,7 +479,7 @@ class nsZenMods extends nsZenPreloadedFeature {
       });
     } catch (e) {
       console.error(
-        `[ZenMods]: Error reading mod preferences for ${mod.name}:`,
+        `[AstraMods]: Error reading mod preferences for ${mod.name}:`,
         e
       );
       return [];
@@ -491,12 +491,12 @@ class nsZenMods extends nsZenPreloadedFeature {
       await SessionStore.promiseInitialized;
 
       if (Services.appinfo.inSafeMode) {
-        console.warn("[ZenMods]: Mods disabled — running in safe mode.");
+        console.warn("[AstraMods]: Mods disabled — running in safe mode.");
         return;
       }
       if (Services.prefs.getBoolPref("zen.themes.disable-all", false)) {
         console.warn(
-          "[ZenMods]: Marketplace mods disabled by user preference; Astra first-party mods will still be registered."
+          "[AstraMods]: Marketplace mods disabled by user preference; Astra first-party mods will still be registered."
         );
       }
 
@@ -535,7 +535,7 @@ class nsZenMods extends nsZenPreloadedFeature {
         );
       }
     } catch (e) {
-      console.error("[ZenMods]: Error loading mods:", e);
+      console.error("[AstraMods]: Error loading mods:", e);
     }
 
     Services.prefs.addObserver(
@@ -596,7 +596,7 @@ class nsZenMods extends nsZenPreloadedFeature {
       }
     } catch (e) {
       console.error(
-        "[ZenMods]: Failed migrating legacy astra-transparent mod",
+        "[AstraMods]: Failed migrating legacy astra-transparent mod",
         e
       );
       succeeded = false;
@@ -610,7 +610,7 @@ class nsZenMods extends nsZenPreloadedFeature {
           await this.#rebuildModsStylesheet();
         } catch (e) {
           console.error(
-            "[ZenMods]: Failed rebuilding mods stylesheet after transparency migration",
+            "[AstraMods]: Failed rebuilding mods stylesheet after transparency migration",
             e
           );
         }
@@ -670,7 +670,7 @@ class nsZenMods extends nsZenPreloadedFeature {
             possibleNewModVersion.version != currentMod.version
           ) {
             console.warn(
-              `[ZenMods]: Mod update found for mod ${currentMod.name} (${currentMod.id}), current: ${currentMod.version}, new: ${possibleNewModVersion.version}`
+              `[AstraMods]: Mod update found for mod ${currentMod.name} (${currentMod.id}), current: ${currentMod.version}, new: ${possibleNewModVersion.version}`
             );
 
             possibleNewModVersion.enabled = currentMod.enabled;
@@ -684,7 +684,7 @@ class nsZenMods extends nsZenPreloadedFeature {
 
           return null;
         } catch (e) {
-          console.error("[ZenMods]: Error checking for mod updates", e);
+          console.error("[AstraMods]: Error checking for mod updates", e);
 
           return null;
         }
@@ -704,7 +704,7 @@ class nsZenMods extends nsZenPreloadedFeature {
   async removeMod(modId, triggerUpdate = true) {
     const modPath = this.getModFolder(modId);
 
-    console.warn(`[ZenMods]: Removing mod ${modPath}`);
+    console.warn(`[AstraMods]: Removing mod ${modPath}`);
 
     await IOUtils.remove(modPath, { recursive: true, ignoreAbsent: true });
 
@@ -723,16 +723,16 @@ class nsZenMods extends nsZenPreloadedFeature {
     const mods = await this.getMods();
     const mod = mods[modId];
     if (!mod) {
-      console.error(`[ZenMods]: Mod ${modId} not found!`);
+      console.error(`[AstraMods]: Mod ${modId} not found!`);
       return;
     }
-    console.warn(`[ZenMods]: Enabling mod ${mod.name}`);
+    console.warn(`[AstraMods]: Enabling mod ${mod.name}`);
     mod.enabled = true;
     await IOUtils.writeJSON(this.modsDataFile, mods);
     try {
       await this.installMod(mod);
     } catch (e) {
-      console.warn(`[ZenMods]: Could not refresh mod CSS`, e);
+      console.warn(`[AstraMods]: Could not refresh mod CSS`, e);
     }
     await this.#rebuildModsStylesheet();
   }
@@ -741,10 +741,10 @@ class nsZenMods extends nsZenPreloadedFeature {
     const mods = await this.getMods();
     const mod = mods[modId];
     if (!mod) {
-      console.error(`[ZenMods]: Mod ${modId} not found!`);
+      console.error(`[AstraMods]: Mod ${modId} not found!`);
       return;
     }
-    console.warn(`[ZenMods]: Disabling mod ${mod.name}`);
+    console.warn(`[AstraMods]: Disabling mod ${mod.name}`);
     mod.enabled = false;
     await IOUtils.writeJSON(this.modsDataFile, mods);
     await this.#rebuildModsStylesheet();
@@ -787,7 +787,7 @@ class nsZenMods extends nsZenPreloadedFeature {
         );
       }
     } catch (e) {
-      console.error("[ZenMods]: Error installing mod", mod.id, e);
+      console.error("[AstraMods]: Error installing mod", mod.id, e);
     }
   }
 
@@ -804,7 +804,7 @@ class nsZenMods extends nsZenPreloadedFeature {
           await this.installMod(mod);
         }
       } catch (e) {
-        console.error("[ZenMods]: Error checking for mod changes", e);
+        console.error("[AstraMods]: Error checking for mod changes", e);
       }
     }
 
@@ -814,7 +814,7 @@ class nsZenMods extends nsZenPreloadedFeature {
   async requestMod(modId) {
     const url = this.#composeModApiUrl(modId);
 
-    console.warn(`[ZenMods]: Fetching mod ${modId} info from ${url}`);
+    console.warn(`[AstraMods]: Fetching mod ${modId} info from ${url}`);
 
     const data = await fetch(url, {
       mode: "no-cors",
@@ -826,11 +826,11 @@ class nsZenMods extends nsZenPreloadedFeature {
 
         return obj;
       } catch (e) {
-        console.error(`[ZenMods]: Error parsing mod ${modId} info:`, e);
+        console.error(`[AstraMods]: Error parsing mod ${modId} info:`, e);
       }
     } else {
       console.error(
-        `[ZenMods]: Error fetching mod ${modId} info:`,
+        `[AstraMods]: Error fetching mod ${modId} info:`,
         data.status
       );
     }

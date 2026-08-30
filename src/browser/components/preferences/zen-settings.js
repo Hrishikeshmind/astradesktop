@@ -1716,11 +1716,6 @@ Preferences.addAll([
     type: "bool",
     default: false,
   },
-  {
-    id: "intl.multilingual.downloadEnabled",
-    type: "bool",
-    default: true,
-  },
 ]);
 
 Preferences.addSetting({
