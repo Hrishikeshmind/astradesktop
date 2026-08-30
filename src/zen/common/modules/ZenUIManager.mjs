@@ -1503,6 +1503,37 @@ window.gZenVerticalTabsManager = {
     this._placeMultiToolbarAiButton(target);
   },
 
+  /**
+   * Sidebar+Top Toolbar (expanded): Compact + AI stay in #nav-bar with
+   * Back/Forward/Reload — never in the sidebar flyout / top-buttons strip.
+   * Collapsed rail and Only Sidebar use other placement paths.
+   */
+  _placeSidebarTopToolbarControls() {
+    const navTarget = document.getElementById("nav-bar-customization-target");
+    if (!navTarget) {
+      return;
+    }
+    const controlIds = ["zen-toggle-compact-mode", "astra-ai-sidebar-button"];
+    let anchor = document.getElementById("urlbar-container");
+    for (const id of controlIds) {
+      const el = document.getElementById(id);
+      if (!el) {
+        continue;
+      }
+      el.removeAttribute("hidden");
+      el.setAttribute("overflows", "false");
+      el.removeAttribute("overflowedItem");
+      el.removeAttribute("cui-anchorid");
+      if (anchor && navTarget.contains(anchor)) {
+        anchor.after(el);
+      } else if (!navTarget.contains(el)) {
+        navTarget.append(el);
+      }
+      anchor = el;
+    }
+    this._syncAiSidebarButton();
+  },
+
   _placeMultiToolbarAiButton(target) {
     const ai = document.getElementById("astra-ai-sidebar-button");
     if (!ai || !target) {
@@ -1728,6 +1759,7 @@ window.gZenVerticalTabsManager = {
       return;
     }
     const id = "viewGenaiChatSidebar";
+    const panelToken = "viewGenaiChatSidebar";
     try {
       const command = document
         .getElementById("sidebar-box")
@@ -1735,11 +1767,15 @@ window.gZenVerticalTabsManager = {
       const open = sc.isOpen && (sc.currentID === id || command === id);
       if (open) {
         sc.hide();
+        gZenCompactModeManager?.unlockForPanel?.(panelToken);
       } else {
+        gZenCompactModeManager?.lockForPanel?.(panelToken);
         sc.show(id);
+        gZenCompactModeManager?.ensureRevampPanelLayout?.();
       }
     } catch (e) {
       console.warn("[Astra] Failed to toggle AI sidebar", e);
+      gZenCompactModeManager?.unlockForPanel?.(panelToken);
     }
   },
 
@@ -2303,6 +2339,8 @@ window.gZenVerticalTabsManager = {
       );
       if (isSingleToolbar) {
         this._placeOnlySidebarAiButton(aiTarget);
+      } else if (isSidebarExpanded) {
+        this._placeSidebarTopToolbarControls();
       } else {
         this._placeAiButtonForNonOnlySidebar(aiTarget);
       }

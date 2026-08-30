@@ -87,6 +87,21 @@
   display: flex !important;
 }
 
+/* Sidebar+Top Toolbar: Compact + AI are pinned on #nav-bar, not the sidebar
+ * flyout strip — keep them out of the tucked card when compact mode moves
+ * #zen-sidebar-top-buttons into #titlebar (Bug 3). */
+:root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
+  #nav-bar-customization-target
+  > :is(#zen-toggle-compact-mode, #astra-ai-sidebar-button) {
+  display: flex !important;
+}
+
+:root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
+  #zen-sidebar-top-buttons-customization-target
+  > :is(#zen-toggle-compact-mode, #astra-ai-sidebar-button) {
+  display: none !important;
+}
+
 /* Collapsed rail: match Compact / App Hub / Suraksha at 48px. The 28px Only
  * Sidebar strip rules below are gated on zen-single-toolbar (expanded only).
  * vertical-tabs.css already columns this target with gap: 5px. */
