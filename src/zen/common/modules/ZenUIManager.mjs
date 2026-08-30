@@ -1700,6 +1700,40 @@ window.gZenVerticalTabsManager = {
    * 186px nav strip is Back / Forward / Reload / AI only. Other layouts keep
    * Compact as the first icon in the top strip.
    */
+  /**
+   * Strip compact hover/reveal inline layout from the sidebar foot row and
+   * re-assert Only Sidebar footer placement after Compact Mode turns off.
+   */
+  _resetSidebarFootButtonsAfterCompact() {
+    const foot = document.getElementById("zen-sidebar-foot-buttons");
+    const tabsToolbar = document.getElementById("TabsToolbar");
+    const titlebar = document.getElementById("titlebar");
+    for (const el of [foot, tabsToolbar, titlebar]) {
+      if (!el) {
+        continue;
+      }
+      for (const prop of [
+        "justify-content",
+        "flex-direction",
+        "align-items",
+        "align-self",
+        "width",
+        "margin-top",
+        "flex-grow",
+        "flex-shrink",
+        "height",
+        "max-height",
+        "min-height",
+      ]) {
+        el.style.removeProperty(prop);
+      }
+    }
+    if (this._hasSetSingleToolbar) {
+      this._placeOnlySidebarCompactToggle(true);
+    }
+    window.dispatchEvent(new Event("resize"));
+  },
+
   _placeOnlySidebarCompactToggle(enable) {
     const compact = document.getElementById("zen-toggle-compact-mode");
     if (!compact) {
@@ -1716,10 +1750,10 @@ window.gZenVerticalTabsManager = {
       if (!foot) {
         return;
       }
-      const scheme = document.getElementById("zen-toggle-window-scheme");
+      const downloads = document.getElementById("downloads-button");
       try {
-        if (scheme && foot.contains(scheme)) {
-          foot.insertBefore(compact, scheme);
+        if (downloads && foot.contains(downloads)) {
+          foot.insertBefore(compact, downloads);
         } else if (!foot.contains(compact)) {
           foot.prepend(compact);
         }

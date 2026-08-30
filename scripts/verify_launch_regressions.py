@@ -302,6 +302,62 @@ const done = arguments[arguments.length - 1];
   }
 
   gZenCompactModeManager.preference = false;
+  await sleep(1200);
+  gZenVerticalTabsManager?._updateEvent();
+  await sleep(500);
+
+  const foot = win.document.getElementById("zen-sidebar-foot-buttons");
+  const footCs = foot ? win.getComputedStyle(foot) : null;
+  const dl = win.document.getElementById("downloads-button");
+  const theme = win.document.getElementById("zen-toggle-window-scheme");
+  const plus = win.document.getElementById("zen-create-new-button");
+  const dlR = dl?.getBoundingClientRect();
+  const themeR = theme?.getBoundingClientRect();
+  const plusR = plus?.getBoundingClientRect();
+  const toolbox = win.document.getElementById("navigator-toolbox");
+  data.bug5Foot = {
+    compactMode: document.documentElement.getAttribute("zen-compact-mode"),
+    toolboxHover: toolbox?.hasAttribute("zen-has-hover"),
+    compactChrome: document.documentElement.getAttribute("zen-compact-chrome-revealed"),
+    justifyContent: footCs?.justifyContent,
+    flexDirection: footCs?.flexDirection,
+    footStyle: foot?.getAttribute("style") || "",
+    downloadToTheme:
+      dlR && themeR
+        ? Math.round((themeR.left - (dlR.left + dlR.width)) * 10) / 10
+        : null,
+    themeX: themeR ? Math.round(themeR.left * 10) / 10 : null,
+    plusX: plusR ? Math.round(plusR.left * 10) / 10 : null,
+  };
+  if (toolbox?.hasAttribute("zen-has-hover")) {
+    issues.push({
+      id: "bug5-foot-hover-stuck",
+      severity: "high",
+      detail: "zen-has-hover must clear on toolbox after compact is disabled",
+      bug5Foot: data.bug5Foot,
+    });
+  }
+  if (document.documentElement.hasAttribute("zen-compact-chrome-revealed")) {
+    issues.push({
+      id: "bug5-compact-chrome-stuck",
+      severity: "high",
+      detail: "zen-compact-chrome-revealed must clear after compact is disabled",
+      bug5Foot: data.bug5Foot,
+    });
+  }
+  if (
+    data.bug5Foot.downloadToTheme !== null &&
+    data.bug5Foot.downloadToTheme > 12
+  ) {
+    issues.push({
+      id: "bug5-foot-wide-gap",
+      severity: "high",
+      detail:
+        "Sidebar foot icons must stay grouped after compact off (download→theme gap too wide)",
+      bug5Foot: data.bug5Foot,
+    });
+  }
+
   done({ issues, data });
 })().catch(e => done({ error: String(e), stack: e.stack }));
 """

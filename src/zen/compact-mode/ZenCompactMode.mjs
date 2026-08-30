@@ -303,12 +303,48 @@ window.gZenCompactModeManager = {
         Services.prefs.setBoolPref("zen.view.compact.hide-toolbar", true);
       }
     } else {
-      this._clearEdgeRevealState();
       this._clearAllPanelLocks();
     }
     this._syncAutohideSidebarAttribute();
     this._syncEdgeHitTargets();
     this._updateEvent();
+  },
+
+  /**
+   * Compact-OFF must drop every hover/reveal attribute compact applied to the
+   * sidebar and top toolbar. Leaving zen-has-hover / zen-compact-chrome-revealed
+   * behind (common after hover-testing before disable) keeps flex layout state
+   * that spreads #zen-sidebar-foot-buttons instead of the grouped Compact-OFF row.
+   */
+  _resetCompactOffChromeState() {
+    this._clearAllPanelLocks();
+    this._clearEdgeRevealState();
+    this._compactChromeRevealed = false;
+    document.documentElement.removeAttribute(this.COMPACT_CHROME_ATTR);
+
+    const toolbar = this._getTopToolbarElement();
+    const hoverAttrs = [
+      "zen-has-hover",
+      "zen-has-implicit-hover",
+      "has-popup-menu",
+      "zen-compact-mode-active",
+      "flash-popup",
+    ];
+    for (const element of [this.sidebar, toolbar]) {
+      if (!element) {
+        continue;
+      }
+      this.clearFlashTimeout("has-hover" + element.id);
+      if (this._removeHoverFrames?.[element.id]) {
+        window.cancelAnimationFrame(this._removeHoverFrames[element.id]);
+        this._removeHoverFrames[element.id] = null;
+      }
+      for (const attr of hoverAttrs) {
+        this._setElementExpandAttribute(element, false, attr);
+      }
+    }
+
+    gZenVerticalTabsManager._resetSidebarFootButtonsAfterCompact?.();
   },
 
   /** Compact Mode: expose sidebar auto-hide for CSS/tests (all layouts). */
@@ -813,6 +849,9 @@ window.gZenCompactModeManager = {
       new CustomEvent("ZenCompactMode:Toggled", { detail: this.preference })
     );
     this._syncEdgeHitTargets();
+    if (!this.preference) {
+      this._resetCompactOffChromeState();
+    }
     // Sidebar+Top Toolbar: hover used to be the first _syncSidebarTopButtonsForReveal
     // caller, leaving the tucked flyout ghosting until mouseenter (Bug 2).
     if (this.preference && !gZenVerticalTabsManager._hasSetSingleToolbar) {

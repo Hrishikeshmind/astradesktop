@@ -634,9 +634,14 @@
   & #zen-sidebar-foot-buttons {
     display: flex;
     flex-direction: row;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 5px;
     width: 100%;
     position: relative;
+
+    & #zen-create-new-button {
+      margin-inline-start: auto;
+    }
   }
 
   & #zen-essentials {
