@@ -87,19 +87,32 @@
   display: flex !important;
 }
 
-/* Sidebar+Top Toolbar: Compact + AI are pinned on #nav-bar, not the sidebar
- * flyout strip — keep them out of the tucked card when compact mode moves
- * #zen-sidebar-top-buttons into #titlebar (Bug 3). */
-:root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
-  #nav-bar-customization-target
-  > :is(#zen-toggle-compact-mode, #astra-ai-sidebar-button) {
-  display: flex !important;
+/* Sidebar+Top Toolbar Compact-ON: the Compact-OFF strip (#zen-sidebar-top-buttons)
+ * is parked as #nav-bar's first child so Compact + AI keep their left-of-urlbar
+ * slot. flex:0 prevents the XUL flex="1" default from covering Back/Forward. */
+:root[zen-compact-mode="true"]:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
+  #nav-bar
+  > #zen-sidebar-top-buttons {
+  flex: 0 0 auto !important;
+  -moz-box-flex: 0 !important;
+  width: auto !important;
+  max-width: fit-content !important;
+  min-width: 0 !important;
+  order: -1;
+}
+
+:root[zen-compact-mode="true"]:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
+  #nav-bar
+  > #zen-sidebar-top-buttons
+  > #zen-sidebar-top-buttons-customization-target {
+  flex: 0 0 auto !important;
+  -moz-box-flex: 0 !important;
 }
 
 :root:not([zen-single-toolbar="true"])[zen-sidebar-expanded="true"]
   #zen-sidebar-top-buttons-customization-target
   > :is(#zen-toggle-compact-mode, #astra-ai-sidebar-button) {
-  display: none !important;
+  display: flex !important;
 }
 
 /* Collapsed rail: match Compact / App Hub / Suraksha at 48px. The 28px Only

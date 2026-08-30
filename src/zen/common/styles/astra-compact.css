@@ -661,3 +661,32 @@
   bottom: var(--zen-compact-card-inset, 8px) !important;
   height: auto !important;
 }
+
+/* Compact-OFF expanded sidebar has padding-top: 0 on the toolbox and the
+ * Compact/AI strip lives in the toolbar row, so New Tab is flush at the
+ * titlebar top. Compact-ON must match: do not keep an empty strip or extra
+ * titlebar offset above New Tab (8f0e5df parked widgets after the urlbar
+ * and left #zen-sidebar-top-buttons in #titlebar at toolbar height). */
+:root[zen-compact-mode='true']:not([zen-single-toolbar='true']):not([customizing]):not(
+    [inDOMFullscreen='true']
+  )
+  #navigator-toolbox[zen-sidebar-expanded='true']:not([animate='true'])
+  #titlebar {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+:root[zen-compact-mode='true']:not([zen-single-toolbar='true']):not([customizing]):not(
+    [inDOMFullscreen='true']
+  )
+  #navigator-toolbox[zen-sidebar-expanded='true']:not([animate='true'])
+  #zen-sidebar-top-buttons {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}

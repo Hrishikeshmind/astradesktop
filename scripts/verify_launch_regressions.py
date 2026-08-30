@@ -124,12 +124,14 @@ const done = arguments[arguments.length - 1];
   await sleep(600);
 
   const navTarget = win.document.getElementById("nav-bar-customization-target");
+  const navBar = win.document.getElementById("nav-bar");
   const compact = win.document.getElementById("zen-toggle-compact-mode");
   const ai = win.document.getElementById("astra-ai-sidebar-button");
   data.preCompact = {
     compactParent: compact?.parentElement?.id || null,
     aiParent: ai?.parentElement?.id || null,
     compactInNav: navTarget?.contains(compact),
+    compactInToolbar: navBar?.contains(compact),
   };
 
   // --- Enable Compact Mode ---
@@ -146,6 +148,9 @@ const done = arguments[arguments.length - 1];
     aiParent: ai?.parentElement?.id || null,
     compactInNav: navTarget?.contains(compact),
     aiInNav: navTarget?.contains(ai),
+    compactInToolbar: navBar?.contains(compact),
+    aiInToolbar: navBar?.contains(ai),
+    stripParent: win.document.getElementById("zen-sidebar-top-buttons")?.parentElement?.id || null,
     toolboxHover: toolbox?.hasAttribute("zen-has-hover"),
     titlebar: cssSnap("#titlebar"),
     topButtons: cssSnap("#zen-sidebar-top-buttons"),
@@ -153,8 +158,8 @@ const done = arguments[arguments.length - 1];
     urlbar: cssSnap("#urlbar"),
   };
 
-  // Bug 3: compact + AI must stay in nav-bar
-  if (!navTarget?.contains(compact) || !navTarget?.contains(ai)) {
+  // Bug 3: Compact + AI stay on the top toolbar (parked strip on #nav-bar).
+  if (!navBar?.contains(compact) || !navBar?.contains(ai)) {
     issues.push({
       id: "bug3-controls-not-in-nav-bar",
       severity: "high",
@@ -199,6 +204,42 @@ const done = arguments[arguments.length - 1];
   await sleep(200);
   gZenCompactModeManager._setCompactChromeRevealed?.(true);
   await sleep(200);
+
+  const compactRect = compact?.getBoundingClientRect();
+  const aiRect = ai?.getBoundingClientRect();
+  const urlbarBox = win.document.getElementById("urlbar-container")?.getBoundingClientRect();
+  const newTab = win.document.getElementById("tabs-newtab-button");
+  const newTabRect = newTab?.getBoundingClientRect();
+  const titlebarEl = win.document.getElementById("titlebar");
+  const titlebarRect = titlebarEl?.getBoundingClientRect();
+  data.bug3Layout = {
+    compact: compactRect && {
+      x: compactRect.x, y: compactRect.y, w: compactRect.width, h: compactRect.height,
+    },
+    ai: aiRect && { x: aiRect.x, y: aiRect.y, w: aiRect.width, h: aiRect.height },
+    urlbar: urlbarBox && { x: urlbarBox.x, y: urlbarBox.y, w: urlbarBox.width, h: urlbarBox.height },
+    newTab: newTabRect && { x: newTabRect.x, y: newTabRect.y, w: newTabRect.width, h: newTabRect.height },
+    titlebar: titlebarRect && { x: titlebarRect.x, y: titlebarRect.y, w: titlebarRect.width, h: titlebarRect.height },
+    stripParent: win.document.getElementById("zen-sidebar-top-buttons")?.parentElement?.id || null,
+    navChildren: [...(navBar?.children || [])].map(el => el.id || el.localName),
+  };
+  if (compactRect && urlbarBox && compactRect.width > 0 && compactRect.left > urlbarBox.left + 8) {
+    issues.push({
+      id: "bug3-controls-not-left-of-urlbar",
+      severity: "high",
+      detail: "Compact toggle is to the right of the urlbar; Compact-OFF places it on the left",
+      bug3Layout: data.bug3Layout,
+    });
+  }
+  if (newTabRect && titlebarRect && newTabRect.top - titlebarRect.top > 24) {
+    issues.push({
+      id: "bug3-sidebar-top-gap",
+      severity: "high",
+      detail: "Empty gap above New Tab in compact sidebar (Compact-OFF has none)",
+      bug3Layout: data.bug3Layout,
+    });
+  }
+
   const urlbar = win.document.getElementById("urlbar");
   const ubRect = urlbar?.getBoundingClientRect();
   if (ubRect) {

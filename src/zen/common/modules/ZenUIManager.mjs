@@ -1504,19 +1504,22 @@ window.gZenVerticalTabsManager = {
   },
 
   /**
-   * Sidebar+Top Toolbar (expanded): Compact + AI stay in #nav-bar with
-   * Back/Forward/Reload — never in the sidebar flyout / top-buttons strip.
+   * Sidebar+Top Toolbar (expanded): Compact + AI stay in
+   * #zen-sidebar-top-buttons — the same parent Compact-OFF uses — and that
+   * strip is parked as the first child of #nav-bar so it sits immediately
+   * left of the urlbar. Do not insert the widgets after #urlbar-container
+   * (that bunched them into the trailing icon group: Bug 3 regression).
    * Collapsed rail and Only Sidebar use other placement paths.
    */
   _placeSidebarTopToolbarControls() {
-    const navTarget = document.getElementById("nav-bar-customization-target");
-    if (!navTarget) {
-      return;
-    }
-    const controlIds = ["zen-toggle-compact-mode", "astra-ai-sidebar-button"];
-    let anchor = document.getElementById("urlbar-container");
-    for (const id of controlIds) {
-      const el = document.getElementById(id);
+    const target = document.getElementById(
+      "zen-sidebar-top-buttons-customization-target"
+    );
+    const topButtons = document.getElementById("zen-sidebar-top-buttons");
+    const navBar = document.getElementById("nav-bar");
+    const compact = document.getElementById("zen-toggle-compact-mode");
+    const ai = document.getElementById("astra-ai-sidebar-button");
+    for (const el of [compact, ai]) {
       if (!el) {
         continue;
       }
@@ -1524,12 +1527,26 @@ window.gZenVerticalTabsManager = {
       el.setAttribute("overflows", "false");
       el.removeAttribute("overflowedItem");
       el.removeAttribute("cui-anchorid");
-      if (anchor && navTarget.contains(anchor)) {
-        anchor.after(el);
-      } else if (!navTarget.contains(el)) {
-        navTarget.append(el);
-      }
-      anchor = el;
+    }
+    // Always restore into the Compact-OFF strip. urlbar.after() was the
+    // right-side bunching; leaving them in titlebar created the New Tab gap.
+    if (compact && target) {
+      target.prepend(compact);
+    }
+    if (ai && compact && target?.contains(compact)) {
+      compact.after(ai);
+    } else if (ai && target && !target.contains(ai)) {
+      target.prepend(ai);
+    }
+    if (
+      gZenCompactModeManager?.preference &&
+      topButtons &&
+      navBar &&
+      !this._hasSetSingleToolbar
+    ) {
+      navBar.prepend(topButtons);
+      topButtons.setAttribute("flex", "0");
+      target?.setAttribute("flex", "0");
     }
     this._syncAiSidebarButton();
   },
@@ -2207,7 +2224,14 @@ window.gZenVerticalTabsManager = {
       }
 
       if (isCompactMode) {
-        titlebar.prepend(topButtons);
+        if (!isSingleToolbar && isSidebarExpanded) {
+          // Compact-OFF puts #zen-sidebar-top-buttons in the toolbar row
+          // (titlebar.before → left of urlbar). Compact-ON's flyout would
+          // swallow that strip, so park it on #nav-bar's leading edge.
+          navBar.prepend(topButtons);
+        } else {
+          titlebar.prepend(topButtons);
+        }
       } else if (isSidebarExpanded) {
         titlebar.before(topButtons);
       } else {
@@ -2358,6 +2382,10 @@ window.gZenVerticalTabsManager = {
             child.setAttribute("flex", "0");
           }
         }
+      } else if (isCompactMode && isSidebarExpanded && !isSingleToolbar) {
+        // Parked on #nav-bar: flex=1 stretched the strip over Back/Forward.
+        topButtons?.setAttribute("flex", "0");
+        buttonsTarget?.setAttribute("flex", "0");
       } else {
         topButtons?.setAttribute("flex", "1");
         buttonsTarget?.setAttribute("flex", "1");
