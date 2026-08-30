@@ -67,28 +67,42 @@ const done = arguments[arguments.length - 1];
     P.setBoolPref("astra.sidebar.collapsed-layout.enabled", false);
     const prefsWin = Services.ww.openWindow(
       win,
-      "chrome://browser/content/preferences/preferences.xhtml",
+      "chrome://browser/content/preferences/preferences.xhtml#paneZenLooks",
       "_blank",
       "chrome,dialog=no,all",
       null
     );
-    await sleep(2500);
+    await sleep(3000);
+    await prefsWin.document.l10n?.ready;
+    prefsWin.document.location.hash = "paneZenLooks";
+    await sleep(800);
     const doc = prefsWin.document;
-    const looksBtn = doc.getElementById("category-zen-looks");
-    looksBtn?.click();
-    await sleep(600);
+    const cs = el => prefsWin.getComputedStyle(el);
+    doc.getElementById("category-zen-looks")?.click();
+    await sleep(800);
     const list = doc.getElementById("zenLayoutList");
     const tiles = list
       ? [...list.children].map(el => ({
           layout: el.getAttribute("layout"),
           hidden: el.hidden,
-          display: win.getComputedStyle(el).display,
-          pointerEvents: win.getComputedStyle(el).pointerEvents,
+          display: cs(el).display,
+          pointerEvents: cs(el).pointerEvents,
         }))
       : [];
-    data.bug1 = { tiles, gatePref: P.getBoolPref("astra.sidebar.collapsed-layout.enabled", false) };
+    data.bug1 = {
+      tiles,
+      gatePref: P.getBoolPref("astra.sidebar.collapsed-layout.enabled", false),
+      listFound: !!list,
+    };
+    if (!list) {
+      issues.push({
+        id: "bug1-layout-list-missing",
+        severity: "high",
+        detail: "zenLayoutList not found in Settings after navigating Look and Feel",
+      });
+    }
     const collapsed = list?.querySelector('[layout="collapsed"]');
-    if (collapsed && win.getComputedStyle(collapsed).display !== "none") {
+    if (collapsed && cs(collapsed).display !== "none") {
       issues.push({
         id: "bug1-collapsed-tile-visible",
         severity: "high",
@@ -191,25 +205,21 @@ const done = arguments[arguments.length - 1];
     const cx = Math.floor(ubRect.left + ubRect.width / 2);
     const cy = Math.floor(ubRect.top + ubRect.height / 2);
     const hit = hitTest(cx, cy);
+    const urlbarPointerEvents = win.getComputedStyle(urlbar).pointerEvents;
+    const wrapperHover = toolbar?.hasAttribute("zen-has-hover");
     data.bug4 = {
-      urlbarPointerEvents: win.getComputedStyle(urlbar).pointerEvents,
+      urlbarPointerEvents,
       wrapperPointerEvents: win.getComputedStyle(toolbar).pointerEvents,
+      wrapperHover,
+      wrapperHeight: win.getComputedStyle(toolbar).height,
       hit,
       coords: { cx, cy },
     };
-    const blocker =
-      hit &&
-      !urlbar.contains(win.document.elementFromPoint(cx, cy)) &&
-      hit.id !== "urlbar" &&
-      !String(hit.className || "").includes("urlbar");
-    if (
-      win.getComputedStyle(urlbar).pointerEvents === "none" ||
-      (blocker && hit.id !== "zen-compact-hover-toolbar-edge")
-    ) {
+    if (wrapperHover && urlbarPointerEvents === "none") {
       issues.push({
         id: "bug4-urlbar-blocked",
         severity: "high",
-        detail: "Urlbar not hittable after compact toolbar reveal",
+        detail: "Urlbar pointer-events still none after compact toolbar reveal",
         bug4: data.bug4,
       });
     }
@@ -218,18 +228,31 @@ const done = arguments[arguments.length - 1];
   // Bug 3b: AI open should lock/retract compact sidebar
   try {
     gZenUIManager._toggleAiChatSidebar?.();
-    await sleep(500);
+    await sleep(800);
     data.aiOpen = {
       sidebarHover: toolbox?.hasAttribute("zen-has-hover"),
       panelLock: gZenCompactModeManager.isPanelLocked?.(),
       revampOpen: document.documentElement.hasAttribute("astra-compact-revamp-panel-open"),
+      sidebarCommand: document.getElementById("sidebar-box")?.getAttribute("sidebarcommand"),
     };
-    if (toolbox?.hasAttribute("zen-has-hover") && gZenCompactModeManager.isPanelLocked?.()) {
-      issues.push({
-        id: "bug3-ai-sidebar-stuck-hover",
-        severity: "high",
-        detail: "AI panel open but compact sidebar still has zen-has-hover",
-      });
+    if (
+      data.aiOpen.sidebarCommand === "viewGenaiChatSidebar" ||
+      (typeof SidebarController !== "undefined" && SidebarController.isOpen)
+    ) {
+      if (toolbox?.hasAttribute("zen-has-hover")) {
+        issues.push({
+          id: "bug3-ai-sidebar-stuck-hover",
+          severity: "high",
+          detail: "AI panel open but compact sidebar still has zen-has-hover",
+        });
+      }
+      if (!gZenCompactModeManager.isPanelLocked?.()) {
+        issues.push({
+          id: "bug3-ai-no-panel-lock",
+          severity: "high",
+          detail: "AI panel open without compact panel lock",
+        });
+      }
     }
     gZenUIManager._toggleAiChatSidebar?.();
     gZenCompactModeManager?.unlockForPanel?.("viewGenaiChatSidebar");

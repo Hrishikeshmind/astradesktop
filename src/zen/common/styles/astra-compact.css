@@ -164,7 +164,9 @@
           pointer-events: none !important;
         }
 
-        & #urlbar:not([breakout-extend='true']) {
+        /* Tucked only — revealed block below must override with !important. */
+        &:not(:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))
+          #urlbar:not([breakout-extend='true']) {
           pointer-events: none !important;
         }
 
@@ -204,6 +206,12 @@
             visibility: visible !important;
             pointer-events: auto !important;
             background: transparent !important;
+          }
+
+          & #urlbar,
+          & #urlbar:not([breakout-extend='true']) {
+            pointer-events: auto !important;
+            opacity: 1 !important;
           }
 
           & #nav-bar,
