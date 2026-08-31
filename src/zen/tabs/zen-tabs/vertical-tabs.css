@@ -640,6 +640,20 @@
     position: relative;
   }
 
+  /* Sidebar+Top Toolbar only: download left, theme centered, new-tab right.
+   * Only Sidebar keeps the tight grouped row in astra-sidebar.css (untouched). */
+  :root:not([zen-single-toolbar="true"]) & #zen-sidebar-foot-buttons {
+    & #zen-toggle-window-scheme {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    & #zen-create-new-button {
+      margin-inline-start: auto;
+    }
+  }
+
   & #zen-essentials {
     --tab-min-height: 44px;
   }
