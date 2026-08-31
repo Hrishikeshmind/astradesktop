@@ -19,10 +19,9 @@ It combines a clean vertical workspace, privacy-focused tools, compact controls 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-5B5BD6.svg)](./LICENSE)
 [![Build Status](https://github.com/Hrishikeshmind/astradesktop/actions/workflows/build.yml/badge.svg?branch=dev)](https://github.com/Hrishikeshmind/astradesktop/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/Hrishikeshmind/astradesktop?include_prereleases\&label=release)](https://github.com/Hrishikeshmind/astradesktop/releases)
-[![Downloads](https://img.shields.io/github/downloads/Hrishikeshmind/astradesktop/total?label=downloads)](https://github.com/Hrishikeshmind/astradesktop/releases)
 [![GitHub Stars](https://img.shields.io/github/stars/Hrishikeshmind/astradesktop?style=flat)](https://github.com/Hrishikeshmind/astradesktop/stargazers)
 [![Open Issues](https://img.shields.io/github/issues/Hrishikeshmind/astradesktop)](https://github.com/Hrishikeshmind/astradesktop/issues)
-[![Contributors](https://img.shields.io/github/contributors/Hrishikeshmind/astradesktop)](https://github.com/Hrishikeshmind/astradesktop/graphs/contributors)
+
 
 <br />
 
