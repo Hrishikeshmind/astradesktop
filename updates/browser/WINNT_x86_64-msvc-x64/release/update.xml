@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <updates>
-  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260830091750" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
-    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/windows.mar" hashFunction="sha512" hashValue="a19c07860ede3ce321a65124296367bde727159b3b9bbec0703f36a45b8e376c65bc688797c63695a0131d8d1f04b6ccf48e6078f127981c06fc566cd1b2bf5a" size="110095505"/>
+  <update type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260830214217" detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/windows.mar" hashFunction="sha512" hashValue="7bc72b03ff1e86e9ff7c0e6a350817f58c2848e9612d2a3ec0d5744acad67fd7b264114ccb7d8399cae0a439da3f8d5ec751c13628f98571621081f7d80077e4" size="110106485"/>
   </update>
 </updates>
