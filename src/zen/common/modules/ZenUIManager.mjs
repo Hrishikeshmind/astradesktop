@@ -1836,8 +1836,34 @@ window.gZenVerticalTabsManager = {
     });
     const box = document.getElementById("sidebar-box");
     const sync = () => this._syncAiSidebarButton();
-    box?.addEventListener("sidebar-show", sync);
-    box?.addEventListener("sidebar-hide", sync);
+    const panelToken = "viewGenaiChatSidebar";
+    const syncAiPanelLock = () => {
+      const sc = window.SidebarController;
+      const command = box.getAttribute("sidebarcommand");
+      const aiOpen = !!(
+        sc?.isOpen &&
+        (sc.currentID === panelToken || command === panelToken)
+      );
+      if (aiOpen && gZenCompactModeManager?.preference) {
+        gZenCompactModeManager.lockForPanel?.(panelToken);
+      } else if (!aiOpen) {
+        gZenCompactModeManager?.unlockForPanel?.(panelToken);
+      }
+    };
+    box?.addEventListener("sidebar-show", () => {
+      sync();
+      // Re-apply after SidebarController settles (sidebar-hide can race on open).
+      requestAnimationFrame(() => {
+        requestAnimationFrame(syncAiPanelLock);
+      });
+    });
+    box?.addEventListener("sidebar-hide", () => {
+      sync();
+      // Closing AI via any path (not only our toggle) must release compact lock.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(syncAiPanelLock);
+      });
+    });
     sync();
   },
 

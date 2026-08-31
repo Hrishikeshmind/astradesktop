@@ -302,6 +302,7 @@ window.gZenCompactModeManager = {
       if (!gZenVerticalTabsManager?._hasSetSingleToolbar) {
         Services.prefs.setBoolPref("zen.view.compact.hide-toolbar", true);
       }
+      this._reconcileStalePanelLocks();
     } else {
       this._clearAllPanelLocks();
     }
@@ -461,14 +462,16 @@ window.gZenCompactModeManager = {
     if (!token) {
       return;
     }
+    // Isolation only applies when compact mode is actively hiding chrome.
+    // Do not record tokens before Compact is on — opening AI/App Hub first
+    // would otherwise leave a stale lock that blocks edge-hover after enable.
+    if (!this.preference || !this.canHideSidebar || !this.sidebar) {
+      return;
+    }
     if (!this._panelLockTokens) {
       this._panelLockTokens = new Set();
     }
     this._panelLockTokens.add(String(token));
-    // Isolation only applies when compact mode is actively hiding chrome.
-    if (!this.preference || !this.canHideSidebar || !this.sidebar) {
-      return;
-    }
     this._hideCompactChromeForIsolatedPanel();
   },
 
@@ -548,6 +551,27 @@ window.gZenCompactModeManager = {
       return;
     }
     this._releasePanelLockVisualState();
+  },
+
+  /**
+   * Compact enable can follow an overlay opened while Compact was off. Drop
+   * panel-lock tokens that no longer match an open overlay so hover-reveal works.
+   */
+  _reconcileStalePanelLocks() {
+    if (!this._panelLockTokens?.size) {
+      return;
+    }
+    const sc = window.SidebarController;
+    const aiId = "viewGenaiChatSidebar";
+    const sidebarBox = document.getElementById("sidebar-box");
+    const command = sidebarBox?.getAttribute("sidebarcommand");
+    const aiOpen = !!(
+      sc?.isOpen &&
+      (sc.currentID === aiId || command === aiId)
+    );
+    if (!aiOpen && this._panelLockTokens.has(aiId)) {
+      this.unlockForPanel(aiId);
+    }
   },
 
   isPanelLocked() {

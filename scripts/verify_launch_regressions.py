@@ -314,7 +314,6 @@ const done = arguments[arguments.length - 1];
   const dlR = dl?.getBoundingClientRect();
   const themeR = theme?.getBoundingClientRect();
   const plusR = plus?.getBoundingClientRect();
-  const toolbox = win.document.getElementById("navigator-toolbox");
   data.bug5Foot = {
     compactMode: document.documentElement.getAttribute("zen-compact-mode"),
     toolboxHover: toolbox?.hasAttribute("zen-has-hover"),
