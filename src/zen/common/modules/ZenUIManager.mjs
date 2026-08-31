@@ -349,8 +349,39 @@ window.gZenUIManager = {
 
   _initCreateNewPopup() {
     const popup = document.getElementById("zenCreateNewPopup");
+    this._syncCreateNewPopupNewTabItem();
+    if (!this._createNewPopupPrefObserver) {
+      this._createNewPopupPrefObserver = {
+        observe: () => {
+          this._syncCreateNewPopupNewTabItem();
+        },
+      };
+    }
+    try {
+      Services.prefs.addObserver(
+        "astra.create-new-popup.show-new-tab",
+        this._createNewPopupPrefObserver
+      );
+    } catch (e) {
+      console.warn("[Astra] create-new popup pref observer failed:", e);
+    }
+    window.addEventListener(
+      "unload",
+      () => {
+        try {
+          Services.prefs.removeObserver(
+            "astra.create-new-popup.show-new-tab",
+            this._createNewPopupPrefObserver
+          );
+        } catch {
+          // ignore
+        }
+      },
+      { once: true }
+    );
 
     popup.addEventListener("popupshowing", () => {
+      this._syncCreateNewPopupNewTabItem();
       const button = document.getElementById("zen-create-new-button");
       if (!button) {
         return;
@@ -375,6 +406,25 @@ window.gZenUIManager = {
         { once: true }
       );
     });
+  },
+
+  _syncCreateNewPopupNewTabItem() {
+    const popup = document.getElementById("zenCreateNewPopup");
+    const item = popup?.querySelector(
+      'menuitem[command="cmd_newNavigatorTab"]'
+    );
+    if (!item) {
+      return;
+    }
+    const show = Services.prefs.getBoolPref(
+      "astra.create-new-popup.show-new-tab",
+      false
+    );
+    if (show) {
+      item.removeAttribute("hidden");
+    } else {
+      item.setAttribute("hidden", "true");
+    }
   },
 
   handleMouseDown(event) {

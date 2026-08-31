@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Marionette verification for launch-blocking regressions (build 147+).
 
-Requires a local Astra binary. Example:
-  set ASTRA_EXE=C:\\path\\to\\astra.exe
-  python scripts/verify_launch_regressions.py
-
-Fresh profile is created each run; no jar-injection.
+Patches vertical-tabs.css into the local dev omni.ja, then runs against
+.tmp-content-scheme/astra-run/astra.exe (or ASTRA_EXE if set).
 """
 
 from __future__ import annotations
@@ -314,6 +311,7 @@ const done = arguments[arguments.length - 1];
   const dlR = dl?.getBoundingClientRect();
   const themeR = theme?.getBoundingClientRect();
   const plusR = plus?.getBoundingClientRect();
+  const footR = foot?.getBoundingClientRect();
   data.bug5Foot = {
     compactMode: document.documentElement.getAttribute("zen-compact-mode"),
     toolboxHover: toolbox?.hasAttribute("zen-has-hover"),
@@ -325,8 +323,10 @@ const done = arguments[arguments.length - 1];
       dlR && themeR
         ? Math.round((themeR.left - (dlR.left + dlR.width)) * 10) / 10
         : null,
+    downloadX: dlR ? Math.round(dlR.left * 10) / 10 : null,
     themeX: themeR ? Math.round(themeR.left * 10) / 10 : null,
     plusX: plusR ? Math.round(plusR.left * 10) / 10 : null,
+    footWidth: footR ? Math.round(footR.width * 10) / 10 : null,
   };
   if (toolbox?.hasAttribute("zen-has-hover")) {
     issues.push({
@@ -344,17 +344,24 @@ const done = arguments[arguments.length - 1];
       bug5Foot: data.bug5Foot,
     });
   }
-  if (
-    data.bug5Foot.downloadToTheme !== null &&
-    data.bug5Foot.downloadToTheme > 12
-  ) {
-    issues.push({
-      id: "bug5-foot-wide-gap",
-      severity: "high",
-      detail:
-        "Sidebar foot icons must stay grouped after compact off (download→theme gap too wide)",
-      bug5Foot: data.bug5Foot,
-    });
+  // Sidebar+Top Toolbar: download left, theme centered, + right (4e2217c).
+  const singleToolbar = document.documentElement.getAttribute("zen-single-toolbar") === "true";
+  if (!singleToolbar && footR && dlR && themeR && plusR) {
+    const footCenter = footR.left + footR.width / 2;
+    const themeCenter = themeR.left + themeR.width / 2;
+    const downloadAtLeft = dlR.left - footR.left <= 12;
+    const plusAtRight = footR.right - (plusR.left + plusR.width) <= 12;
+    const themeCentered = Math.abs(themeCenter - footCenter) <= 22;
+    data.bug5Foot.edgeSpread = { downloadAtLeft, plusAtRight, themeCentered };
+    if (!downloadAtLeft || !plusAtRight || !themeCentered) {
+      issues.push({
+        id: "bug5-foot-not-edge-spread",
+        severity: "high",
+        detail:
+          "Sidebar+Top foot row must stay edge-to-edge after compact off (download left, theme center, + right)",
+        bug5Foot: data.bug5Foot,
+      });
+    }
   }
 
   done({ issues, data });
@@ -362,14 +369,24 @@ const done = arguments[arguments.length - 1];
 """
 
 
+def patch_omni() -> None:
+    import sys
+
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import patch_dev_omni
+
+    patch_dev_omni.patch_omni()
+
+
 def find_exe() -> Path | None:
     env = os.environ.get("ASTRA_EXE")
     if env and Path(env).is_file():
         return Path(env)
     candidates = [
+        ROOT / ".tmp-content-scheme" / "astra-run" / "astra.exe",
         ROOT / ".tmp-feature-verify" / "astra-run" / "astra.exe",
         ROOT / "engine" / "obj-x86_64-pc-windows-msvc" / "dist" / "bin" / "astra.exe",
-        Path(r"C:\Program Files\Astra\astra.exe"),
+        Path(r"C:\Program Files\Astra Browser\astra.exe"),
         Path(os.environ.get("LOCALAPPDATA", "")) / "Astra" / "astra.exe",
     ]
     for c in candidates:
@@ -379,6 +396,8 @@ def find_exe() -> Path | None:
 
 
 def main() -> int:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    patch_omni()
     exe = find_exe()
     if not exe:
         print("ASTRA_EXE not set and no astra.exe found — skipping live Marionette run.", file=sys.stderr)

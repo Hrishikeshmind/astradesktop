@@ -1627,6 +1627,11 @@ Preferences.addAll([
     default: true,
   },
   {
+    id: "astra.create-new-popup.show-new-tab",
+    type: "bool",
+    default: false,
+  },
+  {
     id: "astra.newtab.layout",
     type: "string",
     default: "minimal",

@@ -45,7 +45,7 @@
   <menuseparator/>
   <menuitem data-l10n-id="zen-panel-ui-search-open-tabs" command="cmd_zenSearchOpenTabs" image="chrome://browser/skin/zen-icons/search-glass.svg" />
   <menuitem data-l10n-id="zen-panel-ui-new-empty-split" command="cmd_zenNewEmptySplit" image="chrome://browser/skin/zen-icons/split.svg" />
-  <menuitem data-l10n-id="tabs-toolbar-new-tab" command="cmd_newNavigatorTab" image="chrome://browser/skin/zen-icons/plus.svg" />
+  <menuitem id="zen-create-new-popup-new-tab" hidden="true" data-l10n-id="tabs-toolbar-new-tab" command="cmd_newNavigatorTab" image="chrome://browser/skin/zen-icons/plus.svg" />
 </menupopup>
 
 <menupopup id="zenWorkspaceMoreActions">

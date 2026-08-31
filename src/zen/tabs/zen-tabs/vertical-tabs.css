@@ -138,6 +138,16 @@
   & #urlbar-container[breakout="true"]:has(#urlbar[zen-floating-urlbar="true"]) {
     --urlbar-container-height: 36px !important;
     --urlbar-height: 38px !important;
+    /* New-tab overlay floats the urlbar over content; keep the sidebar slot
+     * dimensionally stable but visually inert (zen-omnibox paints a hover pill
+     * on #urlbar-container:has(floating urlbar) for all layouts). */
+    background: transparent !important;
+    pointer-events: none;
+    box-shadow: none !important;
+
+    & #urlbar[zen-floating-urlbar="true"] {
+      pointer-events: auto;
+    }
   }
 
   & #nav-bar {
@@ -154,6 +164,21 @@
 
   & #PanelUI-menu-button {
     padding: 0 !important;
+  }
+}
+
+/* ==========================================================================
+   Sidebar+Top Toolbar — floating urlbar placeholder
+   ========================================================================== */
+:root:not([zen-single-toolbar="true"]) {
+  & #urlbar-container[breakout="true"]:has(#urlbar[zen-floating-urlbar="true"]) {
+    background: transparent !important;
+    pointer-events: none;
+    box-shadow: none !important;
+
+    & #urlbar[zen-floating-urlbar="true"] {
+      pointer-events: auto;
+    }
   }
 }
 
