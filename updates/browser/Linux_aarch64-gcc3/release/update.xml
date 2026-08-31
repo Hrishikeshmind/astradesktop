@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <updates>
-  <update detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases" type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260830214217">
-    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/linux-aarch64.mar" hashFunction="sha512" hashValue="e32382b57ae8dff2b287b3006c8e6a64c19be0c8d89852c0f5f508044d498481e7b3d3e232d61a260a61e8b9f4eb764cba290f9c35025f126fd5db7a822b3372" size="79795100"/>
+  <update detailsURL="https://github.com/Hrishikeshmind/astradesktop/releases" type="minor" displayVersion="1.19.9b" appVersion="1.19.9b" platformVersion="153.0.4" buildID="20260831065723">
+    <patch type="complete" URL="https://github.com/Hrishikeshmind/astradesktop/releases/download/1.19.9b/linux-aarch64.mar" hashFunction="sha512" hashValue="526eaac9ce3a76e87a5a906d82edde27e2d1697b15ea003b21826ea605416a3e3bb89cdc9ddc3989c9f0690d60e208c3e0108b545c80aadf235191e1be6d960b" size="79797728"/>
   </update>
 </updates>
